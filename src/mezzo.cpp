@@ -1,6 +1,6 @@
 #include "mezzo.h"
 
-#include "sf2.h"
+#include "soundfont2.h"
 
 Mezzo::Mezzo(std::string & sf2_filename)
 {
@@ -11,5 +11,5 @@ Mezzo::Mezzo(std::string & sf2_filename)
 
 Mezzo::~Mezzo()
 {
-  
+  if (soundFont) delete soundFont;  
 }

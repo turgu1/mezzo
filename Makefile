@@ -28,7 +28,7 @@ BOOST_LIBS  := /usr/local/lib
 # ----- Flags, Libraries and Includes ----- 
 
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
-               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -g
+               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -g -fno-inline
 LIB         := -L${BOOST_LIBS} -lsndfile -lportaudio -lasound -lboost_iostreams -pthread -lrt
 INC         := -I$(INCDIR) -I$(BOOST)
 INCDEP      := -I$(INCDIR) -I$(BOOST)

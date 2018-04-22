@@ -34,9 +34,7 @@ void sigintHandler(int dummy)
 
 void showCopyright()
 {
-  using namespace std;
-
-  cout <<
+  std::cout <<
 "\n\
  Simplified BSD License\n\
  ----------------------\n\
@@ -67,7 +65,7 @@ void showCopyright()
  The views and conclusions contained in the software and documentation are those\n\
  of the authors and should not be interpreted as representing official policies,\n\
  either expressed or implied, of the FreeBSD Project.\n\
-" << endl;
+" << std::endl;
 }
 
 void usage()

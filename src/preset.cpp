@@ -1,9 +1,14 @@
 #include "mezzo.h"
 #include "preset.h"
 
-Preset::Preset(std::string & preset_name)
+Preset::Preset(char * presetName, uint16_t midi, uint16_t bank)
 {
-  loaded = false;
+  name    = presetName;
+  midiNbr = midi;
+  bankNbr = bank;
+  loaded  = false;
+  
+  logger.DEBUG("Preset [%s] created.", name.c_str());
 }
 
 Preset::~Preset()
@@ -14,5 +19,11 @@ Preset::~Preset()
 bool Preset::load()
 {
   loaded = true;
+  return true;
+}
+
+bool Preset::unload()
+{
+  loaded = false;
   return true;
 }
