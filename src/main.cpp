@@ -88,16 +88,18 @@ int main(int argc, char **argv)
 {
   char opt;
   std::string * sf2_filename = NULL;
-  
+
   signal(SIGINT, sigintHandler);
   signal(SIGFPE, sigfpeHandler);
 
-  feenableexcept(FE_DIVBYZERO|FE_INVALID);
+  #if __LINUX__
+    feenableexcept(FE_DIVBYZERO|FE_INVALID);
+  #endif
 
   interactive = false;
   silent      = false;
   keepRunning = true;
-  
+
   while ((opt = getopt(argc, argv, "ishc")) != (char)-1) {
     switch (opt) {
     case 'i':
@@ -125,42 +127,42 @@ int main(int argc, char **argv)
     usage();
     exit(1);
   }
-  
+
   mezzo = new Mezzo(*sf2_filename);
 
   // std:thread opener;
   // std:thread feeder;
-  // 
+  //
   // if (piano == NULL) {
   //   logger.FATAL("Unable to allocate memory for PIano.");
   // }
-  // 
+  //
   // if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
   //   logger.FATAL("Unable to start samplesFeeder thread.");
   //  }
-  // 
+  //
   // if (pthread_create(&opener, NULL, sampleFileOpener, NULL)) {
   //   logger.FATAL("Unable to start sample_file_opener thread.");
   // }
-  // 
+  //
   // if (interactive) {
   //   InteractiveMode im;
   //   im.menu();
   //   keepRunning = false;
   // }
-  // 
+  //
   // // Here we wait until the two threads have been stopped
-  // 
+  //
   // pthread_join(feeder, NULL);
   // pthread_join(opener, NULL);
-  // 
+  //
   // // Leave gracefully
-  
+
   if (sf2_filename) delete sf2_filename;
-  
+
   delete mezzo;
 
   logger.INFO("Completed.");
-  
+
   return SUCCESS;
-}  
+}

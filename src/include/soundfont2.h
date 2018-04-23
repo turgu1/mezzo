@@ -15,37 +15,37 @@
 /// synthesizer. It is the foundation of the *mezzo* application.
 ///
 /// This class implements all the basic access methods to a soundfont2
-/// library. 
+/// library.
 
 class SoundFont2 {
 
 public:
-  
+
   std::vector<Instrument *> instruments;
   std::vector<Preset *>     presets;
-  
+
   /// Open a sound font version 2 file. This will retrieve the list
   /// of instruments and presets present in the sound font.
   SoundFont2(std::string & sf2Filename);
   ~SoundFont2();
-  
+
   bool loadInstrument(std::string & instrumentName);
   bool loadInstrument(int instrumentIndex);
-  
+
   bool loadPreset(std::string & presetName);
   bool loadPreset(int presetIndex);
-  
+
 private:
-  
+
   boost::iostreams::mapped_file_source file;
   const char * data;
   bool loaded;
-  
+
   chunk     * findChunk    (char const * id, chunkList & src);
   chunkList * findChunkList(char const * name);
-  
+
   bool retrieveInstrumentList();
-  bool retrievePresetList();  
+  bool retrievePresetList();
 };
 
 #endif
