@@ -108,7 +108,7 @@ bool SoundFont2::loadPreset(std::string & presetName)
 bool SoundFont2::loadPreset(uint16_t presetIndex)
 {
   if (presetIndex >= presets.size()) return false;
-  
+
   chunkList * ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);
@@ -197,7 +197,7 @@ bool SoundFont2::retrieveInstrumentList()
     name[20] = '\0';
 
     instruments.push_back(
-      new Instrument(name, 
+      new Instrument(name,
                      inst[0].wInstBagNdx,
                      inst[1].wInstBagNdx - inst[0].wInstBagNdx));
   }
@@ -230,9 +230,9 @@ bool SoundFont2::retrievePresetList()
     name[20] = '\0';
 
     presets.push_back(
-      new Preset(name, 
-                 preset[0].wPreset, 
-                 preset[0].wBank, 
+      new Preset(name,
+                 preset[0].wPreset,
+                 preset[0].wBank,
                  preset[0].wPresetBagNdx,
                  preset[1].wPresetBagNdx - preset[0].wPresetBagNdx));
   }
@@ -254,19 +254,24 @@ bool SoundFont2::retrieveSamples()
   assert(memcmp(ck->id, "smpl", 4) == 0);
 
   uint16_t * dta = (uint16_t *) ck->data;
-  uint32_t dtaLen = ck->len;
-  
+
   // ---- samples (8 low bits) ----
-  
-  ck = findChunk("sm24", *ckl);
-  uint8_t * dta24 = NULL;
-  if ((ck != NULL) && (ck->len >= dtaLen))  {
-    assert(memcmp(ck->id, "sm24", 4) == 0);
-    dta24 = (uint8_t *) ck->data;
-  }
+
+  #if samples24bits
+    uint8_t * dta24 = NULL;
+    uint32_t dtaLen = ck->len;
+    ck = findChunk("sm24", *ckl);
+    if ((ck != NULL) && (ck->len >= dtaLen))  {
+      assert(memcmp(ck->id, "sm24", 4) == 0);
+      dta24 = (uint8_t *) ck->data;
+    }
+    Sample::setSamplesLocation(dta, dta24);
+  #else
+    Sample::setSamplesLocation(dta);
+  #endif
 
   // --
-  
+
   ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);
@@ -278,15 +283,19 @@ bool SoundFont2::retrieveSamples()
   assert(memcmp(ck->id, "shdr", 4) == 0);
 
   sfSample * smplInfo = (sfSample *) ck->data;
-  
+
   for (unsigned int pos = 0;
        pos < (ck->len - sizeof(sfSample));
        pos += sizeof(sfSample), smplInfo++) {
-         
-    samples.push_back(new Sample(*smplInfo, dta, dta24));
+
+    if (smplInfo->dwSampleRate != 44100) {
+      logger.WARNING("Sample Rate (%d Hz) not compatible with the application", smplInfo->dwSampleRate);
+    }
+
+    samples.push_back(new Sample(*smplInfo));
   }
-  
+
   logger.DEBUG("Samples attributes retrieval completed.");
-  
+
   return true;
 }
