@@ -3,27 +3,61 @@
 #include "mezzo.h"
 #include "instrument.h"
 
-Instrument::Instrument(char      * instrumentName,
-                       int         bagIdx,
-                       int         bagCount,
-                       sfBag     * bags,
-                       sfGenList * generators,
-                       sfModList * modulators)
+Instrument::Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty)
+{
+  name = instrumentName;
+
+  bagIdx   = bagIndex;
+  bagCount = bagQty;
+  
+  init();
+    
+  logger.DEBUG("Instrument [%s] created.", name.c_str());
+}
+
+void Instrument::init()
+{
+  gens  = NULL;
+  mods  = NULL;
+  zones = NULL;
+  
+  zoneCount = 0;
+ 
+  globalZone.generators = NULL;
+  globalZone.modulators = NULL;
+  globalZone.genCount   =    0;
+  globalZone.modCount   =    0;
+
+  for (int i = 0; i < 128; i++) keys[i] = NULL;
+  
+  loaded  = false;
+}
+
+Instrument::~Instrument()
+{
+  if (loaded) unload();
+}
+
+bool Instrument::unload()
+{
+  if (zones) delete [] zones;
+  if (gens)  delete [] gens;
+  if (mods)  delete [] mods;
+
+  init();
+  return true;
+}
+
+bool Instrument::load(sfBag     * bags,
+                      sfGenList * generators,
+                      sfModList * modulators)
 {
   int i, count;
 
-  name = instrumentName;
-  logger.DEBUG("Instrument [%s] created.", name.c_str());
-
-  loaded = false;
-
-  if (bagCount == 0) return;
+  if (bagCount == 0) return false;
 
   zones     = new aZone[bagCount];
   zoneCount = bagCount;
-
-  gens = NULL;
-  mods = NULL;
 
   for (i = 0; i < zoneCount; i++) {
     zones[i].keys.byHi       =    0;
@@ -36,12 +70,7 @@ Instrument::Instrument(char      * instrumentName,
     zones[i].genCount        =    0;
     zones[i].modCount        =    0;
   }
-
-  globalZone.generators = NULL;
-  globalZone.modulators = NULL;
-  globalZone.genCount   =    0;
-  globalZone.modCount   =    0;
-
+  
   int firstGenIdx = bags[bagIdx].wGenNdx;
   int lastGenIdx  = bags[bagIdx + bagCount].wGenNdx;
   int firstModIdx = bags[bagIdx].wModNdx;
@@ -137,6 +166,12 @@ Instrument::Instrument(char      * instrumentName,
             switch (gg->sfGenOper) {
               case keyRange:
                 z->keys = gg->genAmount.ranges;
+                if (keys[z->keys.byLo] == NULL) {
+                  for (int k = z->keys.byLo; k <= z->keys.byHi; k++) {
+                    if (keys[k] != NULL) logger.ERROR("MIDI Keys redondancies in zones for key %d.", k);
+                    keys[k] = z;
+                  }
+                }
                 break;
               case velRange:
                 z->velocities = gg->genAmount.ranges;
@@ -172,30 +207,9 @@ Instrument::Instrument(char      * instrumentName,
       z++;       // Goto next zone
       b++; i++;  // ... and next bag
     }
-
   }
 
-  showZones();
-}
-
-Instrument::~Instrument()
-{
-  if (zones) delete [] zones;
-  if (gens)  delete [] gens;
-  if (mods)  delete [] mods;
-
-  loaded = false;
-}
-
-bool Instrument::load()
-{
   loaded = true;
-  return true;
-}
-
-bool Instrument::unload()
-{
-  loaded = false;
   return true;
 }
 
@@ -208,7 +222,7 @@ void Instrument::showGenerator(sfGenList & g)
 
 void Instrument::showModInfo(sfModulator & m)
 {
-  std::cerr << "[I:"  << m.index
+  std::cerr << "[I:" << m.index
             << " M:" << m.midiContinuousControllerFlag
             << " D:" << m.direction
             << " P:" << m.polarity

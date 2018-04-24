@@ -8,7 +8,7 @@
 
 #include "instrument.h"
 #include "preset.h"
-
+#include "sample.h"
 
 /// A Sound Font Version 2 is a self contain audio samples based suite of
 /// instruments and presets ready for consomption by a sampler based
@@ -23,6 +23,7 @@ public:
 
   std::vector<Instrument *> instruments;
   std::vector<Preset *>     presets;
+  std::vector<Sample *>     samples;
 
   /// Open a sound font version 2 file. This will retrieve the list
   /// of instruments and presets present in the sound font.
@@ -30,10 +31,10 @@ public:
   ~SoundFont2();
 
   bool loadInstrument(std::string & instrumentName);
-  bool loadInstrument(int instrumentIndex);
+  bool loadInstrument(uint16_t instrumentIndex);
 
   bool loadPreset(std::string & presetName);
-  bool loadPreset(int presetIndex);
+  bool loadPreset(uint16_t presetIndex);
 
 private:
 
@@ -46,6 +47,7 @@ private:
 
   bool retrieveInstrumentList();
   bool retrievePresetList();
+  bool retrieveSamples();
 };
 
 #endif

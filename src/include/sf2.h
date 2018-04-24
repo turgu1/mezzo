@@ -79,7 +79,7 @@ const struct generatorDescriptor {
   { "releaseVolEnv",              1, false,      0,   0, false,  true, -12000,   8000, "timecent"   }, // 38
   { "keynumToVolEnvHold",         1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 39
   { "keynumToVolEnvDecay",        1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 40
-  { "instrument",                 2, false,      0,   0, false, false,      0,      0, "index"      }, // 41
+  { "instrumentID",               2, false,      0,   0, false, false,      0,      0, "index"      }, // 41
   { "reserved1",                 -1, false,      0,   0, false, false,      0,      0, ""           }, // 42
   { "keyRange",                   0,  true,      0, 127, false,  true,      0,    127, "MIDI ky#"   }, // 43
   { "velRange",                   0,  true,      0, 127, false,  true,      0,    127, "MIDI vel"   }, // 44
@@ -91,7 +91,7 @@ const struct generatorDescriptor {
   { "endloopAddrsCoarseOffset",   1, false,      0,   0,  true, false,      0,      0, "smpls"      }, // 50
   { "coarseTune",                 1, false,      0,   0, false,  true,   -120,    120, "semitone"   }, // 51
   { "fineTune",                   1, false,      0,   0, false,  true,    -99,     99, "cent"       }, // 52
-  { "sampleID",                   2, false,      0,   0, false, false,      0,      0, "index"      }, // 53
+  { "sampleID",                   2, false,      0,   0,  true, false,      0,      0, "index"      }, // 53
   { "sampleModes",                2,  true,      0,   0,  true, false,      0,      0, "Bit Flags"  }, // 54
   { "reserved3",                 -1, false,      0,   0, false, false,      0,      0, ""           }, // 55
   { "scaleTuning",                1,  true,    100,   0, false, false,      0,      0, "cent/key"   }, // 56
@@ -143,7 +143,7 @@ enum SFGenerator {
   releaseVolEnv,
   keynumToVolEnvHold,
   keynumToVolEnvDecay,
-  instrument,
+  instrumentID,
   reserved1,
   keyRange,
   velRange,
@@ -166,8 +166,32 @@ enum SFGenerator {
 };
 
 enum SFTransform {
-  linear = 0,
+  linear        = 0,
   absoluteValue = 2
+};
+
+enum SFSampleLink {
+  monoSample      =      1,
+  rightSample     =      2,
+  leftSample      =      4,
+  linkedSample    =      8,
+  RomMonoSample   = 0x8001,
+  RomRightSample  = 0x8002,
+  RomLeftSample   = 0x8004,
+  RomLinkedSample = 0x8008
+};
+
+struct sfSample {
+  char     achSampleName[20];
+  uint32_t dwStart;
+  uint32_t dwEnd;
+  uint32_t dwStartloop;
+  uint32_t dwEndloop;
+  uint32_t dwSampleRate;
+  uint8_t  byOriginalPitch;
+  int8_t   chPitchCorrection;
+  uint16_t wSampleLink;
+  SFSampleLink sfSampleType : 16;
 };
 
 struct sfModulator {
