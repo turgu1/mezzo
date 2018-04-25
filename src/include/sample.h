@@ -1,10 +1,12 @@
+#include "copyright.h"
+
 #ifndef _SAMPLE_
 #define _SAMPLE_
 
 #include "sf2.h"
 
-class Sample
-{
+class Sample  : public NewHandlerSupport<Sample> {
+  
 private:
   #if samples24bits
     static uint8_t  * data24;
@@ -26,8 +28,10 @@ private:
   SFSampleLink linkType;
   uint32_t     sizeSample;
   uint32_t     sizeLoop;
+  
+  bool loaded;
 
-  uint32_t     blockSize;
+  static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
 public:
   Sample(sfSample & info);
@@ -39,7 +43,7 @@ public:
     static void setSamplesLocation(uint16_t * dta) { data = dta; };
   #endif
 
-  bool loadFirstBlock(uint32_t size);
+  bool load();
 
   uint32_t getFirstBlock16(uint16_t * dta, bool loop);
   uint32_t getBlockAtOffset16(uint32_t offset, uint16_t * dta, bool loop);

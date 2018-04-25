@@ -1,5 +1,9 @@
+#include "copyright.h"
+
 #include "mezzo.h"
 #include "preset.h"
+
+#include "soundfont2.h"
 
 Preset::Preset(char * presetName, 
                uint16_t midi, 
@@ -7,6 +11,8 @@ Preset::Preset(char * presetName,
                uint16_t bagIndex, 
                uint16_t bagQty)
 {
+  setNewHandler(outOfMemory);
+
   name    = presetName;
   midiNbr = midi;
   bankNbr = bank;
@@ -42,6 +48,11 @@ Preset::~Preset()
   if (loaded) unload();
 }
 
+void Preset::outOfMemory()
+{
+  logger.FATAL("Preset: Unable to allocate memory.");
+}
+
 bool Preset::unload()
 {
   if (zones) delete [] zones;
@@ -58,6 +69,8 @@ bool Preset::load(sfBag     * bags,
 {
   int i, count;
 
+  if (loaded) return true;
+  
   if (bagCount == 0) return false;
 
   zones     = new aZone[bagCount];
@@ -212,7 +225,13 @@ bool Preset::load(sfBag     * bags,
       b++; i++;  // ... and next bag
     }
   }
-
+  
+  // Load instruments
+  
+  for (i = 0; i < zoneCount; i++) {
+    assert(soundFont != NULL);
+    soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
+  }
   loaded = true;
   return true;
 }

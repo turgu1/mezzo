@@ -13,25 +13,26 @@ TARGET      := mezzo
 
 # ----- The Directories, Source, Includes, Objects, Binary and Resources -----
 
-SRCDIR      := src
-INCDIR      := src/include
-BUILDDIR    := obj
-TARGETDIR   := bin
-SRCEXT      := cpp
-DEPEXT      := d
-OBJEXT      := o
-BOOST       := /usr/local/include/boost
-BOOST_LIBS  := /usr/local/lib
+SRCDIR       := src
+INCDIR       := src/include
+BUILDDIR     := obj
+TARGETDIR    := bin
+SRCEXT       := cpp
+DEPEXT       := d
+OBJEXT       := o
+BOOST_INCDIR := /usr/local/include/boost
+BOOST_LIBDIR := /usr/local/lib
 
 
 
 # ----- Flags, Libraries and Includes -----
 
-CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
-               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -g -fno-inline
-LIB         := -L${BOOST_LIBS} -lportaudio -lboost_iostreams -pthread
-INC         := -I$(INCDIR) -I$(BOOST)
-INCDEP      := -I$(INCDIR) -I$(BOOST)
+CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 -lrt\
+               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline
+BOOST_LIBS  := -lboost_iostreams -lboost_program_options
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread
+INC         := -I$(INCDIR) -I$(BOOST_INCDIR)
+INCDEP      := -I$(INCDIR) -I$(BOOST_INCDIR)
 
 # ------------------------------------------------------------------------------
 #    DO NOT EDIT BELOW THIS LINE

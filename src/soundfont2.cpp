@@ -1,8 +1,12 @@
+#include "copyright.h"
+
 #include "mezzo.h"
 #include "soundfont2.h"
 
 SoundFont2::SoundFont2(std::string & sf2Filename)
 {
+  setNewHandler(outOfMemory);
+
   loaded = false;
 
   assert(sizeof(sfModulator   ) ==  2);
@@ -54,18 +58,25 @@ SoundFont2::~SoundFont2()
   if (file.is_open()) file.close();
 }
 
-bool SoundFont2::loadInstrument(std::string & instrumentName)
+void SoundFont2::outOfMemory()
+{
+  logger.FATAL("SoundFont2: Unable to allocate memory.");
+}
+
+bool SoundFont2::loadInstrument(std::string & instrumentName, rangesType & keys)
 {
   for (uint16_t i = 0; i < instruments.size(); i++) {
-    if (instrumentName == instruments[i]->getName()) return loadInstrument(i);
+    if (instrumentName == instruments[i]->getName()) return loadInstrument(i, keys);
   }
   return false;
 }
 
-bool SoundFont2::loadInstrument(uint16_t instrumentIndex)
+bool SoundFont2::loadInstrument(uint16_t instrumentIndex, rangesType & keys)
 {
   if (instrumentIndex >= instruments.size()) return false;
 
+  assert(instruments[instrumentIndex] != NULL);
+  
   chunkList * ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);
@@ -94,7 +105,7 @@ bool SoundFont2::loadInstrument(uint16_t instrumentIndex)
 
   sfGenList * igens = (sfGenList *) ck->data;
 
-  return instruments[instrumentIndex]->load(ibags, igens, imods);
+  return instruments[instrumentIndex]->load(ibags, igens, imods, keys);
 }
 
 bool SoundFont2::loadPreset(std::string & presetName)
@@ -109,6 +120,8 @@ bool SoundFont2::loadPreset(uint16_t presetIndex)
 {
   if (presetIndex >= presets.size()) return false;
 
+  assert(presets[presetIndex] != NULL);
+  
   chunkList * ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);

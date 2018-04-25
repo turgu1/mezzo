@@ -1,3 +1,5 @@
+#include "copyright.h"
+
 #ifndef _SOUNDFONT2_
 #define _SOUNDFONT2_
 
@@ -17,24 +19,7 @@
 /// This class implements all the basic access methods to a soundfont2
 /// library.
 
-class SoundFont2 {
-
-public:
-
-  std::vector<Instrument *> instruments;
-  std::vector<Preset *>     presets;
-  std::vector<Sample *>     samples;
-
-  /// Open a sound font version 2 file. This will retrieve the list
-  /// of instruments and presets present in the sound font.
-  SoundFont2(std::string & sf2Filename);
-  ~SoundFont2();
-
-  bool loadInstrument(std::string & instrumentName);
-  bool loadInstrument(uint16_t instrumentIndex);
-
-  bool loadPreset(std::string & presetName);
-  bool loadPreset(uint16_t presetIndex);
+class SoundFont2  : public NewHandlerSupport<SoundFont2> {
 
 private:
 
@@ -48,6 +33,33 @@ private:
   bool retrieveInstrumentList();
   bool retrievePresetList();
   bool retrieveSamples();
+  
+  static void  outOfMemory();  ///< New operation handler when out of memory occurs
+
+public:
+
+  std::vector<Instrument *> instruments;
+  std::vector<Preset *>     presets;
+  std::vector<Sample *>     samples;
+
+  /// Open a sound font version 2 file. This will retrieve the list
+  /// of instruments and presets present in the sound font.
+  SoundFont2(std::string & sf2Filename);
+  ~SoundFont2();
+
+  bool loadInstrument(std::string & instrumentName, rangesType & keys);
+  bool loadInstrument(uint16_t instrumentIndex, rangesType & keys);
+
+  bool loadPreset(std::string & presetName);
+  bool loadPreset(uint16_t presetIndex);
+
+  bool loadSample(uint16_t sampleIndex) { 
+    if (sampleIndex < samples.size()) {
+      assert(samples[sampleIndex] != NULL);
+      return samples[sampleIndex]->load();
+    }
+    return false;
+  };  
 };
 
 #endif

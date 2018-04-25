@@ -1,3 +1,5 @@
+#include "copyright.h"
+
 #ifndef _PRESET_
 #define _PRESET_
 
@@ -5,8 +7,8 @@
 
 #include "sf2.h"
 
-class Preset
-{
+class Preset : public NewHandlerSupport<Preset> {
+
 private:
   struct aZone {
     rangesType   keys;
@@ -50,6 +52,8 @@ private:
   void showModulator(sfModList & m);
   void showZones();
 
+  static void  outOfMemory();  ///< New operation handler when out of memory occurs
+
 public:
   Preset(char * presetName, 
          uint16_t midi, 
@@ -62,7 +66,7 @@ public:
   bool is_loaded() { return loaded; }
   
   /// Loads / Unloads the preset information in memory. That will include the
-  /// loading of associated instruments.
+  /// loading of associated instruments and samples.
   bool load(sfBag     * bags,
             sfGenList * generators,
             sfModList * modulators);

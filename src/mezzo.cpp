@@ -1,15 +1,26 @@
+#include "copyright.h"
+
 #include "mezzo.h"
 
 #include "soundfont2.h"
 
-Mezzo::Mezzo(std::string & sf2_filename)
+Mezzo::Mezzo()
 {
+  setNewHandler(outOfMemory);
+
   if (soundFont) delete soundFont;
-  soundFont = new SoundFont2(sf2_filename);
+  soundFont = new SoundFont2(soundFontFilename);
   
+  soundFont->loadPreset(0);
 }
 
 Mezzo::~Mezzo()
 {
   if (soundFont) delete soundFont;  
 }
+
+void Mezzo::outOfMemory()
+{
+  logger.FATAL("Mezzo: Unable to allocate memory.");
+}
+

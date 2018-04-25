@@ -1,3 +1,5 @@
+#include "copyright.h"
+
 #ifndef _INSTRUMENT_
 #define _INSTRUMENT_
 
@@ -5,8 +7,8 @@
 
 #include "sf2.h"
 
-class Instrument
-{
+class Instrument : public NewHandlerSupport<Instrument> {
+  
 private:
   struct aZone {
     rangesType   keys;
@@ -46,6 +48,8 @@ private:
   void showModulator(sfModList & m);
   void showZones();
 
+  static void  outOfMemory();  ///< New operation handler when out of memory occurs
+
 public:
   Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty);
   ~Instrument();
@@ -54,9 +58,10 @@ public:
   bool isLoaded() { return loaded; }
 
   /// Loads / Unloads the instrument information in memory.
-  bool load(sfBag     * bags,
-            sfGenList * generators,
-            sfModList * modulators);
+  bool load(sfBag      * bags,
+            sfGenList  * generators,
+            sfModList  * modulators,
+            rangesType & keysToLoad);
   bool unload();
 
   /// Returns the name of the instrument

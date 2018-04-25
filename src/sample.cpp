@@ -1,3 +1,5 @@
+#include "copyright.h"
+
 #include <cstring>
 
 #include "mezzo.h"
@@ -11,6 +13,8 @@ uint16_t * Sample::data = NULL;
 
 Sample::Sample(sfSample & info)
 {
+  setNewHandler(outOfMemory);
+
   char theName[21];
   strncpy(theName, info.achSampleName, 20);
   theName[20]  = '\0';
@@ -36,22 +40,33 @@ Sample::Sample(sfSample & info)
 
   assert(sizeSample > 0);
   assert(data != NULL);
+  
+  loaded = false;
 }
 
 Sample::~Sample()
 {
-  if (firstBlock  ) delete firstBlock;
-  firstBlock   = NULL;
+  if (firstBlock) delete firstBlock;
+  firstBlock = NULL;
 
   #if samples24bits
     if (firstBlock24) delete firstBlock24;
     firstBlock24 = NULL;
   #endif
+  
+  loaded = false;
 }
 
-bool Sample::loadFirstBlock(uint32_t size)
+void Sample::outOfMemory()
 {
-  blockSize = size;
+  logger.FATAL("Sample: Unable to allocate memory.");
+}
+
+bool Sample::load()
+{
+  if (loaded) return true;
+  
+  uint32_t size = SAMPLE_BLOCK_SIZE;
   if (sizeSample < size) size = sizeSample;
 
   firstBlock = new uint16_t[size];
@@ -64,28 +79,31 @@ bool Sample::loadFirstBlock(uint32_t size)
     }
   #endif
 
+  loaded = true;
   return true;
 }
 
 uint32_t Sample::getFirstBlock16(uint16_t * dta, bool loop)
 {
-  if (sizeSample > blockSize) {
-    memcpy(dta, firstBlock, blockSize * 2);
+  if (!loaded) return 0;
+  
+  if (sizeSample > SAMPLE_BLOCK_SIZE) {
+    memcpy(dta, firstBlock, SAMPLE_BLOCK_SIZE * 2);
   }
   else {
     uint32_t i = sizeSample;
     memcpy(dta, firstBlock, sizeSample * 2);
     if ((sizeLoop == 0) || !loop) return sizeSample;
-    while ((i + sizeLoop) < blockSize) {
+    while ((i + sizeLoop) < SAMPLE_BLOCK_SIZE) {
       memcpy(&dta[i], &data[startLoop], sizeLoop * 2);
       i += sizeLoop;
     }
-    if (i < blockSize) {
-      memcpy(&dta[i], &data[startLoop], (blockSize - i) * 2);
+    if (i < SAMPLE_BLOCK_SIZE) {
+      memcpy(&dta[i], &data[startLoop], (SAMPLE_BLOCK_SIZE - i) * 2);
     }
   }
 
-  return blockSize;
+  return SAMPLE_BLOCK_SIZE;
 }
 
 // sizeSample = 21;
@@ -105,8 +123,10 @@ uint32_t Sample::getFirstBlock16(uint16_t * dta, bool loop)
 
 uint32_t Sample::getBlockAtOffset16(uint32_t offset, uint16_t * dta, bool loop)
 {
-  if (sizeSample > (offset + blockSize)) {
-    memcpy(dta, &data[start + offset], blockSize * 2);
+  if (!loaded) return 0;
+  
+  if (sizeSample > (offset + SAMPLE_BLOCK_SIZE)) {
+    memcpy(dta, &data[start + offset], SAMPLE_BLOCK_SIZE * 2);
   }
   else {
     uint32_t i;
@@ -118,17 +138,17 @@ uint32_t Sample::getBlockAtOffset16(uint32_t offset, uint16_t * dta, bool loop)
     else {
       if ((sizeLoop == 0) || !loop) return 0;
       i = sizeLoop - ((offset - sizeSample) % sizeLoop);
-      if (i > blockSize) i = blockSize;
+      if (i > SAMPLE_BLOCK_SIZE) i = SAMPLE_BLOCK_SIZE;
       memcpy(dta, &data[endLoop - i], i * 2);
     }
-    while ((i + sizeLoop) < blockSize) {
+    while ((i + sizeLoop) < SAMPLE_BLOCK_SIZE) {
       memcpy(&dta[i], &data[startLoop], sizeLoop * 2);
       i += sizeLoop;
     }
-    if (i < blockSize) {
-      memcpy(&dta[i], &data[startLoop], (blockSize - i) * 2);
+    if (i < SAMPLE_BLOCK_SIZE) {
+      memcpy(&dta[i], &data[startLoop], (SAMPLE_BLOCK_SIZE - i) * 2);
     }
   }
 
-  return blockSize;
+  return SAMPLE_BLOCK_SIZE;
 }
