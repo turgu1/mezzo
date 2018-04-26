@@ -24,11 +24,14 @@ class Sound;
 class Reverb;
 class Equalizer;
 class Poly;
+class Midi;
 
 #define MEZZO_VERSION  "MEZZO Version 1.0 - SF2 Sampling Synthesizer"
 
 typedef float sample_t;
 typedef sample_t * buffp;
+
+#define PRIVATE             static
 
 #define FRAME_SIZE          (2 * sizeof(sample_t))            ///< A frame contains left and righ samples
 #define LOG_FRAME_SIZE      3                                 ///< Log in base 2 of the frame size (3 bits)
@@ -49,6 +52,8 @@ PUBLIC Sound      * sound;
 PUBLIC Equalizer  * equalizer;
 PUBLIC Reverb     * reverb;
 PUBLIC Poly       * poly;
+PUBLIC Midi       * midi;
+
 PUBLIC Log logger;
 
 #undef PUBLIC

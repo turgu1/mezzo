@@ -5,10 +5,10 @@
 
 #include "soundfont2.h"
 
-Preset::Preset(char * presetName, 
-               uint16_t midi, 
-               uint16_t bank, 
-               uint16_t bagIndex, 
+Preset::Preset(char * presetName,
+               uint16_t midi,
+               uint16_t bank,
+               uint16_t bagIndex,
                uint16_t bagQty)
 {
   setNewHandler(outOfMemory);
@@ -16,12 +16,12 @@ Preset::Preset(char * presetName,
   name    = presetName;
   midiNbr = midi;
   bankNbr = bank;
-  
+
   bagIdx   = bagIndex;
-  bagCount = bagQty;    
-  
+  bagCount = bagQty;
+
   init();
-  
+
   logger.DEBUG("Preset [%s] created.", name.c_str());
 }
 
@@ -30,16 +30,16 @@ void Preset::init()
   gens  = NULL;
   mods  = NULL;
   zones = NULL;
-  
+
   zoneCount = 0;
- 
+
   globalZone.generators = NULL;
   globalZone.modulators = NULL;
   globalZone.genCount   =    0;
   globalZone.modCount   =    0;
 
   for (int i = 0; i < 128; i++) keys[i] = NULL;
-  
+
   loaded  = false;
 }
 
@@ -55,6 +55,12 @@ void Preset::outOfMemory()
 
 bool Preset::unload()
 {
+  for (i = 0; i < zoneCount; i++) {
+    assert(soundFont != NULL);
+    assert(soundFont->instruments[zones[i].instrumentIndex] != NULL);
+    soundFont->instruments[zones[i].instrumentIndex]->unload();
+  }
+
   if (zones) delete [] zones;
   if (gens)  delete [] gens;
   if (mods)  delete [] mods;
@@ -70,13 +76,15 @@ bool Preset::load(sfBag     * bags,
   int i, count;
 
   if (loaded) return true;
-  
+
   if (bagCount == 0) return false;
 
-  zones     = new aZone[bagCount];
+  // We get one more as an end of list indicator (instrumentIndex will be -1)
+  
+  zones     = new aZone[bagCount + 1];
   zoneCount = bagCount;
 
-  for (i = 0; i < zoneCount; i++) {
+  for (i = 0; i <= zoneCount; i++) {
     zones[i].keys.byHi       =    0;
     zones[i].keys.byLo       =    0;
     zones[i].velocities.byLo =    0;
@@ -87,7 +95,7 @@ bool Preset::load(sfBag     * bags,
     zones[i].genCount        =    0;
     zones[i].modCount        =    0;
   }
-  
+
   int firstGenIdx = bags[bagIdx].wGenNdx;
   int lastGenIdx  = bags[bagIdx + bagCount].wGenNdx;
   int firstModIdx = bags[bagIdx].wModNdx;
@@ -225,13 +233,14 @@ bool Preset::load(sfBag     * bags,
       b++; i++;  // ... and next bag
     }
   }
-  
+
   // Load instruments
-  
+
   for (i = 0; i < zoneCount; i++) {
     assert(soundFont != NULL);
     soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
   }
+
   loaded = true;
   return true;
 }

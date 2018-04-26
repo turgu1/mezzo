@@ -27,10 +27,15 @@ BOOST_LIBDIR := /usr/local/lib
 
 # ----- Flags, Libraries and Includes -----
 
-CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 -lrt\
-               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline
+CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
+               -Wno-char-subscripts -Wno-unused-function -O3 -g -fno-inline
+
+# CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
+#               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline
+
+
 BOOST_LIBS  := -lboost_iostreams -lboost_program_options
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread  -lrt
 INC         := -I$(INCDIR) -I$(BOOST_INCDIR)
 INCDEP      := -I$(INCDIR) -I$(BOOST_INCDIR)
 

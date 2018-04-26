@@ -1,8 +1,10 @@
 #include "copyright.h"
 
-#include "PIano.h"
+#include "mezzo.h"
 
 #include "fifo.h"
+
+#include <iostream>
 
 //---- Fifo() ----
 

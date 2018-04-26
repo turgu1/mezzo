@@ -5,8 +5,13 @@
 #include <termios.h>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 #include "mezzo.h"
+#include "midi.h"
+
+#include "reverb.h"
+#include "poly.h"
 
 PRIVATE const int MIDI_EVENT_COUNT  = 50;
 
@@ -111,18 +116,18 @@ void midiCallBack (double timeStamp,
 
     switch (command) {
     case MIDI_NOTE_ON:
-      midi->setNoteOn(data1 + cfg.midi.transpose, data2);
+      midi->setNoteOn(data1 + midiTranspose, data2);
       break;
     case MIDI_NOTE_OFF:
-      midi->setNoteOff(data1 + cfg.midi.transpose, data2);
+      midi->setNoteOff(data1 + midiTranspose, data2);
       break;
     case MIDI_CONTROL:
       switch (data1) {
       case 0x40:
-        if (midi->sustainIsOn() && (data2 < cfg.midi.sustainTreshold)) {
+        if (midi->sustainIsOn() && (data2 < midiSustainTreshold)) {
           midi->setSustainOff();
         }
-        else if (!midi->sustainIsOn() && (data2 >= cfg.midi.sustainTreshold)) {
+        else if (!midi->sustainIsOn() && (data2 >= midiSustainTreshold)) {
           midi->setSustainOn();
         }
         break;
@@ -139,12 +144,12 @@ void midiCallBack (double timeStamp,
       }
       break;
     case MIDI_PROGRAM:
-      if (!sound->holding()) {
-        sound->wait();
-        poly->inactivateAllVoices();
-        samples->loadNextLibrary();
-        sound->conti();
-      }
+      // if (!sound->holding()) {
+      //   sound->wait();
+      //   poly->inactivateAllVoices();
+      //   samples->loadNextLibrary();
+      //   sound->conti();
+      // }
       break;
     default:
         //logger.WARNING("Midi: Ignored Event: %02xh %d %d.\n",
@@ -201,12 +206,12 @@ Midi::Midi()
     for (int i = 0; i < devCount; i++) {
       //cout << i << ": " << midiPort->getPortName(i) << endl;
       if ((devNbr == -1) &&
-          (strcasestr(midiPort->getPortName(i).c_str(), cfg.midi.deviceName) != NULL)) {
+          (strcasestr(midiPort->getPortName(i).c_str(), midiDeviceName) != NULL)) {
         devNbr = i;
       }
     }
 
-    devNbr = cfg.midi.deviceNbr == -1 ? devNbr : cfg.midi.deviceNbr;
+    devNbr = midiDeviceNbr == -1 ? devNbr : midiDeviceNbr;
 
     if (devNbr == -1) {
       devNbr = 0;
@@ -217,7 +222,7 @@ Midi::Midi()
     }
 
     try {
-      midiPort->openPort(devNbr, "PIano Midi Port");
+      midiPort->openPort(devNbr, "Mezzo Midi Port");
     }
     catch (RtMidiError &error) {
       logger.FATAL("Unable to open MIDI Device: %s.", error.what());
@@ -231,7 +236,7 @@ Midi::Midi()
     logger.FATAL("Unable to set Midi CallBack: %s.", error.what());
   }
 
-  if (cfg.midi.channel == -1) {
+  if (midiChannel == -1) {
     logger.INFO("Listening to all MIDI channels.");
   }
   else {
@@ -241,7 +246,7 @@ Midi::Midi()
 
     data[0] = 0;
     for (int i = 0; i < 16; i++) {
-      if (cfg.midi.channel & (1 << i)) {
+      if (midiChannel & (1 << i)) {
         sprintf(val, "%d", i + 1);
         strcat(data, comma);
         strcat(data, val);
@@ -251,7 +256,7 @@ Midi::Midi()
     logger.INFO("Listening to MIDI channels%s.", data);
   }
 
-  channelMask = cfg.midi.channel;
+  channelMask = midiChannel;
 }
 
 //---- setNoteOn() ----
@@ -265,7 +270,8 @@ void Midi::setNoteOn(char note, char velocity)
   }
   else {
     if (velocity == 0) {
-      poly->noteOff(note, sustainOn);
+      soundFont->stopNote(note);
+      // poly->noteOff(note, sustainOn);
     }
     else {
       samplep sample = samples->getNote(note, velocity);
@@ -354,7 +360,7 @@ void Midi::monitorMessages()
 
 //---- interactiveAdjust() ----
 
-void Midi::transposeAdjust() 
+void Midi::transposeAdjust()
 {
   using namespace std;
 
@@ -363,8 +369,8 @@ void Midi::transposeAdjust()
   int value;
 
   while (1) {
-    cout << "Tranpose current value: " << cfg.midi.transpose << endl;
-    cout << "Please enter New transpose value" << endl 
+    cout << "Tranpose current value: " << midiTranspose << endl;
+    cout << "Please enter New transpose value" << endl
          << "(as a number of semitone, between -24 and 24) > ";
 
     cin >> value;
@@ -374,7 +380,7 @@ void Midi::transposeAdjust()
     cout << "Value not valid. Please enter a value between -24 and 24." << endl << endl;
   }
 
-  cfg.midi.transpose = value;
+  midiTranspose = value;
 }
 
 //---- showDevices() ----
@@ -427,7 +433,7 @@ void Midi::selectDevice()
       break;
     }
   }
-   
+
   cin.clear();
   cin.sync();
 
@@ -436,7 +442,7 @@ void Midi::selectDevice()
   if (midiPort->isPortOpen()) midiPort->closePort();
 
   try {
-    midiPort->openPort(devNbr, "PIano Midi Port");
+    midiPort->openPort(devNbr, "Mezzo Midi Port");
   }
   catch (RtMidiError &error) {
     logger.FATAL("Unable to open MIDI Device: %s.", error.what());

@@ -15,9 +15,9 @@ Instrument::Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty
 
   bagIdx   = bagIndex;
   bagCount = bagQty;
-  
+
   init();
-    
+
   logger.DEBUG("Instrument [%s] created.", name.c_str());
 }
 
@@ -26,16 +26,16 @@ void Instrument::init()
   gens  = NULL;
   mods  = NULL;
   zones = NULL;
-  
+
   zoneCount = 0;
- 
+
   globalZone.generators = NULL;
   globalZone.modulators = NULL;
   globalZone.genCount   =    0;
   globalZone.modCount   =    0;
 
   for (int i = 0; i < 128; i++) keys[i] = NULL;
-  
+
   loaded  = false;
 }
 
@@ -69,10 +69,13 @@ bool Instrument::load(sfBag      * bags,
   if (bagCount == 0) return false;
 
   if (!loaded) {
-    zones     = new aZone[bagCount];
+
+    // We get one more as an end of list indicator (sampleIndex will be -1)
+
+    zones     = new aZone[bagCount + 1];
     zoneCount = bagCount;
 
-    for (i = 0; i < zoneCount; i++) {
+    for (i = 0; i <= zoneCount; i++) {
       zones[i].keys.byHi       =    0;
       zones[i].keys.byLo       =    0;
       zones[i].velocities.byLo =    0;
@@ -83,7 +86,7 @@ bool Instrument::load(sfBag      * bags,
       zones[i].genCount        =    0;
       zones[i].modCount        =    0;
     }
-    
+
     int firstGenIdx = bags[bagIdx].wGenNdx;
     int lastGenIdx  = bags[bagIdx + bagCount].wGenNdx;
     int firstModIdx = bags[bagIdx].wModNdx;
@@ -224,10 +227,10 @@ bool Instrument::load(sfBag      * bags,
 
     loaded = true;
   }
-  
+
   for (i = 0; i < zoneCount; i++) {
     if ((zones[i].keys.byLo <= keysToLoad.byHi) && (zones[i].keys.byHi >=keysToLoad.byHi)) {
-      soundFont->loadSample(zones[i].sampleIndex);  
+      soundFont->loadSample(zones[i].sampleIndex);
     }
   }
   return true;
@@ -309,4 +312,24 @@ void Instrument::showZones()
   }
 
   std::cerr << std::endl << "[End]" << std::endl;
+}
+
+void Instrument::playNote(uint8_t note, uint8_t velocity)
+{
+  aZone * z = keys[note];
+  while ((z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
+    if ((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) {
+      soundFont->samples[z->sampleIndex]->playNote(note, velocity);
+    }
+    z++;
+  }
+}
+
+void Instrument::stopNote(uint8_t note)
+{
+  aZone * z = keys[note];
+  while ((z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
+    // soundFont->samples[z->sampleIndex]->stopNote(note);
+    z++;
+  }
 }

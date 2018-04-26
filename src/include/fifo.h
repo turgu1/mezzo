@@ -3,20 +3,20 @@
 #ifndef _FIFO_
 #define _FIFO_
 
-#include <sched.h> 
+#include <sched.h>
 
 #define FIFO_BUFFER_COUNT 6
 
 #define __INC while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count += 1;                                                       \
+  count += 1;                                                  \
   __sync_lock_release(&stateLock);
 
 #define __DEC while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count -= 1;                                                       \
+  count -= 1;                                                  \
   __sync_lock_release(&stateLock);
 
 #define __CLR while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count = 0;                                                       \
+  count = 0;                                                   \
   __sync_lock_release(&stateLock);
 
 class Fifo : public NewHandlerSupport<Fifo> {

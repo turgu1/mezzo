@@ -33,8 +33,10 @@ private:
   bool retrieveInstrumentList();
   bool retrievePresetList();
   bool retrieveSamples();
-  
+
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
+
+  Preset * currentPreset;
 
 public:
 
@@ -53,13 +55,22 @@ public:
   bool loadPreset(std::string & presetName);
   bool loadPreset(uint16_t presetIndex);
 
-  bool loadSample(uint16_t sampleIndex) { 
+  inline bool loadSample(uint16_t sampleIndex) {
     if (sampleIndex < samples.size()) {
       assert(samples[sampleIndex] != NULL);
       return samples[sampleIndex]->load();
     }
     return false;
-  };  
+  };
+
+  inline void playNote(uint8_t note, uint8_t velocity) {
+    if (currentPreset) currentPreset->playNote(note, velocity);
+  };
+  
+  inline void stopNote(uint8_t note) {
+    if (currentPreset) currentPreset->stopNote(note);
+  }
+
 };
 
 #endif

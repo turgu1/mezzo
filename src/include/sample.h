@@ -5,8 +5,10 @@
 
 #include "sf2.h"
 
+typedef class Sample * samplep;
+
 class Sample  : public NewHandlerSupport<Sample> {
-  
+
 private:
   #if samples24bits
     static uint8_t  * data24;
@@ -28,7 +30,7 @@ private:
   SFSampleLink linkType;
   uint32_t     sizeSample;
   uint32_t     sizeLoop;
-  
+
   bool loaded;
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs

@@ -19,6 +19,8 @@ SoundFont2::SoundFont2(std::string & sf2Filename)
   assert(sizeof(genAmountType ) ==  2);
   assert(sizeof(sfGenList     ) ==  4);
 
+  currentPreset = NULL;
+  
   file.open(sf2Filename);
   if (!file.is_open()) {
     logger.ERROR("Unable to open file %s.", sf2Filename.c_str());
@@ -76,7 +78,7 @@ bool SoundFont2::loadInstrument(uint16_t instrumentIndex, rangesType & keys)
   if (instrumentIndex >= instruments.size()) return false;
 
   assert(instruments[instrumentIndex] != NULL);
-  
+
   chunkList * ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);
@@ -121,7 +123,12 @@ bool SoundFont2::loadPreset(uint16_t presetIndex)
   if (presetIndex >= presets.size()) return false;
 
   assert(presets[presetIndex] != NULL);
-  
+
+  if (currentPreset) {
+    currentPreset->unload();
+    currentPreset = NULL;
+  }
+
   chunkList * ckl = findChunkList("pdta");
   if (ckl == NULL) return false;
   assert(memcmp(ckl->listName, "pdta", 4) == 0);
@@ -150,7 +157,8 @@ bool SoundFont2::loadPreset(uint16_t presetIndex)
 
   sfGenList * pgens = (sfGenList *) ck->data;
 
-  return presets[presetIndex]->load(pbags, pgens, pmods);
+  currentPreset = presets[presetIndex];
+  return currentPreset->load(pbags, pgens, pmods);
 }
 
 chunk * SoundFont2::findChunk(char const * id, chunkList & src)

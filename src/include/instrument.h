@@ -8,7 +8,7 @@
 #include "sf2.h"
 
 class Instrument : public NewHandlerSupport<Instrument> {
-  
+
 private:
   struct aZone {
     rangesType   keys;
@@ -41,7 +41,7 @@ private:
   bool loaded;            ///< True if the instrument content (samples) has been loaded in memory
 
   void init();
-  
+
   /// Utils
   void showGenerator(sfGenList & g);
   void showModInfo(sfModulator & m);
@@ -63,6 +63,9 @@ public:
             sfModList  * modulators,
             rangesType & keysToLoad);
   bool unload();
+
+  void playNote(uint8_t note, uint8_t velocity);
+  void stopNote(uint8_t note);
 
   /// Returns the name of the instrument
   std::string & getName() { return name; }

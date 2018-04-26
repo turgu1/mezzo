@@ -3,15 +3,14 @@
 #ifndef _POLY_
 #define _POLY_
 
-#include <sndfile.h>
 #include "mezzo.h"
 
 #include "voice.h"
 #include "fifo.h"
 
-#define MAX_VOICES 256
+#define MAX_VOICES 256  ///< Maximum number of voices at any time
 
-#if USE_INTRINSICS
+#if USE_NEON_INTRINSICS
   #define FADE_OUT_FRAME_COUNT (20*1024)
 #else
   #define FADE_OUT_FRAME_COUNT (40*1024)

@@ -17,7 +17,7 @@
 //
 // 
 
-#if USE_INTRINSICS
+#if USE_NEON_INTRINSICS
   #include <arm_neon.h>
   // PADDING is extra space used at the end of each history vectors to simplify
   // loading data in NEON vectors.
@@ -50,7 +50,7 @@ class Reverb : public NewHandlerSupport<Reverb> {
   typedef struct fifo_struct fifo_t;
   typedef fifo_t * fifop;
 
-  #if USE_INTRINSICS
+  #if USE_NEON_INTRINSICS
 
     // Those are the ARM NEON SIMD vectorized version of PUT and GET.
     // PUTv insure that if data is put after the end of the buffer space, 

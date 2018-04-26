@@ -11,12 +11,12 @@
 #include "mezzo.h"
 #include "duration.h"
 
-const int Reverb::comb_m[REVERB_COMB_COUNT] = { 
-  1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116 
+const int Reverb::comb_m[REVERB_COMB_COUNT] = {
+  1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116
 };
 
-const int Reverb::ap_m[REVERB_AP_COUNT] = { 
-  225, 556, 441, 341 
+const int Reverb::ap_m[REVERB_AP_COUNT] = {
+  225, 556, 441, 341
 };
 
 Reverb::Reverb()
@@ -35,7 +35,7 @@ Reverb::Reverb()
     leftCombs[i].end  = leftCombs[i].buff + frameCount;
     leftCombs[i].head = leftCombs[i].tail = leftCombs[i].buff;
     leftLast[i] = 0.0f;
- 
+
     // right combs
     frameCount += 23;
     sizeInBytes = (frameCount + PADDING) * sizeof(sample_t);
@@ -68,11 +68,11 @@ Reverb::Reverb()
     rightAp[i].head = rightAp[i].tail = rightAp[i].buff;
   }
 
-  roomSize = cfg.reverb.roomSize;
-  damping  = cfg.reverb.damping;
-  width    = cfg.reverb.width;
-  dryWet   = cfg.reverb.dryWet;
-  apGain   = cfg.reverb.apGain;
+  roomSize = reverbRoomSize;
+  damping  = reverbDamping;
+  width    = reverbWidth;
+  dryWet   = reverbDryWet;
+  apGain   = reverbApGain;
 }
 
 //----- outOfMemory() ----
@@ -83,45 +83,45 @@ void Reverb::outOfMemory()
 }
 
 #define LOAD_YN_M(combs_ptr)                   \
-  GETv(&combs_ptr[0], yn_m_ab.val[0]);           \
-  GETv(&combs_ptr[1], yn_m_ab.val[1]);           \
-  GETv(&combs_ptr[2], yn_m_cd.val[0]);           \
+  GETv(&combs_ptr[0], yn_m_ab.val[0]);         \
+  GETv(&combs_ptr[1], yn_m_ab.val[1]);         \
+  GETv(&combs_ptr[2], yn_m_cd.val[0]);         \
   GETv(&combs_ptr[3], yn_m_cd.val[1]);
-  
-#define TRANSPOSE_FORWARD_YN_M()                           \
-  yn_m_ab = vuzpq_f32(yn_m_ab.val[0], yn_m_ab.val[1]);           \
-  yn_m_cd = vuzpq_f32(yn_m_cd.val[0], yn_m_cd.val[1]);           \
-  yn_m_ac = vuzpq_f32(yn_m_ab.val[0], yn_m_cd.val[0]);           \
-  yn_m_bd = vuzpq_f32(yn_m_ab.val[1], yn_m_cd.val[1]); 
 
-#define TRANSPOSE_BACKWARD_YN_M()                           \
-  yn_m_ab = vuzpq_f32(yn_m_ac.val[0], yn_m_bd.val[0]);           \
-  yn_m_cd = vuzpq_f32(yn_m_ac.val[1], yn_m_bd.val[1]);           \
-  yn_m_ac = vuzpq_f32(yn_m_ab.val[0], yn_m_cd.val[0]);           \
+#define TRANSPOSE_FORWARD_YN_M()                           \
+  yn_m_ab = vuzpq_f32(yn_m_ab.val[0], yn_m_ab.val[1]);     \
+  yn_m_cd = vuzpq_f32(yn_m_cd.val[0], yn_m_cd.val[1]);     \
+  yn_m_ac = vuzpq_f32(yn_m_ab.val[0], yn_m_cd.val[0]);     \
+  yn_m_bd = vuzpq_f32(yn_m_ab.val[1], yn_m_cd.val[1]);
+
+#define TRANSPOSE_BACKWARD_YN_M()                          \
+  yn_m_ab = vuzpq_f32(yn_m_ac.val[0], yn_m_bd.val[0]);     \
+  yn_m_cd = vuzpq_f32(yn_m_ac.val[1], yn_m_bd.val[1]);     \
+  yn_m_ac = vuzpq_f32(yn_m_ab.val[0], yn_m_cd.val[0]);     \
   yn_m_bd = vuzpq_f32(yn_m_ab.val[1], yn_m_cd.val[1]);
 
 #define STORE_YN_M(combs_ptr)                   \
-  PUTv(&combs_ptr[0], yn_m_ac.val[0]);           \
-  PUTv(&combs_ptr[1], yn_m_bd.val[0]);           \
-  PUTv(&combs_ptr[2], yn_m_ac.val[1]);           \
+  PUTv(&combs_ptr[0], yn_m_ac.val[0]);          \
+  PUTv(&combs_ptr[1], yn_m_bd.val[0]);          \
+  PUTv(&combs_ptr[2], yn_m_ac.val[1]);          \
   PUTv(&combs_ptr[3], yn_m_bd.val[1]);
 
-#define FILTER(pos)                                                \
-  input = vdupq_n_f32((buffIn[0] + buffIn[1]) * 0.015f);        \
-  yn_m_##pos = vmlaq_n_f32(input,                                \
-                           vmlsq_n_f32(yn_m_##pos,                        \
-                                       vsubq_f32(yn_m_##pos, yn_1),        \
-                                       damping),                        \
-                           roomSize);                                        \
-  yn_1 = yn_m_##pos;                                                        \
-  vst1q_f32(tmp, yn_1);                                                        \
-  *o++ += tmp[0] + tmp[1] + tmp[2] + tmp[3];                                \
+#define FILTER(pos)                                                 \
+  input = vdupq_n_f32((buffIn[0] + buffIn[1]) * 0.015f);            \
+  yn_m_##pos = vmlaq_n_f32(input,                                   \
+                           vmlsq_n_f32(yn_m_##pos,                  \
+                                       vsubq_f32(yn_m_##pos, yn_1), \
+                                       damping),                    \
+                           roomSize);                               \
+  yn_1 = yn_m_##pos;                                                \
+  vst1q_f32(tmp, yn_1);                                             \
+  *o++ += tmp[0] + tmp[1] + tmp[2] + tmp[3];                        \
   buffIn += 2;
 
 #define FILTERS()         \
-  FILTER(ac.val[0]);         \
-  FILTER(bd.val[0]);         \
-  FILTER(ac.val[1]);         \
+  FILTER(ac.val[0]);      \
+  FILTER(bd.val[0]);      \
+  FILTER(ac.val[1]);      \
   FILTER(bd.val[1]);
 
 Reverb::~Reverb()
@@ -144,7 +144,7 @@ void Reverb::process(buffp buff, int frame_count)
 
   Duration * duration = new Duration;
 
-#if USE_INTRINSICS
+#if USE_NEON_INTRINSICS
 
   static float outl[BUFFER_FRAME_COUNT];
   static float outr[BUFFER_FRAME_COUNT];
@@ -157,8 +157,8 @@ void Reverb::process(buffp buff, int frame_count)
   memset(outl, 0, BUFFER_FRAME_COUNT * sizeof(float));
   memset(outr, 0, BUFFER_FRAME_COUNT * sizeof(float));
 
-  for (fr = 0, o_l = outl, o_r = outr; 
-       fr < frame_count; 
+  for (fr = 0, o_l = outl, o_r = outr;
+       fr < frame_count;
        fr += 4, o_l += 4, o_r += 4) {
 
     fifop lc = leftCombs;
@@ -232,11 +232,11 @@ void Reverb::process(buffp buff, int frame_count)
 
     vst1q_f32(&rightLast[4], yn_1);
   }
-    
+
   //buffIn = b;
 
-  for (fr = 0, buffIn = buff, o_l = outl, o_r = outr; 
-       fr < (frame_count >> 2); 
+  for (fr = 0, buffIn = buff, o_l = outl, o_r = outr;
+       fr < (frame_count >> 2);
        fr++, buffIn += 8, o_l += 4, o_r += 4) {
 
     float32x4_t left, right;
@@ -246,8 +246,8 @@ void Reverb::process(buffp buff, int frame_count)
     fifop lap, rap;
     int i;
 
-    for (i = 0, lap = leftAp, rap = rightAp; 
-         i < REVERB_AP_COUNT; 
+    for (i = 0, lap = leftAp, rap = rightAp;
+         i < REVERB_AP_COUNT;
          i++, lap++, rap++) {
 
       float32x4_t vn_m, vn;
@@ -270,7 +270,7 @@ void Reverb::process(buffp buff, int frame_count)
     }
 
     float32x4x2_t bb  = vld2q_f32(buffIn);
-    
+
     bb.val[0] = vmlaq_n_f32(vmulq_n_f32(bb.val[0], dry), left,  wet);
     bb.val[1] = vmlaq_n_f32(vmulq_n_f32(bb.val[1], dry), right, wet);
 
@@ -285,15 +285,15 @@ void Reverb::process(buffp buff, int frame_count)
     fifop lap, rap;
 
     float input = (buff[0] + buff[1]) * 0.015f;
-    
+
     float outl = 0.0f;
     float outr = 0.0f;
 
     float * llast;
     float * rlast;
 
-    for (i = 0, lc = leftCombs, rc = rightCombs, llast = leftLast, rlast = rightLast; 
-         i < REVERB_COMB_COUNT; 
+    for (i = 0, lc = leftCombs, rc = rightCombs, llast = leftLast, rlast = rightLast;
+         i < REVERB_COMB_COUNT;
          i++, lc++, rc++, llast++, rlast++) {
 
       float yn_m, yn;
@@ -313,8 +313,8 @@ void Reverb::process(buffp buff, int frame_count)
       outr += yn;
     }
 
-    for (i = 0, lap = leftAp, rap = rightAp; 
-         i < REVERB_AP_COUNT; 
+    for (i = 0, lap = leftAp, rap = rightAp;
+         i < REVERB_AP_COUNT;
          i++, lap++, rap++) {
 
       float vn_m, vn;
@@ -338,10 +338,10 @@ void Reverb::process(buffp buff, int frame_count)
 #endif
 
   long dur = duration->getElapse();
-  reverbMinDuration = reverbMinDuration == 0 ? dur : MIN(reverbMinDuration, dur); 
+  reverbMinDuration = reverbMinDuration == 0 ? dur : MIN(reverbMinDuration, dur);
   reverbMaxDuration = MAX(reverbMaxDuration, dur);
 
-  delete duration; 
+  delete duration;
 }
 
 //---- adjustValue() ----

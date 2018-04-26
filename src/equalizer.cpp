@@ -4,8 +4,11 @@
 #include <unistd.h>
 #include <termios.h>
 #include <iomanip>
+#include <iostream>
 
 #include "mezzo.h"
+
+#include "equalizer.h"
 
 float Equalizer::gain[BAND_COUNT] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
@@ -44,13 +47,13 @@ const float Equalizer::bpf[BAND_COUNT][5] = {
 
 Equalizer::Equalizer()
 {
-  gain[0] = cfg.equalizer.v60;
-  gain[1] = cfg.equalizer.v150;
-  gain[2] = cfg.equalizer.v400;
-  gain[3] = cfg.equalizer.v1000;
-  gain[4] = cfg.equalizer.v2400;
-  gain[5] = cfg.equalizer.v6000;
-  gain[6] = cfg.equalizer.v15000;
+  gain[0] = equalizer_v60   ;
+  gain[1] = equalizer_v150  ;
+  gain[2] = equalizer_v400  ;
+  gain[3] = equalizer_v1000 ;
+  gain[4] = equalizer_v2400 ;
+  gain[5] = equalizer_v6000 ;
+  gain[6] = equalizer_v15000;
 }
 
 Equalizer::~Equalizer()
@@ -74,7 +77,7 @@ float Equalizer::iirFilter(float input, const float *coef, int n, float *history
 
     history1 = *hist1Ptr;
     history2 = *hist2Ptr;
-    
+
     output -= history1 * *coefPtr++;
     newHist = output - history2 * *coefPtr++;
 

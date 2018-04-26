@@ -20,7 +20,7 @@ int soundCallback(const void *                     inputBuffer,
                   void *                           userData)
 {
   buffp buff = (buffp) outputBuffer;
-  
+
   (void) inputBuffer; /* Prevent "unused variable" warnings. */
   (void) userData;
   (void) timeInfo;
@@ -47,7 +47,7 @@ int soundCallback(const void *                     inputBuffer,
 #define CHKPA(stmt, msg) \
   if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
 
-Sound::Sound() 
+Sound::Sound()
 {
   int err;
 
@@ -83,12 +83,12 @@ Sound::Sound()
     for (int i = 0; i < devCount; i++) {
       devInfo = Pa_GetDeviceInfo(i);
 
-      if ((devNbr == -1) && (strcasestr(devInfo->name, cfg.pcm.deviceName) != NULL)) {
+      if ((devNbr == -1) && (strcasestr(devInfo->name, pcmDeviceName) != NULL)) {
         devNbr = i;
       }
     }
 
-    devNbr = cfg.pcm.deviceNbr == -1 ? devNbr : cfg.pcm.deviceNbr;
+    devNbr = pcmDeviceNbr == -1 ? devNbr : pcmDeviceNbr;
 
     if (devNbr == -1) {
       devNbr = 0;
@@ -107,12 +107,12 @@ Sound::Sound()
     params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
     params.hostApiSpecificStreamInfo = NULL;
 
-    CHKPA(Pa_OpenStream(&stream, 
-                        NULL, &params, samplingRate, 
-                        BUFFER_FRAME_COUNT, flags, &soundCallback, NULL), 
+    CHKPA(Pa_OpenStream(&stream,
+                        NULL, &params, samplingRate,
+                        BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
           "Unable to open PortAudio Stream: %s");
 
-    CHKPA(Pa_StartStream(stream), 
+    CHKPA(Pa_StartStream(stream),
           "Unable to start PortAudio Stream: %s");
   }
 
@@ -126,7 +126,7 @@ Sound::Sound()
 }
 
 //---- ~Sound() ----
- 
+
 Sound::~Sound()
 {
   if (stream) {
@@ -148,7 +148,7 @@ void Sound::outOfMemory()
 
 //---- showDevices() ----
 
-void Sound::showDevices(int devCount) 
+void Sound::showDevices(int devCount)
 {
   using namespace std;
 
@@ -169,7 +169,7 @@ void Sound::showDevices(int devCount)
 
 //---- selectDevice() ----
 
-void Sound::selectDevice() 
+void Sound::selectDevice()
 {
   using namespace std;
 
@@ -220,11 +220,11 @@ void Sound::selectDevice()
     Pa_CloseStream(stream);
   }
 
-  CHKPA(Pa_OpenStream(&stream, 
-                      NULL, &params, samplingRate, 
-                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL), 
+  CHKPA(Pa_OpenStream(&stream,
+                      NULL, &params, samplingRate,
+                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
         "Unable to open PortAudio Stream: %s");
 
-  CHKPA(Pa_StartStream(stream), 
+  CHKPA(Pa_StartStream(stream),
         "Unable to start PortAudio Stream: %s");
 }

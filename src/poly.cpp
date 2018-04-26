@@ -12,7 +12,7 @@
 #include "mezzo.h"
 #include "duration.h"
 
-#if USE_INTRINSICS
+#if USE_NEON_INTRINSICS
 # include <arm_neon.h>
 #endif
 
@@ -323,7 +323,7 @@ int Poly::mixer(buffp buff, int frameCount)
         }
       }
 
-      #if USE_INTRINSICS
+      #if USE_NEON_INTRINSICS
 
         // This is an ARM NEON optimized mixing algorithm. We gain a 
         // factor 4 of performance improvement using those vectorized 
