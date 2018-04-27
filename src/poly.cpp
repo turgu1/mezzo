@@ -93,9 +93,11 @@ Poly::Poly()
     fadeOutScaleDown[i] = powf(1.0 - (i / length), 6);
   }
 
-  tmpbuff = new sample_t[FRAME_BUFFER_SAMPLE_COUNT];
-
-  memset(tmpbuff, 0, FRAME_BUFFER_SIZE);
+  tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
+  voiceBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
+  
+  memset(tmpBuff,   0, FRAME_BUFFER_SIZE );
+  memset(voiceBuff, 0, SAMPLE_BUFFER_SIZE);
 }
 
 //---- ~Poly() ----
@@ -116,7 +118,7 @@ Poly::~Poly()
     voice = next;
   }
 
-  delete [] tmpbuff;
+  delete [] tmpBuff;
 
   logger.INFO("Max Nbr of Voices used: %d.\n", maxVoiceCount);
 }
@@ -274,12 +276,15 @@ int Poly::mixer(buffp buff, int frameCount)
 
   while (voice != NULL) {
 
-    int count = voice->getSamples(tmpbuff, frameCount);
+    int count = voice->getSamples(voiceBuff, frameCount);
 
     if (count > 0) {
 
+      // TODO: Integrate panning with other transformation
+      stereoPanning(tmpBuff, voiceBuff, voice->getPan(), count);
+      
       buffp buffOut = buff;
-      buffp buffIn  = tmpbuff;
+      buffp buffIn  = tmpBuff;
 
       float   voiceGain = voice->getGain() * masterVolume;
       float * fadeOutGain = &fadeOutScaleDown[voice->getFadeOutPos()];
@@ -300,8 +305,8 @@ int Poly::mixer(buffp buff, int frameCount)
 
         // Ensure that there is a multiple of 4 floating point samples in the buffer
         while (count & 1) {
-          tmpbuff[count << 1] = 0;
-          tmpbuff[(count++ << 1) + 1] = 0.0;
+          tmpBuff[count << 1] = 0;
+          tmpBuff[(count++ << 1) + 1] = 0.0;
         }
         i = count >> 1;
 

@@ -78,12 +78,12 @@ Sound::Sound()
       logger.FATAL("Unable to get audio device count: %s.", Pa_GetErrorText(devCount));
     }
 
-    if (!silent) showDevices(devCount);
+    //if (!silent) showDevices(devCount);
 
     for (int i = 0; i < devCount; i++) {
       devInfo = Pa_GetDeviceInfo(i);
 
-      if ((devNbr == -1) && (strcasestr(devInfo->name, pcmDeviceName) != NULL)) {
+      if ((devNbr == -1) && (strcasestr(devInfo->name, pcmDeviceName.c_str()) != NULL)) {
         devNbr = i;
       }
     }
@@ -161,6 +161,8 @@ void Sound::showDevices(int devCount)
   for (int i = 0; i < devCount; i++) {
     devInfo = Pa_GetDeviceInfo(i);
 
+    assert(devInfo != NULL);
+    
     cout << "Device " << i << ": " << devInfo->name << endl;
   }
 

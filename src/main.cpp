@@ -4,6 +4,9 @@
 #include <iostream>
 #include <csignal>
 #include <fenv.h>
+#include <pthread.h>
+
+#include "interactive_mode.h"
 
 //---- sigfpe_handler ----
 
@@ -52,28 +55,25 @@ int main(int argc, char **argv)
   
   mezzo = new Mezzo();
 
-  // std:thread feeder;
-  //
-  // if (piano == NULL) {
-  //   logger.FATAL("Unable to allocate memory for PIano.");
-  // }
-  //
+  assert(mezzo != NULL);
+  
+  pthread_t feeder;
+  
   // if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
   //   logger.FATAL("Unable to start samplesFeeder thread.");
-  //  }
-  //
-  // if (interactive) {
-  //   InteractiveMode im;
-  //   im.menu();
-  //   keepRunning = false;
   // }
-  //
-  // // Here we wait until the two threads have been stopped
-  //
+
+  if (interactive) {
+    InteractiveMode im;
+    im.menu();
+    keepRunning = false;
+  }
+
+  // Here we wait until the two threads have been stopped
+  
   // pthread_join(feeder, NULL);
-  // pthread_join(opener, NULL);
-  //
-  // // Leave gracefully
+
+  // Leave gracefully
 
   delete mezzo;
 

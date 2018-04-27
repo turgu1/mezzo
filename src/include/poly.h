@@ -20,7 +20,8 @@ class Poly : public NewHandlerSupport<Poly> {
   voicep       voices;
   volatile int voiceCount;
   volatile int maxVoiceCount;
-  buffp        tmpbuff;
+  buffp        tmpBuff;
+  buffp        voiceBuff;
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 

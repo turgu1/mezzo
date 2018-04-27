@@ -29,9 +29,9 @@ char InteractiveMode::showMenuGetSelection()
        << "s - Sound device selection"     << endl
        << "m - Midi device selection"      << endl
        << "t - Transpose"                  << endl
-       << "l - dump sample Library"        << endl
+       // << "l - dump sample Library"        << endl
        << "v - dump Voices state"          << endl
-       << "c - show Config read from file" << endl
+       // << "c - show Config read from file" << endl
        << "x - eXit"                       << endl << endl;
 
   cout << "Your choice > ";
@@ -68,15 +68,15 @@ void InteractiveMode::menu()
     case 't':
       midi->transposeAdjust();
       break;
-    case 'l':
-      samples->showNotes();
-      break;
+    // case 'l':
+    //   samples->showNotes();
+    //   break;
     case 'v':
       poly->showState();
       break;
-    case 'c':
-      config->showState();
-      break;
+    // case 'c':
+    //   config->showState();
+    //   break;
     case 'x':
       return;
     default:

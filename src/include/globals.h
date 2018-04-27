@@ -40,6 +40,7 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 #define PRIVATE             static
 
 #define FRAME_SIZE          (2 * sizeof(sample_t))            ///< A frame contains left and righ samples
+#define SAMPLE_SIZE         (sizeof(sample_t))                ///< A sample contains a float
 #define LOG_FRAME_SIZE      3                                 ///< Log in base 2 of the frame size (3 bits)
 #define LOG_SAMPLE_SIZE     2                                 ///< Log in base 2 of the sample size (2 bits)
 #define SAMPLING_RATE       44100                             ///< The usual sampling rate
@@ -57,6 +58,14 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 PUBLIC volatile bool keepRunning;
 PUBLIC bool          interactive;
 PUBLIC bool          silent;
+
+// Statistics
+
+PUBLIC int      maxVoicesMixed;     ///< Maximum number of voices that have been mixed simultaneously
+PUBLIC long     mixerDuration;      ///< Maximum duration of the mixer function during play (nanoseconds)
+PUBLIC long     reverbMinDuration;  ///< Minimum duration of the reverb process
+PUBLIC long     reverbMaxDuration;  ///< Maximim duration of the reverb process
+PUBLIC sample_t maxVolume;          ///< Maximum gain used un mixing voices
 
 PUBLIC Mezzo      * mezzo;
 PUBLIC SoundFont2 * soundFont;

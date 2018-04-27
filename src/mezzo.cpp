@@ -12,6 +12,16 @@ Mezzo::Mezzo()
   soundFont = new SoundFont2(soundFontFilename);
   
   soundFont->loadPreset(0);
+  
+  reverb    = new Reverb();
+  poly      = new Poly();
+  equalizer = new Equalizer();
+  sound     = new Sound();
+  midi      = new Midi();
+
+  sound->conti();
+  
+  logger.INFO("Ready!");
 }
 
 Mezzo::~Mezzo()

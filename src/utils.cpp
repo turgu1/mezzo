@@ -48,3 +48,30 @@ bool fileExists(const char * name) {
   struct stat buffer;   
   return (stat (name, &buffer) == 0); 
 }
+
+void stereoPanning(buffp dst, buffp src, int16_t pan, int len)
+{
+  float left, right;
+  
+  left  = MIN(1.0, (pan - 500.0) / -1000.0);
+  right = MIN(1.0, (pan + 500.0) /  1000.0);
+  
+  if (left < 0.001) {
+    while (len--) {
+      *dst++ = 0.0;
+      *dst++ = *src++;
+    }
+  }
+  else if (right < 0.001) {
+    while (len--) {
+      *dst++ = *src++;
+      *dst++ = 0.0;
+    }    
+  }
+  else {
+    while (len--) {
+      *dst++ = *src * left;
+      *dst++ = *src++ * right;
+    }    
+  }
+}

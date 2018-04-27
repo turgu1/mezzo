@@ -77,32 +77,26 @@ bool loadConfig(int argc, char **argv)
     ;
 
     conf.add_options()
+      ("volume",                  po::value<uint16_t>(&volume),
+                                  "Master Volume")
+      ("sampling-rate",           po::value<uint32_t>(&samplingRate)->default_value(44100),
+                                  "sampling rate")
       ("interactive,i",           "run with interactive mode")
       ("silent,s",                "don't show any message on console")
       ("replay,r",                po::value<bool>(&replayEnabled)->default_value(false),
                                   "keep last part of song for replay")
       ("sf2-folder,d",            po::value<std::string>(&sf2Folder),
                                   "set folder to find sf2 libraries")
-      ("equalizer-60",            po::value<float>(&equalizer_v60),
-                                  "Equalizer  60 Hz")
-      ("equalizer-150",           po::value<float>(&equalizer_v150),
-                                   "Equalizer 150 Hz")
-      ("equalizer-400",           po::value<float>(&equalizer_v400),
-                                  "Equalizer 400 Hz")
-      ("equalizer-1000",          po::value<float>(&equalizer_v1000),
-                                  "Equalizer   1 kHz")
-      ("equalizer-2400",          po::value<float>(&equalizer_v2400),
-                                  "Equalizer 2.4 kHz")
-      ("equalizer-6000",          po::value<float>(&equalizer_v6000),
-                                  "Equalizer   6 kHz")
-      ("equalizer-15000",         po::value<float>(&equalizer_v150000),
-                                  "Equalizer  15 kHz")
+      ("pcm-device-nbr",          po::value<int>(&pcmDeviceNbr),
+                                  "PCM Output Device Nbr")
+      ("pcm-device-name",         po::value<std::string>(&pcmDeviceName),
+                                  "PCM Output Device Name")
       ("midi-channel",            po::value<int>(&midiChannel),
                                   "Midi Channel or -1 for omni")
       ("midi-device-nbr",         po::value<int>(&midiDeviceNbr),
-                                  "Midi Device Nbr")
+                                  "Midi Input Device Nbr")
       ("midi-device-name",        po::value<std::string>(&midiDeviceName),
-                                  "Midi Device Name")
+                                  "Midi Input Device Name")
       ("midi-sustain-treshold",   po::value<int>(&midiSustainTreshold),
                                   "Midi Sustain Treshold")
       ("midi-transpose",          po::value<int>(&midiTranspose),
@@ -117,12 +111,20 @@ bool loadConfig(int argc, char **argv)
                                   "Reverb Dry / Wet")
       ("reverb-ap-gain",          po::value<float>(&reverbApGain),
                                   "Reverb Ap Gain")
-      ("master-volume",           po::value<float>(&masterVolume),
-                                  "Master Volume")
-      ("pcm-device-nbr",         po::value<int>(&pcmDeviceNbr),
-                                  "PCM Device Nbr")
-      ("pcm-device-name",        po::value<std::string>(&pcmDeviceName),
-                                  "PCM Device Name")
+      ("equalizer-60",            po::value<float>(&equalizer_v60),
+                                  "Equalizer  60 Hz")
+      ("equalizer-150",           po::value<float>(&equalizer_v150),
+                                   "Equalizer 150 Hz")
+      ("equalizer-400",           po::value<float>(&equalizer_v400),
+                                  "Equalizer 400 Hz")
+      ("equalizer-1000",          po::value<float>(&equalizer_v1000),
+                                  "Equalizer   1 kHz")
+      ("equalizer-2400",          po::value<float>(&equalizer_v2400),
+                                  "Equalizer 2.4 kHz")
+      ("equalizer-6000",          po::value<float>(&equalizer_v6000),
+                                  "Equalizer   6 kHz")
+      ("equalizer-15000",         po::value<float>(&equalizer_v15000),
+                                  "Equalizer  15 kHz")
     ;
 
     hidden.add_options()

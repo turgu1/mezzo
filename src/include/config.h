@@ -21,7 +21,8 @@ PUBLIC std::string soundFontFilename;
 
 PUBLIC po::variables_map config;
 
-PUBLIC bool replayEnabled;
+PUBLIC uint32_t samplingRate;
+PUBLIC bool     replayEnabled;
 
 PUBLIC float equalizer_v60;
 PUBLIC float equalizer_v150;
@@ -43,17 +44,14 @@ PUBLIC float reverbWidth;
 PUBLIC float reverbDryWet;
 PUBLIC float reverbApGain;
 
-
-
-
-
-
 PUBLIC std::string pcmDeviceName;
 PUBLIC int         pcmDeviceNbr;
 
-PUBLIC float      masterVolume;
+PUBLIC float       masterVolume;
+PUBLIC uint16_t    volume;
 
 bool loadConfig(int argc, char **argv);
+bool showConfig();
 
 #undef PUBLIC
 #endif
