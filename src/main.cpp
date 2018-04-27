@@ -52,7 +52,6 @@ int main(int argc, char **argv)
   
   mezzo = new Mezzo();
 
-  // std:thread opener;
   // std:thread feeder;
   //
   // if (piano == NULL) {
@@ -62,10 +61,6 @@ int main(int argc, char **argv)
   // if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
   //   logger.FATAL("Unable to start samplesFeeder thread.");
   //  }
-  //
-  // if (pthread_create(&opener, NULL, sampleFileOpener, NULL)) {
-  //   logger.FATAL("Unable to start sample_file_opener thread.");
-  // }
   //
   // if (interactive) {
   //   InteractiveMode im;

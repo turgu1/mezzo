@@ -6,12 +6,9 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <cstring>
 
 #include "mezzo.h"
-#include "midi.h"
-
-#include "reverb.h"
-#include "poly.h"
 
 PRIVATE const int MIDI_EVENT_COUNT  = 50;
 
@@ -206,7 +203,7 @@ Midi::Midi()
     for (int i = 0; i < devCount; i++) {
       //cout << i << ": " << midiPort->getPortName(i) << endl;
       if ((devNbr == -1) &&
-          (strcasestr(midiPort->getPortName(i).c_str(), midiDeviceName) != NULL)) {
+          (strcasestr(midiPort->getPortName(i).c_str(), midiDeviceName.c_str()) != NULL)) {
         devNbr = i;
       }
     }
@@ -270,14 +267,10 @@ void Midi::setNoteOn(char note, char velocity)
   }
   else {
     if (velocity == 0) {
-      soundFont->stopNote(note);
-      // poly->noteOff(note, sustainOn);
+      poly->noteOff(note, sustainOn);
     }
     else {
-      samplep sample = samples->getNote(note, velocity);
-      if (sample != NULL) {
-        poly->addVoice(sample, note, (float) velocity / sample->getVolume());
-      }
+      soundFont->playNote(note, velocity);
     }
   }
 }

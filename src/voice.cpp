@@ -28,7 +28,7 @@ Voice::Voice()
   stateLock     = 0;
   sample        = NULL;
   samplePos     = 0;
-  framePos      = 0;
+  sampleRealPos = 0;
   fadingOut     = false;
   fadeOutPos    = 0;
   noteIsOn      = false;
@@ -36,7 +36,7 @@ Voice::Voice()
   fifo          = new Fifo;
   next          = NULL;
 
-  scaleBuff = new sample_t[BUFFER_SAMPLE_COUNT];
+  scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
   scaleBuffPos = -1;
 
@@ -69,21 +69,24 @@ void Voice::outOfMemory()
 
 //---- setup() ----
 
-void Voice::setup(samplep sample, char note, float gain)
+void Voice::setup(samplep sample, char note, float gain, int16_t pan)
 {
+  // TODO: Why gain is squared??
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
   this->gain     = gain * gain; // Gain is squared
-  samplePos      = 0;
-  framePos       = 0;
+  this->pan      = pan;
+  samplePos      =  0;
+  sampleRealPos  =  0;
   scaleBuffPos   = -1;
 
   fadingOut      = false;
   fadeOutPos     = 0;
   noteIsOn       = true;
   active         = false;
-
+  fifoLoadPos    = 0;
+  
   fifo->clear();
 
   BEGIN();
@@ -91,123 +94,101 @@ void Voice::setup(samplep sample, char note, float gain)
   END();
 }
 
-//---- getNormalFrames() ----
+//---- getNormalSamples() ----
 
-int Voice::getNormalFrames(buffp buff, int frameCount)
+int Voice::getNormalSamples(buffp buff)
 {
-  int readFrameCount;
+  int readSampleCount;
 
   if (isInactive()) {
-    logger.DEBUG("Voice inactive in getFrames()!");
+    logger.DEBUG("Voice inactive in getSamples()!");
     return 0;
   }
 
-  if (samplePos >= sample->getFrameCount()) {
-    // We already have read all cached data from sample structure. It's now
-    // time to get remaining data from the fifo circle
-    if (!fifo->isEmpty()) {
-      memcpy(buff,
-	     fifo->getHead(),
-	     (readFrameCount = fifo->getFrameCount()) << LOG_FRAME_SIZE);
-      fifo->pop();
-    }
-    else {
-      // No more data available or the thread was not fast enough to get data on time
-      readFrameCount = 0;
-      logger.DEBUG("Underrun!!!");
-      fifo->showState();
-      logger.FATAL("Stop!");
-    }
+  if (fifo->isEmpty()) {
+    // No more data available or the thread was not fast enough to get data on time
+    readSampleCount = 0;
+    logger.DEBUG("Underrun!!!");
+    fifo->showState();
+    logger.FATAL("Stop!");
   }
   else {
-    // Read data from the cached buffer in the sample structure.
-    if ((samplePos + frameCount) > sample->getFrameCount()) {
-      readFrameCount = sample->getFrameCount() - samplePos;
-    }
-    else {
-      readFrameCount = frameCount;
-    }
-
     memcpy(buff,
-           &sample->getBuff()[samplePos << 1],
-           readFrameCount << LOG_FRAME_SIZE);
+     fifo->getHead(),
+     (readSampleCount = fifo->getSampleCount()) << LOG_SAMPLE_SIZE);
+    fifo->pop();
   }
 
-  samplePos += readFrameCount;
-  return readFrameCount;
+  samplePos += readSampleCount;
+  return readSampleCount;
 }
 
-//---- getScaledFrames()
+//---- getScaledSamples()
 //
 // This is called when the required samples must be reconstructed from
-// another note data that is lower in pitch than the required one.
-int Voice::getScaledFrames(buffp buff, int frameCount)
+// another note data that is of a different pitch than the required one.
+int Voice::getScaledSamples(buffp buff, int sampleCount)
 {
   int   count = 0;
 
-  assert((note - sample->getNote()) >= 0);
+  //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[note - sample->getNote()];
+  float factor = scaleFactors[note - sample->getPitch()];
 
   assert(scaleBuff != NULL);
   assert(buff != NULL);
-  assert(frameCount > 0);
+  assert(sampleCount > 0);
 
   if (scaleBuffPos == -1) {
-    if (getNormalFrames(scaleBuff, BUFFER_FRAME_COUNT) == 0) return 0;
+    if (getNormalSamples(scaleBuff) == 0) return 0;
     scaleBuffPos = 0;
   }
 
-  float pos = framePos * factor;
+  float pos = sampleRealPos * factor;
+  
+  #if USE_NEON_INTRINSICS
+    float aa[4], bb[4], cc[4];
 
-  float aa[4], bb[4], cc[4];
+    float  * a = aa;
+    float  * b = bb;
+    float  * c = cc;
+    float old = 0;
 
-  float  * a = aa;
-  float  * b = bb;
-  float  * c = cc;
-  float old1 = 0, old2 = 0;
+    while (sampleCount--) {
 
-  while (frameCount--) {
+      float fipos;
 
-    float fipos;
+      float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
-    float diff = modff(pos, &fipos);
-    int   ipos = fipos - scaleBuffPos;
-    int   idx;
+      if (ipos >= 0) {
+        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
+          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        }
 
-    if (ipos >= 0) {
-      while (ipos >= BUFFER_FRAME_COUNT) {
-        if (getNormalFrames(scaleBuff, BUFFER_FRAME_COUNT) == 0) goto endLoop;
-        ipos -= BUFFER_FRAME_COUNT;
-        scaleBuffPos += BUFFER_FRAME_COUNT;
+        old = *a++ = scaleBuff[ipos];
+      }
+      else {
+        // We already have loaded next samples. Expected ipos to be -1 and related to
+        // the data already retrieved in the preceeding loop...
+        *a++ = old;
+
+        assert(ipos == -1);
       }
 
-      old1 = *a++ = scaleBuff[idx = (ipos << 1)];
-      old2 = *a++ = scaleBuff[idx + 1];
-    }
-    else {
-      // We already have loaded next frames. Expected ipos to be -1 and related to
-      // the data already retrieved in the preceeding loop...
-      *a++ = old1;
-      *a++ = old2;
+      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+        if (getNormalSamples(scaleBuff) == 0) break;
+        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      }
 
-      assert(ipos == -1);
-    }
+      // We do a linear approximation... not the best, but good enough...
+      *b++ = scaleBuff[ipos];
+      *c++ = diff;
 
-    if (++ipos >= BUFFER_FRAME_COUNT) {
-      if (getNormalFrames(scaleBuff, BUFFER_FRAME_COUNT) == 0) break;
-      ipos -= BUFFER_FRAME_COUNT;
-      scaleBuffPos += BUFFER_FRAME_COUNT;
-    }
-
-    // We do a linear approximation... not the best, but good enough...
-    *b++ = scaleBuff[idx = (ipos << 1)];
-    *b++ = scaleBuff[idx + 1];
-    *c++ = diff;
-    *c++ = diff;
-
-    if ((++count & 1) == 0) {
-      #if USE_NEON_INTRINSICS
+      if ((++count & 3) == 0) {
         float32x4_t v1 = vld1q_f32(aa);
         float32x4_t v2 = vld1q_f32(bb);
         float32x4_t v3 = vld1q_f32(cc);
@@ -218,23 +199,55 @@ int Voice::getScaledFrames(buffp buff, int frameCount)
         vst1q_f32(buff, v1);
 
         buff += 4;
-      #else
-        for (int i = 0; i < 3; i++) {
-          *buff++ = aa[i] + ((bb[i] - aa[i]) * cc[i]);
-        }
-      #endif
-      a = aa;
-      b = bb;
-      c = cc;
-    }
+        a = aa;      
+        b = bb;
+        c = cc;
+      }
 
-    pos += factor;
-  }
+      pos += factor;
+    }
+  #else
+    float a, old;
+    
+    old = 0.0;
+    
+    while (sampleCount--) {
+      float fipos;
+      float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff      
+
+      if (ipos >= 0) {
+        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
+          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        }
+
+        old = a = scaleBuff[ipos];
+      }
+      else {
+        // We already have loaded next samples. Expected ipos to be -1 and related to
+        // the data already retrieved in the preceeding loop...
+        a = old;
+        assert(ipos == -1);
+      }
+
+      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+        if (getNormalSamples(scaleBuff) == 0) break;
+        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      }
+
+      // We do a linear approximation... not the best, but good enough...
+      *buff++ = a + ((scaleBuff[ipos] - a) * diff);
+
+      pos += factor;
+    }
+  #endif 
 
  endLoop:
 
-  framePos += count;
-
+  sampleRealPos += count;
   return count;
 }
 
@@ -246,7 +259,7 @@ void Voice::showState()
 
   cout << "> act:"   << (active ? "true" : "false")             << " "
        << "state:"   << (stateStr[state])                       << " "
-       << "pos:"     << (framePos)                              << " "
+       << "pos:"     << (sampleRealPos)                              << " "
        << "fadeout:" << (fadingOut ? "true" : "false")          << " "
        << "dp:"      << (fadeOutPos)                            << " "
        << "sample:"  << (sample == NULL ? "none" : "see below") << endl;

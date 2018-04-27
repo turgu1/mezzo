@@ -5,8 +5,6 @@
 
 #include <string>
 
-#include "sf2.h"
-
 class Preset : public NewHandlerSupport<Preset> {
 
 private:
@@ -72,29 +70,9 @@ public:
             sfModList * modulators);
   bool unload();
 
-  inline playNote(uint8_t note, uint8_t velocity) {
-    aZone * z = keys[note];
-    while ((z->instrumentIndex != -1) &&
-           (z->keys.byLo <= note) &&
-           (note <= z->keys.byHi)) {
-      if ((z->velocity.byLo <= velocity) &&
-          (velocity <= z->velocity.byHi)) {
-        soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
-      }
-      z++;
-    }
-  };
-
-  inline void stopNote(uint8_t note) {
-    aZone * z = keys[note];
-    while ((z->instrumentIndex != -1) &&
-           (z->keys.byLo <= note) &&
-           (note <= z->keys.byHi)) {
-      soundFont->instruments[z->instrumentIndex]->stopNote(note);
-      z++;
-    }
-  };
-
+  void playNote(uint8_t note, uint8_t velocity); 
+  void stopNote(uint8_t note);
+  
   /// Returns the name of the preset
   std::string & getName() { return name; }
 };

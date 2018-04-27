@@ -18,6 +18,8 @@
 # define PUBLIC extern
 #endif
 
+#define USE_NEON_INTRINSICS 0
+
 class Mezzo;
 class SoundFont2;
 class Sound;
@@ -28,19 +30,28 @@ class Midi;
 
 #define MEZZO_VERSION  "MEZZO Version 1.0 - SF2 Sampling Synthesizer"
 
-typedef float sample_t;
-typedef sample_t * buffp;
+/// The Voice class manipulates buffers of samples
+/// The Poly class retrieves buffers of samples from voices and build frames to 
+///    send back to the Sound output class
+
+typedef float sample_t;    ///< A single sample
+typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 
 #define PRIVATE             static
 
 #define FRAME_SIZE          (2 * sizeof(sample_t))            ///< A frame contains left and righ samples
 #define LOG_FRAME_SIZE      3                                 ///< Log in base 2 of the frame size (3 bits)
+#define LOG_SAMPLE_SIZE     2                                 ///< Log in base 2 of the sample size (2 bits)
 #define SAMPLING_RATE       44100                             ///< The usual sampling rate
 #define BUFFER_FRAME_COUNT  128                               ///< Number of samples/frame in a sound buffer
-#define SAMPLE_BLOCK_SIZE   (32 * 1024)
+#define SAMPLE_BLOCK_SIZE   (32 * 1024)                       ///< How many samples are loaded from the SF2 file each time
 
-#define FRAME_BUFFER_SIZE   (BUFFER_FRAME_COUNT * FRAME_SIZE) ///< Size of a frame buffer in bytes
-#define BUFFER_SAMPLE_COUNT (BUFFER_FRAME_COUNT * 2)          ///< Number of samples in a buffer
+#define SAMPLE_BUFFER_SIZE         (BUFFER_FRAME_COUNT * SAMPLE_SIZE)///< Size of a sample buuffer in bytes
+#define FRAME_BUFFER_SIZE          (BUFFER_FRAME_COUNT * FRAME_SIZE) ///< Size of a frame buffer in bytes
+#define FRAME_BUFFER_SAMPLE_COUNT  (BUFFER_FRAME_COUNT * 2)          ///< Number of samples in a buffer
+#define SAMPLE_BUFFER_SAMPLE_COUNT (BUFFER_FRAME_COUNT)              ///< Number of samples in a buffer
+
+#define MIN(x,y) (x) < (y) ? (x) : (y)
 
 PUBLIC volatile bool keepRunning;
 PUBLIC bool          interactive;

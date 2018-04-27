@@ -8,10 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "instrument.h"
-#include "preset.h"
-#include "sample.h"
-
 /// A Sound Font Version 2 is a self contain audio samples based suite of
 /// instruments and presets ready for consomption by a sampler based
 /// synthesizer. It is the foundation of the *mezzo* application.

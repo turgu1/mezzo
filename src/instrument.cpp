@@ -81,6 +81,7 @@ bool Instrument::load(sfBag      * bags,
       zones[i].velocities.byLo =    0;
       zones[i].velocities.byHi =    0;
       zones[i].sampleIndex     =   -1;
+      zones[i].pan             =    0;
       zones[i].generators      = NULL;
       zones[i].modulators      = NULL;
       zones[i].genCount        =    0;
@@ -117,6 +118,7 @@ bool Instrument::load(sfBag      * bags,
     for (i = firstGenIdx; i < lastGenIdx; i++) {
       if ((generators[i].sfGenOper != keyRange) &&
           (generators[i].sfGenOper != velRange) &&
+          (generators[i].sfGenOper != pan) &&
           (generators[i].sfGenOper != sampleID)) genCount++;
     }
 
@@ -194,6 +196,9 @@ bool Instrument::load(sfBag      * bags,
                   break;
                 case sampleID:
                   z->sampleIndex = gg->genAmount.wAmount;
+                  break;
+                case pan:
+                  z->pan = gg->genAmount.shAmount;
                   break;
                 default:
                   *g++ = *gg;
@@ -319,7 +324,9 @@ void Instrument::playNote(uint8_t note, uint8_t velocity)
   aZone * z = keys[note];
   while ((z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
     if ((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) {
-      soundFont->samples[z->sampleIndex]->playNote(note, velocity);
+      assert(z->sampleIndex < (int16_t) soundFont->samples.size());
+      assert(soundFont->samples[z->sampleIndex] != NULL);
+      poly->addVoice(soundFont->samples[z->sampleIndex], note, velocity, z->pan);
     }
     z++;
   }

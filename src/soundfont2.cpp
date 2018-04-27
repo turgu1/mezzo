@@ -274,17 +274,17 @@ bool SoundFont2::retrieveSamples()
   if (ck == NULL) return false;
   assert(memcmp(ck->id, "smpl", 4) == 0);
 
-  uint16_t * dta = (uint16_t *) ck->data;
+  int16_t * dta = (int16_t *) ck->data;
 
   // ---- samples (8 low bits) ----
 
   #if samples24bits
-    uint8_t * dta24 = NULL;
+    int8_t * dta24 = NULL;
     uint32_t dtaLen = ck->len;
     ck = findChunk("sm24", *ckl);
     if ((ck != NULL) && (ck->len >= dtaLen))  {
       assert(memcmp(ck->id, "sm24", 4) == 0);
-      dta24 = (uint8_t *) ck->data;
+      dta24 = (int8_t *) ck->data;
     }
     Sample::setSamplesLocation(dta, dta24);
   #else

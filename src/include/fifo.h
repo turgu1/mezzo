@@ -23,7 +23,7 @@ class Fifo : public NewHandlerSupport<Fifo> {
 
  private:
   buffp buff[FIFO_BUFFER_COUNT];
-  int   frameCount[FIFO_BUFFER_COUNT];
+  int   sampleCount[FIFO_BUFFER_COUNT];
 
   volatile int head, tail;
   volatile int count;
@@ -46,8 +46,8 @@ class Fifo : public NewHandlerSupport<Fifo> {
   inline bool isFull()  { return count == FIFO_BUFFER_COUNT; }
   inline bool isEmpty() { return count == 0; }
 
-  inline void setFrameCount(int count) { frameCount[tail] = count; }
-  inline int  getFrameCount() { return frameCount[head]; }
+  inline void setSampleCount(int count) { sampleCount[tail] = count; }
+  inline int  getSampleCount() { return sampleCount[head]; }
 
   inline void clear() { head = tail = 0; __CLR }
 };

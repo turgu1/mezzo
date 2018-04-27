@@ -37,7 +37,7 @@ class Poly : public NewHandlerSupport<Poly> {
   void   showState();
   voicep firstVoice();
   voicep nextVoice(voicep prev);
-  void   addVoice(samplep s, char note, float gain);
+  void   addVoice(samplep s, char note, float gain, int16_t pan);
   voicep nextAvailable();
   void   noteOff(char note, bool pedal_on);
   void   voicesSustainOff();
@@ -50,6 +50,5 @@ class Poly : public NewHandlerSupport<Poly> {
 };
 
 void * samplesFeeder(void * args);
-void * sampleFileOpener(void * args);
 
 #endif // POLY_H

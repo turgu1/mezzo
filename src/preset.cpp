@@ -1,9 +1,6 @@
 #include "copyright.h"
 
 #include "mezzo.h"
-#include "preset.h"
-
-#include "soundfont2.h"
 
 Preset::Preset(char * presetName,
                uint16_t midi,
@@ -55,8 +52,9 @@ void Preset::outOfMemory()
 
 bool Preset::unload()
 {
-  for (i = 0; i < zoneCount; i++) {
-    assert(soundFont != NULL);
+  assert(soundFont != NULL);
+
+  for (int i = 0; i < zoneCount; i++) {
     assert(soundFont->instruments[zones[i].instrumentIndex] != NULL);
     soundFont->instruments[zones[i].instrumentIndex]->unload();
   }
@@ -244,3 +242,27 @@ bool Preset::load(sfBag     * bags,
   loaded = true;
   return true;
 }
+
+void Preset::playNote(uint8_t note, uint8_t velocity) {
+  aZone * z = keys[note];
+  while ((z->instrumentIndex != -1) &&
+         (z->keys.byLo <= note) &&
+         (note <= z->keys.byHi)) {
+    if ((z->velocities.byLo <= velocity) &&
+        (velocity <= z->velocities.byHi)) {
+      soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+    }
+    z++;
+  }
+}
+
+void Preset::stopNote(uint8_t note) {
+  aZone * z = keys[note];
+  while ((z->instrumentIndex != -1) &&
+         (z->keys.byLo <= note) &&
+         (note <= z->keys.byHi)) {
+    soundFont->instruments[z->instrumentIndex]->stopNote(note);
+    z++;
+  }
+}
+

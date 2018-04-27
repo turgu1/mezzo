@@ -14,6 +14,7 @@ private:
     rangesType   keys;
     rangesType   velocities;
     int16_t      sampleIndex;
+    int16_t      pan;
     sfGenList  * generators;
     sfModList  * modulators;
     uint8_t      genCount;

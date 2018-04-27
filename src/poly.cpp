@@ -43,39 +43,6 @@ void * samplesFeeder(void * args)
   pthread_exit(NULL);
 }
 
-//---- sampleFileOpener() ----
-//
-// This function represent a thread responsible of opening/closing sound files
-// when such a voice has been requested/desactivated.
-
-void * sampleFileOpener(void * args)
-{
-  (void) args;
-
-  while (keepRunning) {
-
-    voicep voice = poly->getVoices();
-
-    while ((voice != NULL) && keepRunning) {
-
-      if (voice->isActive() && voice->isOpening()) {
-        voice->openSoundFile();
-      }
-      else {
-        if (voice->isInactive() && voice->isClosing()) {
-          voice->closeSoundFile();
-          poly->decVoiceCount();
-        }
-      }
-
-      sched_yield();
-      voice = voice->getNext();
-    }
-  }
-
-  pthread_exit(NULL);
-}
-
 //---- showState() ----
 
 void Poly::showState()
@@ -119,14 +86,14 @@ Poly::Poly()
   voices = voice;
 
   voiceCount = maxVoiceCount = 0;
-
+  
   float length = FADE_OUT_FRAME_COUNT;
 
   for (int i = 0; i < FADE_OUT_FRAME_COUNT; i++) {
     fadeOutScaleDown[i] = powf(1.0 - (i / length), 6);
   }
 
-  tmpbuff = new sample_t[BUFFER_SAMPLE_COUNT];
+  tmpbuff = new sample_t[FRAME_BUFFER_SAMPLE_COUNT];
 
   memset(tmpbuff, 0, FRAME_BUFFER_SIZE);
 }
@@ -145,7 +112,7 @@ Poly::~Poly()
     voicep next = voice->getNext();
 
     delete voice;
-
+    
     voice = next;
   }
 
@@ -237,13 +204,13 @@ voicep Poly::nextAvailable()
 // A sample is added to voices. If there is no more voice structure available,
 // retrieve the oldest one from the current voices list.
 
-void Poly::addVoice(samplep sample, char note, float gain)
+void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
 {
   voicep voice;
 
   // Do not transpose beyond 12 semi-tone...
 
-  if (note > (sample->getNote() + 12)) return;
+  if (note > (sample->getPitch() + 12)) return;
 
   noteOff(note, false);
 
@@ -253,6 +220,7 @@ void Poly::addVoice(samplep sample, char note, float gain)
   }
 
   if ((voice = nextAvailable()) == NULL) {
+    // TODO: Get rid of the oldest voic and take the place
     logger.ERROR("Overrun!");
     return;
   }
@@ -261,7 +229,7 @@ void Poly::addVoice(samplep sample, char note, float gain)
   voiceCount++;
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
-  voice->setup(sample, note, gain);
+  voice->setup(sample, note, gain, pan);
 }
 
 //---- noteOff() ----
@@ -294,9 +262,9 @@ void Poly::voicesSustainOff()
 int Poly::mixer(buffp buff, int frameCount)
 {
   int maxFrameCount = 0; // Max number of frames that have been mixed
-  int i;                   // Running counter on frames
-  int mixedCount = 0;     // Running counter on how many voices have beed 
-                           //   mixed so far in the loop
+  int i;                 // Running counter on frames
+  int mixedCount = 0;    // Running counter on how many voices have beed 
+                         //   mixed so far in the loop
 
   memset(buff, 0, frameCount << LOG_FRAME_SIZE);
 

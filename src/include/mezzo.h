@@ -6,6 +6,19 @@
 #define SUCCESS 0
 
 #include "globals.h"
+#include "utils.h"
+
+#include "sf2.h"
+
+#include "sample.h"
+#include "preset.h"
+#include "instrument.h"
+#include "soundfont2.h"
+#include "midi.h"
+#include "reverb.h"
+#include "sound.h"
+#include "voice.h"
+#include "poly.h"
 
 class Mezzo   : public NewHandlerSupport<Mezzo> {
 

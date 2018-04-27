@@ -17,8 +17,8 @@ Fifo::Fifo()
   stateLock = 0;
 
   for (int i = 0; i < FIFO_BUFFER_COUNT; i++) {
-    buff[i] = new sample_t[BUFFER_SAMPLE_COUNT];
-    frameCount[i] = 0;
+    buff[i] = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
+    sampleCount[i] = 0;
   }
 }
 
