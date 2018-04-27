@@ -31,7 +31,7 @@ class Midi;
 #define MEZZO_VERSION  "MEZZO Version 1.0 - SF2 Sampling Synthesizer"
 
 /// The Voice class manipulates buffers of samples
-/// The Poly class retrieves buffers of samples from voices and build frames to 
+/// The Poly class retrieves buffers of samples from voices and build frames to
 ///    send back to the Sound output class
 
 typedef float sample_t;    ///< A single sample
@@ -52,6 +52,7 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 #define SAMPLE_BUFFER_SAMPLE_COUNT (BUFFER_FRAME_COUNT)              ///< Number of samples in a buffer
 
 #define MIN(x,y) (x) < (y) ? (x) : (y)
+#define MAX(x,y) (x) > (y) ? (x) : (y)
 
 PUBLIC volatile bool keepRunning;
 PUBLIC bool          interactive;

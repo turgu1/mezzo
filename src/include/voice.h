@@ -177,14 +177,14 @@ class Voice : public NewHandlerSupport<Voice> {
 
   inline void setState(voiceState value) { state = value; };
 
-  inline void activate()   { if (isInactive()) setState(ALIVE);   active = true; feedFifo(); }
-  inline void inactivate() { if (isActive())   setState(DORMANT); active = false; }
+  inline void activate()   { if (isInactive()) setState(ALIVE);   active = true;  feedFifo();  }
+  inline void inactivate() { if (isActive())   setState(DORMANT); active = false; clearFifo(); }
 
   inline void    setNext(voicep n) { next = n; }
   inline voicep  getNext() { return next; }
   inline char    getNote() { return note; }
   inline float   getGain() { return gain; }
-  inline int16_t getPan() { return pan; }
+  inline int16_t  getPan() { return pan;  }
 
   inline int getFadeOutPos() { return fadeOutPos; }
   inline bool isFadingOut()  { return fadingOut; }

@@ -3,9 +3,6 @@
 #include <iostream>
 
 #include "mezzo.h"
-#include "instrument.h"
-
-#include "soundfont2.h"
 
 Instrument::Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty)
 {

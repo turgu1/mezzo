@@ -10,12 +10,12 @@
 //
 //    https://github.com/gburlet/FreeVerb
 //
-// A good documentation on the FreeVerb algorithm is available at the following link. 
+// A good documentation on the FreeVerb algorithm is available at the following link.
 // This implementation is based on this documentation:
 //
-//    http://www.music.mcgill.ca/~greg/courses/MUMT618/freeverb/freeverb.html
+//    https://ccrma.stanford.edu/~jos/pasp/Freeverb.html
 //
-// 
+//
 
 #if USE_NEON_INTRINSICS
   #include <arm_neon.h>
@@ -36,10 +36,10 @@ class Reverb : public NewHandlerSupport<Reverb> {
   static const int comb_m[REVERB_COMB_COUNT];
   static const int   ap_m[REVERB_AP_COUNT];
 
-  // The following structures implement FIFO (First In, First Out) to 
-  // compile Z^-n values in use by the reverb algorithm, supplying delayed 
+  // The following structures implement FIFO (First In, First Out) to
+  // compile Z^-n values in use by the reverb algorithm, supplying delayed
   // access to fitered data from previous algorithm execution
-  
+
   struct fifo_struct {
     buffp buff;
     buffp head;
@@ -53,14 +53,14 @@ class Reverb : public NewHandlerSupport<Reverb> {
   #if USE_NEON_INTRINSICS
 
     // Those are the ARM NEON SIMD vectorized version of PUT and GET.
-    // PUTv insure that if data is put after the end of the buffer space, 
-    // it is copied back to the beginning of the array. The redundancy of 
-    // data insure proper working conditions for vector based instructions 
+    // PUTv insure that if data is put after the end of the buffer space,
+    // it is copied back to the beginning of the array. The redundancy of
+    // data insure proper working conditions for vector based instructions
     // to quickly get access to 4 data entries in a row.
     //
     // Here is the non-optimized data copy version:
     //
-    /*    
+    /*
       #define PUTv(ptr,v) vst1q_f32(ptr->tail, v);                 \
                           if (ptr->tail == ptr->buff) vst1q_f32(ptr->end, v); \
                           if ((ptr->tail += 4) >= ptr->end) {    \
@@ -68,7 +68,7 @@ class Reverb : public NewHandlerSupport<Reverb> {
                             if (k > 0) memcpy(ptr->buff, ptr->tail - k, k << 2); \
                             ptr->tail = ptr->buff + k;         \
                           }
-    */    
+    */
     // Here is the optimized version (memcpy replaced with SIMD instructions):
 
     inline void PUTv(fifop ptr, float32x4_t v) {
@@ -99,17 +99,17 @@ class Reverb : public NewHandlerSupport<Reverb> {
 
   #else
 
-    // The following inline methods are used to get and put values in FIFO arrays 
-    // in used with the reverb algorithm. These arrays are strored inside ap_sruct 
+    // The following inline methods are used to get and put values in FIFO arrays
+    // in used with the reverb algorithm. These arrays are strored inside ap_sruct
     // and comb_struct.
 
     inline void PUT(fifop ptr, float v) {
-      *(ptr->tail++) = v; 
+      *(ptr->tail++) = v;
       if (ptr->tail >= ptr->end) ptr->tail = ptr->buff;
     }
 
     inline void GET(fifop ptr, float &v) {
-      v = *(ptr->head++); 
+      v = *(ptr->head++);
       if (ptr->head >= ptr->end) ptr->head = ptr->buff;
     }
 
@@ -126,7 +126,7 @@ class Reverb : public NewHandlerSupport<Reverb> {
   float dryWet;    // proportion of dry vs wet mix (0 .. 1.0)
   float roomSize;  // 0 .. 1.0 Nothing usefull below 7.0
   float damping;   // 0 .. 1.0
-  float width;     // 0 .. 1.0 
+  float width;     // 0 .. 1.0
   float apGain;    // 0 .. 1.0
 
   static void outOfMemory();
@@ -135,12 +135,12 @@ class Reverb : public NewHandlerSupport<Reverb> {
  public:
    Reverb();
   ~Reverb();
-  
+
   inline void setRoomSize(float value) { roomSize = value; }
   inline void setDamping(float value)  { damping = value;  }
   inline void setWidth(float value)    { width = value;    }
   inline void setDryWet(float value)   { dryWet = value;   }
-  
+
   void process(buffp buff, int frame_count);
   void interactiveAdjust();
 };

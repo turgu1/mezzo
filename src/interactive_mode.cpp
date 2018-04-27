@@ -60,10 +60,10 @@ void InteractiveMode::menu()
       reverb->interactiveAdjust();
       break;
     case 's':
-      sound->deviceSelect();
+      sound->selectDevice();
       break;
     case 'm':
-      midi->deviceSelect();
+      midi->selectDevice();
       break;
     case 't':
       midi->transposeAdjust();

@@ -19,6 +19,8 @@
 #include "sound.h"
 #include "voice.h"
 #include "poly.h"
+#include "equalizer.h"
+#include "reverb.h"
 
 class Mezzo   : public NewHandlerSupport<Mezzo> {
 

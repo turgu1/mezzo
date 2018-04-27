@@ -5,9 +5,6 @@
 
 #include "mezzo.h"
 
-#include "voice.h"
-#include "fifo.h"
-
 #define MAX_VOICES 256  ///< Maximum number of voices at any time
 
 #if USE_NEON_INTRINSICS
@@ -42,7 +39,7 @@ class Poly : public NewHandlerSupport<Poly> {
   void   noteOff(char note, bool pedal_on);
   void   voicesSustainOff();
   voicep removeVoice(voicep v, voicep prev);
-  int    getFrames(voicep v, buffp buff, int count);
+  //int    getFrames(voicep v, buffp buff, int count);
   void   monitorCount();
 
   inline voicep getVoices() { return voices; }

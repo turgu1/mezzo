@@ -1,7 +1,7 @@
 #include "copyright.h"
 
 #include <cmath>
-#include <sched.h> 
+#include <sched.h>
 #include <pthread.h>
 
 #include <iostream>
@@ -13,13 +13,13 @@
 #include "duration.h"
 
 #if USE_NEON_INTRINSICS
-# include <arm_neon.h>
+  #include <arm_neon.h>
 #endif
 
 //---- samplesFeeder() ----
 //
-// This function represent a thread responsible of reading 
-// samples from files to push into the voices structure in real-time, 
+// This function represent a thread responsible of reading
+// samples from files to push into the voices structure in real-time,
 // in support of the streaming of data to ALSA through the voice mixer()
 // function.
 
@@ -32,7 +32,7 @@ void * samplesFeeder(void * args)
     voicep voice = poly->getVoices();
 
     while ((voice != NULL) && keepRunning) {
-      
+
       voice->feedFifo();
 
       sched_yield();
@@ -51,7 +51,7 @@ void Poly::showState()
   int i = 0;
 
   using namespace std;
-  
+
   cout << "[Voices Dump Start]" << endl;
 
   while (voice) {
@@ -86,7 +86,7 @@ Poly::Poly()
   voices = voice;
 
   voiceCount = maxVoiceCount = 0;
-  
+
   float length = FADE_OUT_FRAME_COUNT;
 
   for (int i = 0; i < FADE_OUT_FRAME_COUNT; i++) {
@@ -112,7 +112,7 @@ Poly::~Poly()
     voicep next = voice->getNext();
 
     delete voice;
-    
+
     voice = next;
   }
 
@@ -173,7 +173,7 @@ voicep Poly::nextVoice(voicep prev)
   voicep voice = prev->getNext();
 
   while (voice) {
-    if (voice->isActive()) { 
+    if (voice->isActive()) {
       break;
     }
     voice = voice->getNext();
@@ -263,7 +263,7 @@ int Poly::mixer(buffp buff, int frameCount)
 {
   int maxFrameCount = 0; // Max number of frames that have been mixed
   int i;                 // Running counter on frames
-  int mixedCount = 0;    // Running counter on how many voices have beed 
+  int mixedCount = 0;    // Running counter on how many voices have beed
                          //   mixed so far in the loop
 
   memset(buff, 0, frameCount << LOG_FRAME_SIZE);
@@ -274,7 +274,7 @@ int Poly::mixer(buffp buff, int frameCount)
 
   while (voice != NULL) {
 
-    int count = voice->getFrames(tmpbuff, frameCount);
+    int count = voice->getSamples(tmpbuff, frameCount);
 
     if (count > 0) {
 
@@ -293,27 +293,27 @@ int Poly::mixer(buffp buff, int frameCount)
 
       #if USE_NEON_INTRINSICS
 
-        // This is an ARM NEON optimized mixing algorithm. We gain a 
-        // factor 4 of performance improvement using those vectorized 
-        // instructions. Very neat! This will allow us to add new features 
+        // This is an ARM NEON optimized mixing algorithm. We gain a
+        // factor 4 of performance improvement using those vectorized
+        // instructions. Very neat! This will allow us to add new features
         // in a near future... (reverb, equalizer, filters, etc...)
 
-        // Ensure that there is a multiple of 4 floating point samples in the buffer 
+        // Ensure that there is a multiple of 4 floating point samples in the buffer
         while (count & 1) {
           tmpbuff[count << 1] = 0;
           tmpbuff[(count++ << 1) + 1] = 0.0;
         }
         i = count >> 1;
-      
+
         if (voice->isFadingOut()) voice->incFadeOutPos(i);
 
         while (i--) {
           float32x4_t vecOut = vld1q_f32(buffOut);
           float32x4_t vecIn = vld1q_f32(buffIn);
 
-          vecIn = vmulq_n_f32(vecIn, voice->isFadingOut() ? 
-                              *fadeOutGain++ * voiceGain : 
-                              voiceGain); 
+          vecIn = vmulq_n_f32(vecIn, voice->isFadingOut() ?
+                              *fadeOutGain++ * voiceGain :
+                              voiceGain);
           vecOut = vaddq_f32(vecOut, vecIn);
           vst1q_f32(buffOut, vecOut);
 
@@ -328,16 +328,16 @@ int Poly::mixer(buffp buff, int frameCount)
         if (voice->isFadingOut()) voice->incFadeOutPos(count);
 
         sample_t  a, b;
-          
+
         while (i--) {
-          float gain = voice->isFadingOut() ? 
-            *fadeOutGain++ * voiceGain : 
+          float gain = voice->isFadingOut() ?
+            *fadeOutGain++ * voiceGain :
             voiceGain;
-            
+
           a = *buffOut;
           b = *buffIn++ * gain;
           *buffOut++ = MIX(a, b);
-          
+
           a = *buffOut;
           b = *buffIn++ * gain;
           *buffOut++ = MIX(a, b);
@@ -347,7 +347,7 @@ int Poly::mixer(buffp buff, int frameCount)
 
       if (voice->isFadingOut()) {
         if (voice->getFadeOutPos() >= FADE_OUT_FRAME_COUNT) {
-          // We reached the end of the fadeout process. 
+          // We reached the end of the fadeout process.
           // We desactivate the current voice.
           voice->BEGIN();
             voice->inactivate();
@@ -373,7 +373,7 @@ int Poly::mixer(buffp buff, int frameCount)
 
   long dur = duration->getElapse();
 
-  mixerDuration = MAX(mixerDuration, dur); 
+  mixerDuration = MAX(mixerDuration, dur);
   delete duration;
 
   return maxFrameCount;
