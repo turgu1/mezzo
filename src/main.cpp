@@ -59,9 +59,9 @@ int main(int argc, char **argv)
   
   pthread_t feeder;
   
-  // if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
-  //   logger.FATAL("Unable to start samplesFeeder thread.");
-  // }
+  if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
+    logger.FATAL("Unable to start samplesFeeder thread.");
+  }
 
   if (interactive) {
     InteractiveMode im;
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
   // Here we wait until the two threads have been stopped
   
-  // pthread_join(feeder, NULL);
+  pthread_join(feeder, NULL);
 
   // Leave gracefully
 
