@@ -119,6 +119,7 @@ Poly::~Poly()
   }
 
   delete [] tmpBuff;
+  delete [] voiceBuff;
 
   logger.INFO("Max Nbr of Voices used: %d.\n", maxVoiceCount);
 }
@@ -145,6 +146,7 @@ void Poly::inactivateAllVoices()
 
     voice = voice->getNext();
   }
+  voiceCount = 0;
 }
 
 //---- firstVoice() ----
@@ -222,7 +224,7 @@ void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
   }
 
   if ((voice = nextAvailable()) == NULL) {
-    // TODO: Get rid of the oldest voic and take the place
+    // TODO: Get rid of the oldest voice and take the place
     logger.ERROR("Overrun!");
     return;
   }
@@ -357,6 +359,7 @@ int Poly::mixer(buffp buff, int frameCount)
           voice->BEGIN();
             voice->inactivate();
           voice->END();
+          voiceCount--;
         }
       }
 
@@ -367,6 +370,7 @@ int Poly::mixer(buffp buff, int frameCount)
       voice->BEGIN();
         voice->inactivate();
       voice->END();
+      voiceCount--;
     }
 
     mixedCount += 1;

@@ -25,6 +25,7 @@ void Instrument::init()
   zones = NULL;
 
   zoneCount = 0;
+  globalZonePresent = false;
 
   globalZone.generators = NULL;
   globalZone.modulators = NULL;
@@ -48,6 +49,8 @@ void Instrument::outOfMemory()
 
 bool Instrument::unload()
 {
+  if (!loaded) return false;
+  
   if (zones) delete [] zones;
   if (gens)  delete [] gens;
   if (mods)  delete [] mods;
@@ -98,25 +101,32 @@ bool Instrument::load(sfBag      * bags,
       ((lastModIdx - firstModIdx) > 0);
 
     // If there is some generators, check if the first zone is
-    // a global one.
+    // a global one. The last gen in the zone must not be a sampleID Operator
 
     globalZonePresent = globalZonePresent ||
       (((lastGenIdx - firstGenIdx) > 0) &&
-       (generators[bags[bagIdx + 1].wGenNdx - 1].sfGenOper != sampleID));
+       (generators[bags[bagIdx + 1].wGenNdx - 1].sfGenOper != sfGenOper_sampleID));
 
-    if (globalZonePresent) zoneCount--;
+    uint8_t globalGenCount;
+    if (globalZonePresent) {
+      zoneCount--;
+      globalGenCount = bags[bagIdx + 1].wGenNdx - bags[bagIdx].wGenNdx;
+    }
+    else {
+      globalGenCount = 0;
+    }
 
     // Count how many generators need to be allocated, considering
     // that some generator values will be retrieved as normal
     // instrument parameters.
 
-    int genCount = 0;
+    int genCount = globalGenCount;
 
-    for (i = firstGenIdx; i < lastGenIdx; i++) {
-      if ((generators[i].sfGenOper != keyRange) &&
-          (generators[i].sfGenOper != velRange) &&
-          (generators[i].sfGenOper != pan) &&
-          (generators[i].sfGenOper != sampleID)) genCount++;
+    for (i = firstGenIdx + globalGenCount; i < lastGenIdx; i++) {
+      if ((generators[i].sfGenOper != sfGenOper_keyRange) &&
+          (generators[i].sfGenOper != sfGenOper_velRange) &&
+          (generators[i].sfGenOper != sfGenOper_pan) &&
+          (generators[i].sfGenOper != sfGenOper_sampleID)) genCount++;
     }
 
     int modCount = lastModIdx - firstModIdx;
@@ -124,8 +134,8 @@ bool Instrument::load(sfBag      * bags,
     if (genCount > 0) gens = new sfGenList[genCount];
     if (modCount > 0) mods = new sfModList[modCount];
 
-    if ((genCount > 0) || (modCount > 0)) {
-
+    //if ((genCount > 0) || (modCount > 0))
+    {
       aZone     * z  = zones;
       sfGenList * g  = gens;
       sfGenList * gg = &generators[bags[bagIdx].wGenNdx];
@@ -139,17 +149,17 @@ bool Instrument::load(sfBag      * bags,
 
       // global gens
 
-      count = b[1].wGenNdx - b[0].wGenNdx;
-      if ((count > 0) &&
-          (gg[count - 1].sfGenOper != sampleID)) {
+      // There is global gens if the last gen for the zone is not a sampleId operator
+      
+      if (globalGenCount > 0) {
 
         // There is globals gens so get the gens...
         globalZone.generators = g;
-        globalZone.genCount   = count;
+        globalZone.genCount   = globalGenCount;
 
-        while (count--) *g++ = *gg++;
+        while (globalGenCount--) *g++ = *gg++;
 
-        assert(globalZonePresent);
+        assert(globalZonePresent); // Double check...
       }
 
       // global mods
@@ -175,11 +185,11 @@ bool Instrument::load(sfBag      * bags,
         count = b[1].wGenNdx - b[0].wGenNdx;
 
         if (count > 0) {
-          if (gg[count - 1].sfGenOper == sampleID) {
+          if (gg[count - 1].sfGenOper == sfGenOper_sampleID) {
             z->generators = g;
             while (count--) {
               switch (gg->sfGenOper) {
-                case keyRange:
+                case sfGenOper_keyRange:
                   z->keys = gg->genAmount.ranges;
                   if (keys[z->keys.byLo] == NULL) {
                     for (int k = z->keys.byLo; k <= z->keys.byHi; k++) {
@@ -188,13 +198,13 @@ bool Instrument::load(sfBag      * bags,
                     }
                   }
                   break;
-                case velRange:
+                case sfGenOper_velRange:
                   z->velocities = gg->genAmount.ranges;
                   break;
-                case sampleID:
+                case sfGenOper_sampleID:
                   z->sampleIndex = gg->genAmount.wAmount;
                   break;
-                case pan:
+                case sfGenOper_pan:
                   z->pan = gg->genAmount.shAmount;
                   break;
                 default:
@@ -228,13 +238,15 @@ bool Instrument::load(sfBag      * bags,
     }
 
     loaded = true;
+    logger.DEBUG("Instrument %s loaded.", name.c_str());
   }
 
   for (i = 0; i < zoneCount; i++) {
-    if ((zones[i].keys.byLo <= keysToLoad.byHi) && (zones[i].keys.byHi >=keysToLoad.byHi)) {
+    if ((keysToLoad.byLo <= zones[i].keys.byHi) && (keysToLoad.byHi >= zones[i].keys.byLo)) {
       soundFont->loadSample(zones[i].sampleIndex);
     }
   }
+  
   return true;
 }
 
@@ -321,10 +333,11 @@ void Instrument::playNote(uint8_t note, uint8_t velocity)
   aZone * z = keys[note];
   if (z == NULL) logger.ERROR("keys for note %d not found!", note);
   while (z && (z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
-    if ((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) {
+    if (((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) ||
+        ((z->velocities.byLo - z->velocities.byHi) == 0)) {
       assert(z->sampleIndex < (int16_t) soundFont->samples.size());
       assert(soundFont->samples[z->sampleIndex] != NULL);
-      poly->addVoice(soundFont->samples[z->sampleIndex], note, velocity, z->pan);
+      poly->addVoice(soundFont->samples[z->sampleIndex], note, velocity / 127.0f, z->pan);
     }
     z++;
   }

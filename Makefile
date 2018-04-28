@@ -28,7 +28,7 @@ BOOST_LIBDIR := /usr/local/lib
 # ----- Flags, Libraries and Includes -----
 
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
-               -Wno-char-subscripts -Wno-unused-function -O3 -g -fno-inline
+               -Wno-char-subscripts -Wno-unused-function -O3 -fno-inline
 
 # CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
 #               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline
@@ -89,8 +89,9 @@ $(TARGETDIR)/$(TARGET): $(OBJECTS)
 # ----- Compile -----
 
 $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
+	@echo "--> $(CC) $< ..."
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
+	@$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 	@$(CC) $(CFLAGS) $(INCDEP) -MM $(SRCDIR)/$*.$(SRCEXT) > $(BUILDDIR)/$*.$(DEPEXT)
 	@cp -f $(BUILDDIR)/$*.$(DEPEXT) $(BUILDDIR)/$*.$(DEPEXT).tmp
 	@sed -e 's|.*:|$(BUILDDIR)/$*.$(OBJEXT):|' < $(BUILDDIR)/$*.$(DEPEXT).tmp > $(BUILDDIR)/$*.$(DEPEXT)

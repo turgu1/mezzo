@@ -77,7 +77,7 @@ bool Configuration::loadConfig(int argc, char **argv)
     ;
 
     conf.add_options()
-      ("volume",                  po::value<uint16_t>(&volume),
+      ("volume",                  po::value<uint16_t>(&volume)->default_value(30),
                                   "Master Volume")
       ("sampling-rate",           po::value<uint32_t>(&samplingRate)->default_value(44100),
                                   "sampling rate")
@@ -208,6 +208,8 @@ bool Configuration::loadConfig(int argc, char **argv)
         return false;
       }
     }
+    
+    masterVolume = volume / 100.0f;
   }
   catch(std::exception& e) {
     logger.ERROR(e.what());

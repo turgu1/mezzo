@@ -51,6 +51,8 @@ public:
   bool loadPreset(std::string & presetName);
   bool loadPreset(uint16_t presetIndex);
 
+  bool loadMidiPresetNbr(uint16_t midiPresetNbr);
+  
   inline bool loadSample(uint16_t sampleIndex) {
     if (sampleIndex < samples.size()) {
       assert(samples[sampleIndex] != NULL);

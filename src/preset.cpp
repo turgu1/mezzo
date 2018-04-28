@@ -36,7 +36,9 @@ void Preset::init()
   globalZone.modCount   =    0;
 
   for (int i = 0; i < 128; i++) keys[i] = NULL;
-
+  keyShortCutPresent = false;
+  velocitiesPresent = false;
+  
   loaded  = false;
 }
 
@@ -52,11 +54,15 @@ void Preset::outOfMemory()
 
 bool Preset::unload()
 {
+  if (!loaded) return false;
   assert(soundFont != NULL);
 
   for (int i = 0; i < zoneCount; i++) {
-    assert(soundFont->instruments[zones[i].instrumentIndex] != NULL);
-    soundFont->instruments[zones[i].instrumentIndex]->unload();
+    if (zones[i].instrumentIndex >= 0) {
+      assert(zones[i].instrumentIndex < (int) soundFont->instruments.size());
+      assert(soundFont->instruments[zones[i].instrumentIndex] != NULL);
+      soundFont->instruments[zones[i].instrumentIndex]->unload();
+    }
   }
 
   if (zones) delete [] zones;
@@ -97,6 +103,8 @@ bool Preset::load(sfBag     * bags,
     zones[i].modCount        =    0;
   }
 
+  zones[zoneCount].instrumentIndex = -999;
+  
   int firstGenIdx = bags[bagIdx].wGenNdx;
   int lastGenIdx  = bags[bagIdx + bagCount].wGenNdx;
   int firstModIdx = bags[bagIdx].wModNdx;
@@ -114,20 +122,27 @@ bool Preset::load(sfBag     * bags,
 
   globalZonePresent = globalZonePresent ||
     (((lastGenIdx - firstGenIdx) > 0) &&
-     (generators[bags[bagIdx + 1].wGenNdx - 1].sfGenOper != instrumentID));
+     (generators[bags[bagIdx + 1].wGenNdx - 1].sfGenOper != sfGenOper_instrumentID));
 
-  if (globalZonePresent) zoneCount--;
+  uint8_t globalGenCount;
+  if (globalZonePresent) {
+    zoneCount--;
+    globalGenCount = bags[bagIdx + 1].wGenNdx - bags[bagIdx].wGenNdx;
+  }
+  else {
+    globalGenCount = 0;
+  }
 
   // Count how many generators need to be allocated, considering
   // that some generator values will be retrieved as normal
   // instrument parameters.
 
-  int genCount = 0;
+  int genCount = globalGenCount;
 
-  for (i = firstGenIdx; i < lastGenIdx; i++) {
-    if ((generators[i].sfGenOper != keyRange) &&
-        (generators[i].sfGenOper != velRange) &&
-        (generators[i].sfGenOper != instrumentID)) genCount++;
+  for (i = firstGenIdx + globalGenCount; i < lastGenIdx; i++) {
+    if ((generators[i].sfGenOper != sfGenOper_keyRange) &&
+        (generators[i].sfGenOper != sfGenOper_velRange) &&
+        (generators[i].sfGenOper != sfGenOper_instrumentID)) genCount++;
   }
 
   int modCount = lastModIdx - firstModIdx;
@@ -135,8 +150,8 @@ bool Preset::load(sfBag     * bags,
   if (genCount > 0) gens = new sfGenList[genCount];
   if (modCount > 0) mods = new sfModList[modCount];
 
-  //if ((genCount > 0) || (modCount > 0)) {
-  if (true) {
+  //if ((genCount > 0) || (modCount > 0))
+  {
     aZone     * z  = zones;
     sfGenList * g  = gens;
     sfGenList * gg = &generators[bags[bagIdx].wGenNdx];
@@ -150,15 +165,13 @@ bool Preset::load(sfBag     * bags,
 
     // global gens
 
-    count = b[1].wGenNdx - b[0].wGenNdx;
-    if ((count > 0) &&
-        (gg[count - 1].sfGenOper != instrumentID)) {
+    if (globalGenCount > 0) {
 
       // There is globals gens so get the gens...
       globalZone.generators = g;
-      globalZone.genCount   = count;
+      globalZone.genCount   = globalGenCount;
 
-      while (count--) *g++ = *gg++;
+      while (globalGenCount--) *g++ = *gg++;
 
       assert(globalZonePresent);
     }
@@ -186,24 +199,25 @@ bool Preset::load(sfBag     * bags,
       count = b[1].wGenNdx - b[0].wGenNdx;
 
       if (count > 0) {
-        if (gg[count - 1].sfGenOper == instrumentID) {
+        if (gg[count - 1].sfGenOper == sfGenOper_instrumentID) {
           z->generators = g;
           while (count--) {
             switch (gg->sfGenOper) {
-              case keyRange:
+              case sfGenOper_keyRange:
                 z->keys = gg->genAmount.ranges;
                 if (keys[z->keys.byLo] == NULL) {
                   for (int k = z->keys.byLo; k <= z->keys.byHi; k++) {
                     if (keys[k] != NULL) logger.ERROR("MIDI Keys redondancies in zones for key %d.", k);
                     keys[k] = z;
-                    logger.DEBUG("Key %d...", k);
+                    keyShortCutPresent = true;
                   }
                 }
                 break;
-              case velRange:
+              case sfGenOper_velRange:
                 z->velocities = gg->genAmount.ranges;
+                velocitiesPresent = true;
                 break;
-              case instrumentID:
+              case sfGenOper_instrumentID:
                 z->instrumentIndex = gg->genAmount.wAmount;
                 break;
               default:
@@ -213,6 +227,7 @@ bool Preset::load(sfBag     * bags,
             }
             gg++;
           }
+          std::cout << std::endl;
           if (z->genCount == 0) z->generators = NULL;
         }
         else {
@@ -243,9 +258,9 @@ bool Preset::load(sfBag     * bags,
     soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
   }
 
-  logger.DEBUG("Preset %s loaded.", name.c_str());
-
   showZones();
+  
+  logger.DEBUG("Preset %s loaded.", name.c_str());
 
   loaded = true;
   return true;
@@ -331,23 +346,51 @@ void Preset::showZones()
 
 void Preset::playNote(uint8_t note, uint8_t velocity) {
   aZone * z = keys[note];
-  while (z && (z->instrumentIndex != -1) &&
-         (z->keys.byLo <= note) &&
-         (note <= z->keys.byHi)) {
-    if ((z->velocities.byLo <= velocity) &&
-        (velocity <= z->velocities.byHi)) {
-      soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+  if (z) {
+    while ((z->instrumentIndex != -999) &&
+           (z->keys.byLo <= note) &&
+           (note <= z->keys.byHi)) {
+      if ((z->instrumentIndex != -1) &&
+          (z->velocities.byLo <= velocity) &&
+          (velocity <= z->velocities.byHi)) {
+        soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+      }
+      z++;
     }
-    z++;
+  }
+  else if (!keyShortCutPresent) {
+    z = zones;
+    assert(z != NULL);
+    if (velocitiesPresent) {
+      while (z->instrumentIndex != -999) {
+        if ((z->instrumentIndex != -1) &&
+            (z->velocities.byLo <= velocity) &&
+            (velocity <= z->velocities.byHi)) {
+          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+        }
+        z++;
+      }
+    }
+    else {
+      while ((z->instrumentIndex != -999) &&
+             (z->instrumentIndex == -1)) {
+        z++;         
+      }
+      if (z->instrumentIndex != -999) {
+        soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+      }
+    }
   }
 }
 
 void Preset::stopNote(uint8_t note) {
   aZone * z = keys[note];
-  while (z && (z->instrumentIndex != -1) &&
+  while (z && (z->instrumentIndex != -999) &&
          (z->keys.byLo <= note) &&
          (note <= z->keys.byHi)) {
-    soundFont->instruments[z->instrumentIndex]->stopNote(note);
+    if (z->instrumentIndex != -1) {
+      soundFont->instruments[z->instrumentIndex]->stopNote(note);
+    }
     z++;
   }
 }

@@ -24,7 +24,7 @@ void sigfpeHandler(int dummy)
 //---- sigint_handler ----
 
 /// The sigintHanfler() function receives control when a signal is sent to the application. The
-/// current behaviour is to start a rundown of PIano, setting the keepRunning boolean value
+/// current behaviour is to start a rundown of Mezzo, setting the keepRunning boolean value
 /// to false.
 
 void sigintHandler(int dummy)

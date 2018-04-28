@@ -39,6 +39,8 @@ private:
   sfModList   * mods;
   int           zoneCount;
   bool          globalZonePresent;
+  bool          keyShortCutPresent;
+  bool          velocitiesPresent;
 
   bool          loaded;     ///< True if the preset content has been loaded in memory
 
@@ -75,6 +77,7 @@ public:
 
   /// Returns the name of the preset
   std::string & getName() { return name; }
+  uint16_t getMidiNbr() { return midiNbr; }
 };
 
 #endif

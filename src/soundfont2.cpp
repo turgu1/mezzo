@@ -42,14 +42,14 @@ SoundFont2::SoundFont2(std::string & sf2Filename)
 
 SoundFont2::~SoundFont2()
 {
-  std::vector<Instrument *>::iterator i;
-  for (i = instruments.begin(); i != instruments.end(); i++) {
-    delete * i;
-  }
-
   std::vector<Preset *>::iterator p;
   for (p = presets.begin(); p != presets.end(); p++) {
     delete * p;
+  }
+
+  std::vector<Instrument *>::iterator i;
+  for (i = instruments.begin(); i != instruments.end(); i++) {
+    delete * i;
   }
 
   std::vector<Sample *>::iterator s;
@@ -116,6 +116,14 @@ bool SoundFont2::loadPreset(std::string & presetName)
     if (presetName == presets[i]->getName()) return loadPreset(i);
   }
   return false;
+}
+
+bool SoundFont2::loadMidiPresetNbr(uint16_t midiPresetNbr)
+{
+  for (uint16_t i = 0; i < presets.size(); i++) {
+    if (midiPresetNbr == presets[i]->getMidiNbr()) return loadPreset(i);
+  }
+  return false;  
 }
 
 bool SoundFont2::loadPreset(uint16_t presetIndex)

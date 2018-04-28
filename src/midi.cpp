@@ -141,12 +141,12 @@ void midiCallBack (double timeStamp,
       }
       break;
     case MIDI_PROGRAM:
-      // if (!sound->holding()) {
-      //   sound->wait();
-      //   poly->inactivateAllVoices();
-      //   samples->loadNextLibrary();
-      //   sound->conti();
-      // }
+      if (!sound->holding()) {
+        sound->wait();
+        poly->inactivateAllVoices();
+        soundFont->loadMidiPresetNbr(data1);
+        sound->conti();
+      }
       break;
     default:
         //logger.WARNING("Midi: Ignored Event: %02xh %d %d.\n",

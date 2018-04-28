@@ -47,11 +47,11 @@ Sample::Sample(sfSample & info)
 
 Sample::~Sample()
 {
-  if (firstBlock) delete firstBlock;
+  if (loaded && firstBlock) delete [] firstBlock;
   firstBlock = NULL;
 
   #if samples24bits
-    if (firstBlock24) delete firstBlock24;
+    if (firstBlock24) delete [] firstBlock24;
     firstBlock24 = NULL;
   #endif
 
@@ -87,17 +87,26 @@ bool Sample::load()
 uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
 {
   uint16_t count = 0;
-
   while (qty > 0) {
     uint16_t size;
     if (pos >= sizeSample) {
       if ((sizeLoop > 0) && loop) {
-        pos = startLoop + (pos - sizeSample) % sizeLoop;
-        size = MIN(qty, endLoop - pos);
+        uint32_t thePos = startLoop + ((pos - sizeSample) % sizeLoop);
+        size = MIN(qty, endLoop - thePos);
+        if (thePos < sizeFirstBlock) {
+          size = MIN(size, sizeFirstBlock - thePos);
+          Utils::shortToFloatNormalize(buff, &firstBlock[thePos], size);
+        }
+        else {
+          size = MIN(size, sizeSample - thePos);
+          Utils::shortToFloatNormalize(buff, &data[start + thePos], size);
+        }
       }
-      else return count;
+      else {
+        return count;
+      }
     }
-    if (pos < sizeFirstBlock) {
+    else if (pos < sizeFirstBlock) {
       size = MIN(qty, sizeFirstBlock - pos);
       Utils::shortToFloatNormalize(buff, &firstBlock[pos], size);
     }
@@ -108,6 +117,7 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
     qty   -= size;
     count += size;
     buff  += size;
+    pos   += size;
   }
 
   assert(qty == 0);

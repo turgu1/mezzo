@@ -44,7 +44,7 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 #define LOG_FRAME_SIZE      3                                 ///< Log in base 2 of the frame size (3 bits)
 #define LOG_SAMPLE_SIZE     2                                 ///< Log in base 2 of the sample size (2 bits)
 #define SAMPLING_RATE       44100                             ///< The usual sampling rate
-#define BUFFER_FRAME_COUNT  128                               ///< Number of samples/frame in a sound buffer
+#define BUFFER_FRAME_COUNT  256                               ///< Number of samples/frame in a sound buffer
 #define SAMPLE_BLOCK_SIZE   (32 * 1024)                       ///< How many samples are loaded from the SF2 file each time
 
 #define SAMPLE_BUFFER_SIZE         (BUFFER_FRAME_COUNT * SAMPLE_SIZE)///< Size of a sample buuffer in bytes

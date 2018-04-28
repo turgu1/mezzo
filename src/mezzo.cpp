@@ -11,7 +11,7 @@ Mezzo::Mezzo()
   if (soundFont) delete soundFont;
   soundFont = new SoundFont2(config.soundFontFilename);
 
-  soundFont->loadPreset(0);
+  soundFont->loadMidiPresetNbr(0);
 
   reverb    = new Reverb();
   poly      = new Poly();
@@ -27,6 +27,23 @@ Mezzo::Mezzo()
 Mezzo::~Mezzo()
 {
   if (soundFont) delete soundFont;
+
+  delete midi;
+  delete sound;
+  delete poly;
+  delete reverb;
+  delete equalizer;
+
+  logger.INFO("Max number of voices mixed at once: %d.", maxVoicesMixed);
+
+  // logger.INFO("Max volume: %8.2f.", maxVolume);
+
+  logger.INFO("Max duration of mixer function: %ld nsec (%.0f Hz).",
+              mixerDuration, 1000000000.0 / mixerDuration);
+  logger.INFO("Min duration of reverb function: %ld nsec (%.0f Hz).",
+              reverbMinDuration, 1000000000.0 / reverbMinDuration);
+  logger.INFO("Max duration of reverb function: %ld nsec (%.0f Hz).",
+              reverbMaxDuration, 1000000000.0 / reverbMaxDuration);
 }
 
 void Mezzo::outOfMemory()

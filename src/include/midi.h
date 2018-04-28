@@ -3,14 +3,18 @@
 #ifndef _MIDI_
 #define _MIDI_
 
-#include "RtMidi.h"
+#if __OSX__
+  #include "RtMidi.h"
+#else
+  #include "rtmidi/RtMidi.h"
+#endif
 
 class Midi {
 
  private:
   /// This is the callback method called by RtMidi to signify the reception of a new MIDI command
   /// by the application. This callback is responsible of parsing the command and dispatch to modify
-  /// PIano voices state accordingly.
+  /// Mezzo voices state accordingly.
   friend void midiCallBack (double timeStamp,
                             std::vector<unsigned char> *message,
                             void *userData);

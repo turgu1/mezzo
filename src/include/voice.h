@@ -117,7 +117,7 @@ class Voice : public NewHandlerSupport<Voice> {
   volatile int   stateLock;  ///< Locked by threads when reading/updating data
 
   samplep sample;            ///< Pointer on the sample
-  char    note;              ///< Targeted note, can be different than the one from sample
+  int8_t  note;              ///< Targeted note, can be different than the one from sample
   int16_t pan;               ///< Panning as 0.1% value <= -50.0 (-500) means left, value >= 50.0 (500) means right
   bool    fadingOut;         ///< The note is being fade-out after key/pedal release
   bool    noteIsOn;          ///< The note is played
@@ -177,12 +177,12 @@ class Voice : public NewHandlerSupport<Voice> {
 
   inline void setState(voiceState value) { state = value; };
 
-  inline void activate()   { if (isInactive()) setState(ALIVE);   active = true;  feedFifo();  }
+  inline void activate()   { if (isInactive()) setState(ALIVE);   active = true;  }
   inline void inactivate() { if (isActive())   setState(DORMANT); active = false; clearFifo(); }
 
   inline void    setNext(voicep n) { next = n; }
   inline voicep  getNext() { return next; }
-  inline char    getNote() { return note; }
+  inline int8_t  getNote() { return note; }
   inline float   getGain() { return gain; }
   inline int16_t  getPan() { return pan;  }
 
@@ -193,27 +193,8 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This method is used by the SampleFeeder thread to read new data
   /// from the sample and put it in the next avail slot in the
   /// fifo buffer, if there is some room available.
-  inline void feedFifo() {
-    if (isActive() && isAlive()) {
-      std::cout << "." << std::endl;
-      if (!fifo->isFull()) {
-        BEGIN();
-          std::cout << "#" << std::endl;
-          uint16_t count = sample->getData(
-            fifo->getTail(),
-            fifoLoadPos,
-            SAMPLE_BUFFER_SAMPLE_COUNT
-          );
-          std::cout << "[" << count << "]" << std::endl;
-          if (count) {
-            fifoLoadPos += count;
-            fifo->setSampleCount(count);
-            fifo->push();
-          }
-        END();
-      }
-    }
-  }
+  void feedFifo();
+  void prepareFifo();
 
   inline void clearFifo()       { fifo->clear();        }
   inline void fadeOut()         { fadingOut = true;     }

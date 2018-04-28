@@ -35,8 +35,8 @@ int soundCallback(const void *                     inputBuffer,
   else {
     poly->mixer(buff, framesPerBuffer);
     reverb->process(buff, framesPerBuffer);
-    equalizer->process(buff, framesPerBuffer);
-    if (config.replayEnabled) sound->push(buff);
+    //equalizer->process(buff, framesPerBuffer);
+    //if (config.replayEnabled) sound->push(buff);
   }
 
   return paContinue;
@@ -72,7 +72,7 @@ Sound::Sound()
     PaStreamFlags      flags;
 
     const PaDeviceInfo *devInfo;
-    int devNbr = -1;
+    int devNbr = config.pcmDeviceNbr;;
 
     if ((devCount = Pa_GetDeviceCount()) < 0) {
       logger.FATAL("Unable to get audio device count: %s.", Pa_GetErrorText(devCount));
@@ -80,10 +80,7 @@ Sound::Sound()
 
     if (!config.silent) showDevices(devCount);
 
-    if (config.pcmDeviceNbr != -1) {
-      devNbr : config.pcmDeviceNbr;
-    }
-    else if (config.pcmDeviceName.size() > 0) {
+    if (config.pcmDeviceName.size() > 0) {
       for (int i = 0; i < devCount; i++) {
         devInfo = Pa_GetDeviceInfo(i);
 
@@ -95,8 +92,9 @@ Sound::Sound()
     }
 
     if (devNbr == -1) {
-      devNbr = 0;
-      logger.INFO("Default PCM Device (0) selected.");
+      devNbr =  Pa_GetDefaultOutputDevice();
+      if (devNbr == paNoDevice) devNbr = 0;
+      logger.INFO("Default PCM Device (%d) selected.", devNbr);
     }
     else {
       logger.INFO("PCM Device Selected: %d.", devNbr);

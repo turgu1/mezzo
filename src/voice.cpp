@@ -9,13 +9,58 @@
   #include <arm_neon.h>
 #endif
 
-#define SCALE_FACTOR_COUNT  128     // In midi, there is a potential of 128 note values
+// In midi, there is a potential of 128 note values
+// The vector will get scale factors for offsets between two notes
+// ranging  from -127 to +127
+#define SCALE_FACTOR_COUNT  ((127 * 2) + 1)
 
 /// This vector contains the scale factors required to modify the pitch of a note to obtain a targeted
 /// note sound. Please look in method Voice::Voice() for initialization values.
 
 PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
 PRIVATE bool scaleFactorsInitialized = false;
+
+void Voice::feedFifo()
+{
+  if (isActive() && isAlive()) {
+    if (!fifo->isFull()) {
+      BEGIN();
+        uint16_t count = sample->getData(
+          fifo->getTail(),
+          fifoLoadPos,
+          SAMPLE_BUFFER_SAMPLE_COUNT
+        );
+        if (count) {
+          fifoLoadPos += count;
+          fifo->setSampleCount(count);
+          fifo->push();
+        }
+      END();
+    }
+  }
+}
+
+void Voice::prepareFifo()
+{
+  fifo->clear();
+  // while (!fifo->isFull())
+  for (int i = 0; i < 2; i++) 
+  {
+    uint16_t count = sample->getData(
+      fifo->getTail(),
+      fifoLoadPos,
+      SAMPLE_BUFFER_SAMPLE_COUNT
+    );
+    if (count) {
+      fifoLoadPos += count;
+      fifo->setSampleCount(count);
+      fifo->push();
+    }
+    else {
+      return;
+    }    
+  }
+}
 
 //---- Voice() ----
 
@@ -47,7 +92,7 @@ Voice::Voice()
     //   https://en.wikipedia.org/wiki/Equal_temperament
 
     for (int i = 0; i < SCALE_FACTOR_COUNT; i++) {
-      scaleFactors[i] = pow(2, i / 12.0);
+      scaleFactors[i] = pow(2, (i - 127) / 12.0);
     }
   }
 }
@@ -86,8 +131,9 @@ void Voice::setup(samplep sample, char note, float gain, int16_t pan)
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
-  
-  fifo->clear();
+
+  prepareFifo();  
+
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -133,7 +179,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
   //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[note - sample->getPitch()];
+  float factor = scaleFactors[(note - sample->getPitch()) + 127];
 
   assert(scaleBuff != NULL);
   assert(buff != NULL);
@@ -242,6 +288,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
       *buff++ = a + ((scaleBuff[ipos] - a) * diff);
 
       pos += factor;
+      count++;
     }
   #endif 
 
