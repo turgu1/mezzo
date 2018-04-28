@@ -95,7 +95,7 @@ Poly::Poly()
 
   tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
   voiceBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
-  
+
   memset(tmpBuff,   0, FRAME_BUFFER_SIZE );
   memset(voiceBuff, 0, SAMPLE_BUFFER_SIZE);
 }
@@ -281,12 +281,12 @@ int Poly::mixer(buffp buff, int frameCount)
     if (count > 0) {
 
       // TODO: Integrate panning with other transformation
-      stereoPanning(tmpBuff, voiceBuff, voice->getPan(), count);
-      
+      Utils::stereoPanning(tmpBuff, voiceBuff, voice->getPan(), count);
+
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;
 
-      float   voiceGain = voice->getGain() * masterVolume;
+      float   voiceGain = voice->getGain() * config.masterVolume;
       float * fadeOutGain = &fadeOutScaleDown[voice->getFadeOutPos()];
 
       if (voice->isFadingOut()) {

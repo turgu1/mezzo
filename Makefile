@@ -35,7 +35,7 @@ CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native
 
 
 BOOST_LIBS  := -lboost_iostreams -lboost_program_options
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread  -lrt
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread  -lrtmidi
 INC         := -I$(INCDIR) -I$(BOOST_INCDIR)
 INCDEP      := -I$(INCDIR) -I$(BOOST_INCDIR)
 

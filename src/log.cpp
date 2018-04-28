@@ -12,7 +12,7 @@ void Log::logIt(const char * level, const char * format, va_list args)
 
   static char sbuff[300];
 
-  if (silent) return;
+  if (config.silent) return;
 
   vsnprintf(sbuff, 299, format, args);
 
@@ -60,6 +60,6 @@ void Log::FATAL(const char * format, ...)
   va_start(args, format);
   logIt("FATAL", format, args);
 
-  cerr << endl << "PIano abort!" << endl;
+  cerr << endl << "Mezzo abort!" << endl;
   exit(1);
 }

@@ -75,10 +75,13 @@ bool Preset::load(sfBag     * bags,
 
   if (loaded) return true;
 
-  if (bagCount == 0) return false;
+  if (bagCount == 0) {
+    logger.DEBUG("Bag Count is 0 for preset %s", name.c_str());
+    return false;
+  }
 
   // We get one more as an end of list indicator (instrumentIndex will be -1)
-  
+
   zones     = new aZone[bagCount + 1];
   zoneCount = bagCount;
 
@@ -132,8 +135,8 @@ bool Preset::load(sfBag     * bags,
   if (genCount > 0) gens = new sfGenList[genCount];
   if (modCount > 0) mods = new sfModList[modCount];
 
-  if ((genCount > 0) || (modCount > 0)) {
-
+  //if ((genCount > 0) || (modCount > 0)) {
+  if (true) {
     aZone     * z  = zones;
     sfGenList * g  = gens;
     sfGenList * gg = &generators[bags[bagIdx].wGenNdx];
@@ -193,6 +196,7 @@ bool Preset::load(sfBag     * bags,
                   for (int k = z->keys.byLo; k <= z->keys.byHi; k++) {
                     if (keys[k] != NULL) logger.ERROR("MIDI Keys redondancies in zones for key %d.", k);
                     keys[k] = z;
+                    logger.DEBUG("Key %d...", k);
                   }
                 }
                 break;
@@ -239,13 +243,95 @@ bool Preset::load(sfBag     * bags,
     soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
   }
 
+  logger.DEBUG("Preset %s loaded.", name.c_str());
+
+  showZones();
+
   loaded = true;
   return true;
 }
 
+void Preset::showGenerator(sfGenList & g)
+{
+  const generatorDescriptor & desc = generatorsDesc[g.sfGenOper];
+  std::cerr << desc.name << " [" <<
+    g.genAmount.shAmount << "](" << desc.unit << ")";
+}
+
+void Preset::showModInfo(sfModulator & m)
+{
+  std::cerr << "[I:" << m.index
+            << " M:" << m.midiContinuousControllerFlag
+            << " D:" << m.direction
+            << " P:" << m.polarity
+            << " T:" << m.type << "]";
+}
+
+void Preset::showModulator(sfModList & m)
+{
+  std::cerr << "ModSrc ";
+  showModInfo(m.sfModSrcOper);
+  std::cerr << " Dest [" << generatorsDesc[m.sfModDestOper].name << "]"
+            << " Amount [" << m.modAmount << "]"
+            << " ModAmtSrc ";
+  showModInfo(m.sfModAmtSrcOper);
+  std::cerr << " Transform [" << (m.sfModTransOper == 0 ? "Linear" : "AbsValue") << "]";
+}
+
+void Preset::showZones()
+{
+  std::cerr << std::endl << "Zone List for Preset [" << name << "]" << std::endl << std::endl;
+
+  if ((globalZone.genCount > 0) || (globalZone.modCount > 0)) {
+    std::cerr << "Globals :" << std::endl;
+    if (globalZone.genCount > 0) {
+      std::cerr << "  Generators:" << std::endl;
+      for (int j = 0; j < globalZone.genCount; j++) {
+        std::cerr << "    " << j << ": ";
+        showGenerator(globalZone.generators[j]);
+        std::cerr << std::endl;
+      }
+    }
+    if (globalZone.modCount > 0) {
+      std::cerr << "  Modulators:" << std::endl;
+      for (int j = 0; j < globalZone.modCount; j++) {
+        std::cerr << "    " << j << ": ";
+        showModulator(globalZone.modulators[j]);
+        std::cerr << std::endl;
+      }
+    }
+  }
+  for (int i = 0; i < zoneCount; i++) {
+    std::cerr << i << ": " <<
+      "keys ["         << +zones[i].keys.byLo << "-" << +zones[i].keys.byHi << "] " <<
+      "velocities ["   << +zones[i].velocities.byLo << "-" << +zones[i].velocities.byHi << "] " <<
+      "instrument index [" <<  zones[i].instrumentIndex << "] " <<
+      "gen count ["    << +zones[i].genCount << "] " <<
+      "mod count ["    << +zones[i].modCount << "] " << std::endl;
+    if (zones[i].genCount > 0) {
+      std::cerr << "  Generators:" << std::endl;
+      for (int j = 0; j < zones[i].genCount; j++) {
+        std::cerr << "    " << j << ": ";
+        showGenerator(zones[i].generators[j]);
+        std::cerr << std::endl;
+      }
+    }
+    if (zones[i].modCount > 0) {
+      std::cerr << "  Modulators:" << std::endl;
+      for (int j = 0; j < zones[i].modCount; j++) {
+        std::cerr << "    " << j << ": ";
+        showModulator(zones[i].modulators[j]);
+        std::cerr << std::endl;
+      }
+    }
+  }
+
+  std::cerr << std::endl << "[End]" << std::endl;
+}
+
 void Preset::playNote(uint8_t note, uint8_t velocity) {
   aZone * z = keys[note];
-  while ((z->instrumentIndex != -1) &&
+  while (z && (z->instrumentIndex != -1) &&
          (z->keys.byLo <= note) &&
          (note <= z->keys.byHi)) {
     if ((z->velocities.byLo <= velocity) &&
@@ -258,11 +344,10 @@ void Preset::playNote(uint8_t note, uint8_t velocity) {
 
 void Preset::stopNote(uint8_t note) {
   aZone * z = keys[note];
-  while ((z->instrumentIndex != -1) &&
+  while (z && (z->instrumentIndex != -1) &&
          (z->keys.byLo <= note) &&
          (note <= z->keys.byHi)) {
     soundFont->instruments[z->instrumentIndex]->stopNote(note);
     z++;
   }
 }
-

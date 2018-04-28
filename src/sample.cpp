@@ -41,7 +41,7 @@ Sample::Sample(sfSample & info)
 
   assert(sizeSample > 0);
   assert(data != NULL); // Must have been set prior to instantiate Sample
-  
+
   loaded = false;
 }
 
@@ -54,7 +54,7 @@ Sample::~Sample()
     if (firstBlock24) delete firstBlock24;
     firstBlock24 = NULL;
   #endif
-  
+
   loaded = false;
 }
 
@@ -66,7 +66,7 @@ void Sample::outOfMemory()
 bool Sample::load()
 {
   if (loaded) return true;
-  
+
   sizeFirstBlock = SAMPLE_BLOCK_SIZE;
   if (sizeSample < sizeFirstBlock) sizeFirstBlock = sizeSample;
 
@@ -87,7 +87,7 @@ bool Sample::load()
 uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
 {
   uint16_t count = 0;
-  
+
   while (qty > 0) {
     uint16_t size;
     if (pos >= sizeSample) {
@@ -99,17 +99,17 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
     }
     if (pos < sizeFirstBlock) {
       size = MIN(qty, sizeFirstBlock - pos);
-      shortToFloatNormalize(buff, &firstBlock[pos], size);
+      Utils::shortToFloatNormalize(buff, &firstBlock[pos], size);
     }
     else {
       size = MIN(qty, sizeSample - pos);
-      shortToFloatNormalize(buff, &data[start + pos], size);
+      Utils::shortToFloatNormalize(buff, &data[start + pos], size);
     }
     qty   -= size;
     count += size;
     buff  += size;
   }
-  
+
   assert(qty == 0);
   return count;
 }

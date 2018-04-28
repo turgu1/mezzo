@@ -44,33 +44,28 @@ int main(int argc, char **argv)
     feenableexcept(FE_DIVBYZERO|FE_INVALID);
   #endif
 
-  interactive = false;
-  silent      = false;
   keepRunning = true;
 
-  if (!loadConfig(argc, argv)) return 1;
+  if (!config.loadConfig(argc, argv)) return 1;
 
-  interactive = config.count("interactive") != 0;
-  silent      = config.count("silent") != 0;
-  
   mezzo = new Mezzo();
 
   assert(mezzo != NULL);
-  
+
   pthread_t feeder;
-  
+
   if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
     logger.FATAL("Unable to start samplesFeeder thread.");
   }
 
-  if (interactive) {
+  if (config.interactive) {
     InteractiveMode im;
     im.menu();
     keepRunning = false;
   }
 
   // Here we wait until the two threads have been stopped
-  
+
   pthread_join(feeder, NULL);
 
   // Leave gracefully

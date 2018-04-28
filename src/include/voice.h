@@ -195,13 +195,16 @@ class Voice : public NewHandlerSupport<Voice> {
   /// fifo buffer, if there is some room available.
   inline void feedFifo() {
     if (isActive() && isAlive()) {
+      std::cout << "." << std::endl;
       if (!fifo->isFull()) {
         BEGIN();
+          std::cout << "#" << std::endl;
           uint16_t count = sample->getData(
             fifo->getTail(),
             fifoLoadPos,
             SAMPLE_BUFFER_SAMPLE_COUNT
           );
+          std::cout << "[" << count << "]" << std::endl;
           if (count) {
             fifoLoadPos += count;
             fifo->setSampleCount(count);

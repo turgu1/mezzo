@@ -319,7 +319,8 @@ void Instrument::showZones()
 void Instrument::playNote(uint8_t note, uint8_t velocity)
 {
   aZone * z = keys[note];
-  while ((z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
+  if (z == NULL) logger.ERROR("keys for note %d not found!", note);
+  while (z && (z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
     if ((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) {
       assert(z->sampleIndex < (int16_t) soundFont->samples.size());
       assert(soundFont->samples[z->sampleIndex] != NULL);
@@ -332,7 +333,8 @@ void Instrument::playNote(uint8_t note, uint8_t velocity)
 void Instrument::stopNote(uint8_t note)
 {
   aZone * z = keys[note];
-  while ((z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
+  if (z == NULL) logger.ERROR("keys for note %d not found!", note);
+  while (z && (z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
     // soundFont->samples[z->sampleIndex]->stopNote(note);
     z++;
   }

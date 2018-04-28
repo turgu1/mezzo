@@ -1,7 +1,7 @@
 #ifndef _SF2_
 #define _SF2_
 
-#pragma pack(1)
+#pragma pack(push,1)
 
 /// Required structs for Sound Font file traversal
 
@@ -245,5 +245,7 @@ struct sfGenList {
   SFGenerator sfGenOper : 16;
   genAmountType genAmount;
 };
+
+#pragma pack(pop)
 
 #endif

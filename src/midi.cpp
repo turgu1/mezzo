@@ -113,18 +113,18 @@ void midiCallBack (double timeStamp,
 
     switch (command) {
     case MIDI_NOTE_ON:
-      midi->setNoteOn(data1 + midiTranspose, data2);
+      midi->setNoteOn(data1 + config.midiTranspose, data2);
       break;
     case MIDI_NOTE_OFF:
-      midi->setNoteOff(data1 + midiTranspose, data2);
+      midi->setNoteOff(data1 + config.midiTranspose, data2);
       break;
     case MIDI_CONTROL:
       switch (data1) {
       case 0x40:
-        if (midi->sustainIsOn() && (data2 < midiSustainTreshold)) {
+        if (midi->sustainIsOn() && (data2 < config.midiSustainTreshold)) {
           midi->setSustainOff();
         }
-        else if (!midi->sustainIsOn() && (data2 >= midiSustainTreshold)) {
+        else if (!midi->sustainIsOn() && (data2 >= config.midiSustainTreshold)) {
           midi->setSustainOn();
         }
         break;
@@ -132,7 +132,7 @@ void midiCallBack (double timeStamp,
         reverb->setRoomSize(0.7f + 0.29f * (data2 / 127.0f));
         break;
       case 0x4A:
-        masterVolume = data2 / 127.0f;
+        config.masterVolume = data2 / 127.0f;
         break;
       default:
           //logger.WARNING("Midi: Ignored Control: %02xh %d.\n",
@@ -194,21 +194,24 @@ Midi::Midi()
 
   devCount = midiPort->getPortCount();
 
-  if (interactive) {
+  if (devCount == 0) {
+    logger.FATAL("No midi device found.");
+  }
+  if (config.interactive) {
     selectDevice();
   }
   else {
-    if (!silent) showDevices(devCount);
+    if (!config.silent) showDevices(devCount);
 
     for (int i = 0; i < devCount; i++) {
       //cout << i << ": " << midiPort->getPortName(i) << endl;
       if ((devNbr == -1) &&
-          (strcasestr(midiPort->getPortName(i).c_str(), midiDeviceName.c_str()) != NULL)) {
+          (strcasestr(midiPort->getPortName(i).c_str(), config.midiDeviceName.c_str()) != NULL)) {
         devNbr = i;
       }
     }
 
-    devNbr = midiDeviceNbr == -1 ? devNbr : midiDeviceNbr;
+    devNbr = config.midiDeviceNbr == -1 ? devNbr : config.midiDeviceNbr;
 
     if (devNbr == -1) {
       devNbr = 0;
@@ -233,7 +236,7 @@ Midi::Midi()
     logger.FATAL("Unable to set Midi CallBack: %s.", error.what());
   }
 
-  if (midiChannel == -1) {
+  if (config.midiChannel == -1) {
     logger.INFO("Listening to all MIDI channels.");
   }
   else {
@@ -243,7 +246,7 @@ Midi::Midi()
 
     data[0] = 0;
     for (int i = 0; i < 16; i++) {
-      if (midiChannel & (1 << i)) {
+      if (config.midiChannel & (1 << i)) {
         sprintf(val, "%d", i + 1);
         strcat(data, comma);
         strcat(data, val);
@@ -253,7 +256,7 @@ Midi::Midi()
     logger.INFO("Listening to MIDI channels%s.", data);
   }
 
-  channelMask = midiChannel;
+  channelMask = config.midiChannel;
 }
 
 //---- setNoteOn() ----
@@ -262,7 +265,7 @@ void Midi::setNoteOn(char note, char velocity)
 {
   //DEBUG("Note ON %d (%d)\n", note, velocity);
 
-  if (replayEnabled && (note == 108)) {
+  if (config.replayEnabled && (note == 108)) {
     sound->toggleReplay();
   }
   else {
@@ -362,7 +365,7 @@ void Midi::transposeAdjust()
   int value;
 
   while (1) {
-    cout << "Tranpose current value: " << midiTranspose << endl;
+    cout << "Tranpose current value: " << config.midiTranspose << endl;
     cout << "Please enter New transpose value" << endl
          << "(as a number of semitone, between -24 and 24) > ";
 
@@ -373,7 +376,7 @@ void Midi::transposeAdjust()
     cout << "Value not valid. Please enter a value between -24 and 24." << endl << endl;
   }
 
-  midiTranspose = value;
+  config.midiTranspose = value;
 }
 
 //---- showDevices() ----
@@ -403,7 +406,7 @@ void Midi::selectDevice()
 
   devCount = midiPort->getPortCount();
 
-  if (!silent) showDevices(devCount);
+  if (!config.silent) showDevices(devCount);
 
   while (true) {
     string str;

@@ -56,8 +56,6 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 #define MAX(x,y) (x) > (y) ? (x) : (y)
 
 PUBLIC volatile bool keepRunning;
-PUBLIC bool          interactive;
-PUBLIC bool          silent;
 
 // Statistics
 

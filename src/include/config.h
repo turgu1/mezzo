@@ -14,44 +14,64 @@
 
 namespace po = boost::program_options;
 
-PUBLIC std::string configFile;
-PUBLIC std::string sf2Folder;
-PUBLIC std::string inputSf2;
-PUBLIC std::string soundFontFilename;
+class Configuration
+{
+private:
+  static po::options_description gen;
+  static po::options_description conf;
+  static po::options_description hidden;
+  static po::options_description visible;
 
-PUBLIC po::variables_map config;
+  po::options_description cmdlineOptions;
 
-PUBLIC uint32_t samplingRate;
-PUBLIC bool     replayEnabled;
+  void usage();
+  void showCopyright();
 
-PUBLIC float equalizer_v60;
-PUBLIC float equalizer_v150;
-PUBLIC float equalizer_v400;
-PUBLIC float equalizer_v1000;
-PUBLIC float equalizer_v2400;
-PUBLIC float equalizer_v6000;
-PUBLIC float equalizer_v15000;
+public:
+  po::variables_map configMap;
+  std::string configFile;
+  std::string soundFontFilename;
 
-PUBLIC std::string midiDeviceName;
-PUBLIC int         midiChannel;
-PUBLIC int         midiDeviceNbr;
-PUBLIC int         midiSustainTreshold;
-PUBLIC int         midiTranspose;
+  std::string sf2Folder;
+  std::string inputSf2;
 
-PUBLIC float reverbRoomSize;
-PUBLIC float reverbDamping;
-PUBLIC float reverbWidth;
-PUBLIC float reverbDryWet;
-PUBLIC float reverbApGain;
+  uint32_t samplingRate;
+  bool     replayEnabled;
 
-PUBLIC std::string pcmDeviceName;
-PUBLIC int         pcmDeviceNbr;
+  bool interactive;
+  bool silent;
+  
+  float equalizer_v60;
+  float equalizer_v150;
+  float equalizer_v400;
+  float equalizer_v1000;
+  float equalizer_v2400;
+  float equalizer_v6000;
+  float equalizer_v15000;
 
-PUBLIC float       masterVolume;
-PUBLIC uint16_t    volume;
+  std::string midiDeviceName;
+  int         midiChannel;
+  int         midiDeviceNbr;
+  int         midiSustainTreshold;
+  int         midiTranspose;
 
-bool loadConfig(int argc, char **argv);
-bool showConfig();
+  float reverbRoomSize;
+  float reverbDamping;
+  float reverbWidth;
+  float reverbDryWet;
+  float reverbApGain;
+
+  std::string pcmDeviceName;
+  int         pcmDeviceNbr;
+
+  uint16_t    volume;
+  float       masterVolume;
+
+  bool loadConfig(int argc, char **argv);
+  bool showConfig();
+};
+
+PUBLIC Configuration config;
 
 #undef PUBLIC
 #endif

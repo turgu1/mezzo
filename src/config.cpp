@@ -13,13 +13,13 @@
 #include "mezzo.h"
 #include "utils.h"
 
-static po::options_description gen("Generic options");
-static po::options_description conf("Configuration options");
-static po::options_description hidden("Hidden options");
-static po::options_description cmdlineOptions;
-static po::options_description visible("Allowed options");
+po::options_description Configuration::gen("Generic options");
+po::options_description Configuration::conf("Configuration options");
+po::options_description Configuration::hidden("Hidden options");
+po::options_description Configuration::visible("Allowed options");
 
-static void usage()
+
+void Configuration::usage()
 {
   std::cout << std::endl << MEZZO_VERSION << std::endl << std::endl;
   std::cout << "Usage: mezzo [options] [sound font v2 library filename]" << std::endl << std::endl;
@@ -27,7 +27,7 @@ static void usage()
   std::cout << std::endl << "Copyright (c) 2018, Guy Turcotte" << std::endl;
 }
 
-static void showCopyright()
+void Configuration::showCopyright()
 {
   std::cout <<
 "\n\
@@ -63,7 +63,7 @@ static void showCopyright()
 " << std::endl;
 }
 
-bool loadConfig(int argc, char **argv)
+bool Configuration::loadConfig(int argc, char **argv)
 {
   try {
     char filename[256];
@@ -72,7 +72,7 @@ bool loadConfig(int argc, char **argv)
       ("copyright,C",   "show copyright information")
       ("help,h",        "produce this help message")
       ("version,v",     "show version then exit")
-      ("config,c",      po::value<std::string>(&configFile)->default_value(".mezzo.conf"),
+      ("config-file,c", po::value<std::string>(&configFile)->default_value(".mezzo.conf"),
                         "name of configuration file")
     ;
 
@@ -87,13 +87,13 @@ bool loadConfig(int argc, char **argv)
                                   "keep last part of song for replay")
       ("sf2-folder,d",            po::value<std::string>(&sf2Folder),
                                   "set folder to find sf2 libraries")
-      ("pcm-device-nbr",          po::value<int>(&pcmDeviceNbr),
+      ("pcm-device-nbr",          po::value<int>(&pcmDeviceNbr)->default_value(-1),
                                   "PCM Output Device Nbr")
       ("pcm-device-name",         po::value<std::string>(&pcmDeviceName),
                                   "PCM Output Device Name")
       ("midi-channel",            po::value<int>(&midiChannel),
                                   "Midi Channel or -1 for omni")
-      ("midi-device-nbr",         po::value<int>(&midiDeviceNbr),
+      ("midi-device-nbr",         po::value<int>(&midiDeviceNbr)->default_value(-1),
                                   "Midi Input Device Nbr")
       ("midi-device-name",        po::value<std::string>(&midiDeviceName),
                                   "Midi Input Device Name")
@@ -142,23 +142,26 @@ bool loadConfig(int argc, char **argv)
       po::command_line_parser(argc, argv)
       .options(cmdlineOptions)
       .positional(p)
-      .run(), config);
-    po::notify(config);
+      .run(), configMap);
+    po::notify(configMap);
 
-    if (config.count("help")) {
+    if (configMap.count("help")) {
       usage();
       return false;
     }
 
-    if (config.count("copyright")) {
+    if (configMap.count("copyright")) {
       showCopyright();
       return false;
     }
 
-    if (config.count("version")) {
+    if (configMap.count("version")) {
       std::cout << MEZZO_VERSION << std::endl;
       return false;
     }
+
+    interactive = configMap.count("interactive") != 0;
+    silent      = configMap.count("silent") != 0;
 
     if (strchr(configFile.c_str(), '/')) {
       strncpy(filename, configFile.c_str(), 255);
@@ -169,15 +172,15 @@ bool loadConfig(int argc, char **argv)
       strncat(filename, configFile.c_str(), 255);
     }
 
-    if (fileExists(filename)) {
+    if (Utils::fileExists(filename)) {
       std::ifstream ifs(filename);
       if (!ifs) {
         logger.ERROR("Cannot open config file: %s", filename);
         return false;
       }
       else {
-        po::store(po::parse_config_file(ifs, cmdlineOptions), config);
-        po::notify(config);
+        po::store(po::parse_config_file(ifs, cmdlineOptions), configMap);
+        po::notify(configMap);
       }
     }
     else {
@@ -185,19 +188,19 @@ bool loadConfig(int argc, char **argv)
       return false;
     }
 
-    if (!config.count("input-sf2")) {
+    if (!configMap.count("input-sf2")) {
       logger.ERROR("SoundFont file name required\n");
       return false;
     }
     else {
       filename[0] = '\0';
       if ((strchr(inputSf2.c_str(), '/') == NULL) &&
-          config.count("sf2-folder")) {
+          configMap.count("sf2-folder")) {
         strncpy(filename, sf2Folder.c_str(), 255);
         strncat(filename, "/", 255);
       }
       strncat(filename, inputSf2.c_str(), 255);
-      if (fileExists(filename)) {
+      if (Utils::fileExists(filename)) {
         soundFontFilename = filename;
       }
       else {

@@ -5,18 +5,18 @@
 #include "mezzo.h"
 #include "utils.h"
 
-buffp shortToFloatNormalize(buffp dst, int16_t * src, int len)
+buffp Utils::shortToFloatNormalize(buffp dst, int16_t * src, int len)
 {
   const float norm = 1.0 / 32768;
-  
+
   for (int i = 0; i < len; i++) {
     dst[i] = src[i] * norm;
   }
-  
+
   return dst;
 }
 
-buffp merge(buffp dst, buffp src, int len)
+buffp Utils::merge(buffp dst, buffp src, int len)
 {
   for (int i = 0; i < len; i++) {
     dst[i] += src[i];
@@ -25,37 +25,37 @@ buffp merge(buffp dst, buffp src, int len)
   return dst;
 }
 
-buffp mergeAndMultBy(buffp dst, buffp src, float ampl, int len)
+buffp Utils::mergeAndMultBy(buffp dst, buffp src, float ampl, int len)
 {
   for (int i = 0; i < len; i++) {
     dst[i] = (dst[i] + src[i]) * ampl;
-  }  
+  }
 
   return dst;
 }
 
-buffp interleave(buffp dst, buffp srcLeft, buffp srcRight, int len)
+buffp Utils::interleave(buffp dst, buffp srcLeft, buffp srcRight, int len)
 {
   for (int i = 0; i < len; i++) {
     dst[i * 2]     = srcLeft[i];
     dst[i * 2 + 1] = srcRight[i];
-  }  
+  }
 
   return dst;
 }
 
-bool fileExists(const char * name) {
-  struct stat buffer;   
-  return (stat (name, &buffer) == 0); 
+bool Utils::fileExists(const char * name) {
+  struct stat buffer;
+  return (stat (name, &buffer) == 0);
 }
 
-void stereoPanning(buffp dst, buffp src, int16_t pan, int len)
+void Utils::stereoPanning(buffp dst, buffp src, int16_t pan, int len)
 {
   float left, right;
-  
+
   left  = MIN(1.0, (pan - 500.0) / -1000.0);
   right = MIN(1.0, (pan + 500.0) /  1000.0);
-  
+
   if (left < 0.001) {
     while (len--) {
       *dst++ = 0.0;
@@ -66,12 +66,12 @@ void stereoPanning(buffp dst, buffp src, int16_t pan, int len)
     while (len--) {
       *dst++ = *src++;
       *dst++ = 0.0;
-    }    
+    }
   }
   else {
     while (len--) {
       *dst++ = *src * left;
       *dst++ = *src++ * right;
-    }    
+    }
   }
 }

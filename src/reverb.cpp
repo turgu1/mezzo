@@ -68,11 +68,11 @@ Reverb::Reverb()
     rightAp[i].head = rightAp[i].tail = rightAp[i].buff;
   }
 
-  roomSize = reverbRoomSize;
-  damping  = reverbDamping;
-  width    = reverbWidth;
-  dryWet   = reverbDryWet;
-  apGain   = reverbApGain;
+  roomSize = config.reverbRoomSize;
+  damping  = config.reverbDamping;
+  width    = config.reverbWidth;
+  dryWet   = config.reverbDryWet;
+  apGain   = config.reverbApGain;
 }
 
 //----- outOfMemory() ----

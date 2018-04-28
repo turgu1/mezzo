@@ -26,7 +26,7 @@ int soundCallback(const void *                     inputBuffer,
   (void) timeInfo;
   (void) statusFlags;
 
-  if (replayEnabled && sound->isReplaying()) {
+  if (config.replayEnabled && sound->isReplaying()) {
     sound->get(buff);
   }
   else if (sound->holding()) {
@@ -36,7 +36,7 @@ int soundCallback(const void *                     inputBuffer,
     poly->mixer(buff, framesPerBuffer);
     reverb->process(buff, framesPerBuffer);
     equalizer->process(buff, framesPerBuffer);
-    if (replayEnabled) sound->push(buff);
+    if (config.replayEnabled) sound->push(buff);
   }
 
   return paContinue;
@@ -62,7 +62,7 @@ Sound::Sound()
 
   CHKPA(Pa_Initialize(), "Unable to initialize PortAudio: %s");
 
-  if (interactive) {
+  if (config.interactive) {
     selectDevice();
   }
   else {
@@ -78,17 +78,21 @@ Sound::Sound()
       logger.FATAL("Unable to get audio device count: %s.", Pa_GetErrorText(devCount));
     }
 
-    //if (!silent) showDevices(devCount);
+    if (!config.silent) showDevices(devCount);
 
-    for (int i = 0; i < devCount; i++) {
-      devInfo = Pa_GetDeviceInfo(i);
+    if (config.pcmDeviceNbr != -1) {
+      devNbr : config.pcmDeviceNbr;
+    }
+    else if (config.pcmDeviceName.size() > 0) {
+      for (int i = 0; i < devCount; i++) {
+        devInfo = Pa_GetDeviceInfo(i);
 
-      if ((devNbr == -1) && (strcasestr(devInfo->name, pcmDeviceName.c_str()) != NULL)) {
-        devNbr = i;
+        if ((devNbr == -1) && (strcasestr(devInfo->name, config.pcmDeviceName.c_str()) != NULL)) {
+          devNbr = i;
+          break;
+        }
       }
     }
-
-    devNbr = pcmDeviceNbr == -1 ? devNbr : pcmDeviceNbr;
 
     if (devNbr == -1) {
       devNbr = 0;
@@ -108,7 +112,7 @@ Sound::Sound()
     params.hostApiSpecificStreamInfo = NULL;
 
     CHKPA(Pa_OpenStream(&stream,
-                        NULL, &params, samplingRate,
+                        NULL, &params, config.samplingRate,
                         BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
           "Unable to open PortAudio Stream: %s");
 
@@ -162,7 +166,7 @@ void Sound::showDevices(int devCount)
     devInfo = Pa_GetDeviceInfo(i);
 
     assert(devInfo != NULL);
-    
+
     cout << "Device " << i << ": " << devInfo->name << endl;
   }
 
@@ -223,7 +227,7 @@ void Sound::selectDevice()
   }
 
   CHKPA(Pa_OpenStream(&stream,
-                      NULL, &params, samplingRate,
+                      NULL, &params, config.samplingRate,
                       BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
         "Unable to open PortAudio Stream: %s");
 

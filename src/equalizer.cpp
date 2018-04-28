@@ -47,13 +47,13 @@ const float Equalizer::bpf[BAND_COUNT][5] = {
 
 Equalizer::Equalizer()
 {
-  gain[0] = equalizer_v60   ;
-  gain[1] = equalizer_v150  ;
-  gain[2] = equalizer_v400  ;
-  gain[3] = equalizer_v1000 ;
-  gain[4] = equalizer_v2400 ;
-  gain[5] = equalizer_v6000 ;
-  gain[6] = equalizer_v15000;
+  gain[0] = config.equalizer_v60   ;
+  gain[1] = config.equalizer_v150  ;
+  gain[2] = config.equalizer_v400  ;
+  gain[3] = config.equalizer_v1000 ;
+  gain[4] = config.equalizer_v2400 ;
+  gain[5] = config.equalizer_v6000 ;
+  gain[6] = config.equalizer_v15000;
 }
 
 Equalizer::~Equalizer()

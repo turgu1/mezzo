@@ -70,9 +70,9 @@ public:
             sfModList * modulators);
   bool unload();
 
-  void playNote(uint8_t note, uint8_t velocity); 
+  void playNote(uint8_t note, uint8_t velocity);
   void stopNote(uint8_t note);
-  
+
   /// Returns the name of the preset
   std::string & getName() { return name; }
 };

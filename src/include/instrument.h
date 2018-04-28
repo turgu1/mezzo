@@ -5,8 +5,6 @@
 
 #include <string>
 
-#include "sf2.h"
-
 class Instrument : public NewHandlerSupport<Instrument> {
 
 private:

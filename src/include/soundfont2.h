@@ -62,7 +62,7 @@ public:
   inline void playNote(uint8_t note, uint8_t velocity) {
     if (currentPreset) currentPreset->playNote(note, velocity);
   };
-  
+
   inline void stopNote(uint8_t note) {
     if (currentPreset) currentPreset->stopNote(note);
   }
