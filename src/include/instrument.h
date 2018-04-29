@@ -45,13 +45,12 @@ private:
   void showGenerator(sfGenList & g);
   void showModInfo(sfModulator & m);
   void showModulator(sfModList & m);
-  void showZones();
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
 public:
   Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty);
-  ~Instrument();
+ ~Instrument();
 
   /// Returns true if the instrument has been loaded in memory
   bool isLoaded() { return loaded; }
@@ -62,6 +61,7 @@ public:
             sfModList  * modulators,
             rangesType & keysToLoad);
   bool unload();
+  void showZones();
 
   void playNote(uint8_t note, uint8_t velocity);
   void stopNote(uint8_t note);

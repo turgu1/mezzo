@@ -50,7 +50,7 @@ void Instrument::outOfMemory()
 bool Instrument::unload()
 {
   if (!loaded) return false;
-  
+
   if (zones) delete [] zones;
   if (gens)  delete [] gens;
   if (mods)  delete [] mods;
@@ -150,7 +150,7 @@ bool Instrument::load(sfBag      * bags,
       // global gens
 
       // There is global gens if the last gen for the zone is not a sampleId operator
-      
+
       if (globalGenCount > 0) {
 
         // There is globals gens so get the gens...
@@ -238,7 +238,6 @@ bool Instrument::load(sfBag      * bags,
     }
 
     loaded = true;
-    logger.DEBUG("Instrument %s loaded.", name.c_str());
   }
 
   for (i = 0; i < zoneCount; i++) {
@@ -246,7 +245,10 @@ bool Instrument::load(sfBag      * bags,
       soundFont->loadSample(zones[i].sampleIndex);
     }
   }
-  
+
+  // showZones();
+
+  logger.DEBUG("Instrument %s (re) loaded.", name.c_str());
   return true;
 }
 

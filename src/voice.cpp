@@ -17,8 +17,13 @@
 /// This vector contains the scale factors required to modify the pitch of a note to obtain a targeted
 /// note sound. Please look in method Voice::Voice() for initialization values.
 
-PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
 PRIVATE bool scaleFactorsInitialized = false;
+PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
+
+float Voice::getScaleFactor(int16_t diff)
+{
+  return scaleFactors[diff + 127];
+}
 
 void Voice::feedFifo()
 {
@@ -44,7 +49,7 @@ void Voice::prepareFifo()
 {
   fifo->clear();
   // while (!fifo->isFull())
-  for (int i = 0; i < 2; i++) 
+  for (int i = 0; i < 2; i++)
   {
     uint16_t count = sample->getData(
       fifo->getTail(),
@@ -58,7 +63,7 @@ void Voice::prepareFifo()
     }
     else {
       return;
-    }    
+    }
   }
 }
 
@@ -132,7 +137,7 @@ void Voice::setup(samplep sample, char note, float gain, int16_t pan)
   active         = false;
   fifoLoadPos    = 0;
 
-  prepareFifo();  
+  prepareFifo();
 
 
   BEGIN();
@@ -191,7 +196,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   }
 
   float pos = sampleRealPos * factor;
-  
+
   #if USE_NEON_INTRINSICS
     float aa[4], bb[4], cc[4];
 
@@ -245,7 +250,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
         vst1q_f32(buff, v1);
 
         buff += 4;
-        a = aa;      
+        a = aa;
         b = bb;
         c = cc;
       }
@@ -254,13 +259,13 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     }
   #else
     float a, old;
-    
+
     old = 0.0;
-    
+
     while (sampleCount--) {
       float fipos;
       float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff      
+      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
       if (ipos >= 0) {
         while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
@@ -290,7 +295,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
       pos += factor;
       count++;
     }
-  #endif 
+  #endif
 
  endLoop:
 

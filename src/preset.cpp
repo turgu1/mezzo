@@ -38,13 +38,17 @@ void Preset::init()
   for (int i = 0; i < 128; i++) keys[i] = NULL;
   keyShortCutPresent = false;
   velocitiesPresent = false;
-  
+
   loaded  = false;
 }
 
 Preset::~Preset()
 {
   if (loaded) unload();
+
+  for (unsigned i = 0; i < instruments.size(); i++) {
+    delete instruments[i];
+  }
 }
 
 void Preset::outOfMemory()
@@ -104,7 +108,7 @@ bool Preset::load(sfBag     * bags,
   }
 
   zones[zoneCount].instrumentIndex = -999;
-  
+
   int firstGenIdx = bags[bagIdx].wGenNdx;
   int lastGenIdx  = bags[bagIdx + bagCount].wGenNdx;
   int firstModIdx = bags[bagIdx].wModNdx;
@@ -219,6 +223,19 @@ bool Preset::load(sfBag     * bags,
                 break;
               case sfGenOper_instrumentID:
                 z->instrumentIndex = gg->genAmount.wAmount;
+                uint16_t k;
+                for (k = 0; k < instruments.size(); k++) {
+                  if (instruments[k]->index == z->instrumentIndex) break;
+                }
+                if (k >= instruments.size()) {
+                  presetInstrument * pi = new presetInstrument;
+                  assert(pi != NULL);
+                  pi->index = z->instrumentIndex;
+                  Instrument * inst = soundFont->getInstrument(pi->index);
+                  assert(inst != NULL);
+                  pi->name = inst->getName();
+                  instruments.push_back(pi);
+                }
                 break;
               default:
                 *g++ = *gg;
@@ -258,8 +275,8 @@ bool Preset::load(sfBag     * bags,
     soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
   }
 
-  showZones();
-  
+  // showZones();
+
   logger.DEBUG("Preset %s loaded.", name.c_str());
 
   loaded = true;
@@ -374,7 +391,7 @@ void Preset::playNote(uint8_t note, uint8_t velocity) {
     else {
       while ((z->instrumentIndex != -999) &&
              (z->instrumentIndex == -1)) {
-        z++;         
+        z++;
       }
       if (z->instrumentIndex != -999) {
         soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);

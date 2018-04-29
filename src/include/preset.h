@@ -5,6 +5,11 @@
 
 #include <string>
 
+struct presetInstrument {
+  std::string name;
+  int16_t index;
+};
+
 class Preset : public NewHandlerSupport<Preset> {
 
 private:
@@ -44,13 +49,14 @@ private:
 
   bool          loaded;     ///< True if the preset content has been loaded in memory
 
+  std::vector<presetInstrument *> instruments;
+
   void init();
 
   /// Utils
   void showGenerator(sfGenList & g);
   void showModInfo(sfModulator & m);
   void showModulator(sfModList & m);
-  void showZones();
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
@@ -71,6 +77,7 @@ public:
             sfGenList * generators,
             sfModList * modulators);
   bool unload();
+  void showZones();
 
   void playNote(uint8_t note, uint8_t velocity);
   void stopNote(uint8_t note);
@@ -78,6 +85,7 @@ public:
   /// Returns the name of the preset
   std::string & getName() { return name; }
   uint16_t getMidiNbr() { return midiNbr; }
+  std::vector<presetInstrument *> & getInstrumentsList() { return instruments; };
 };
 
 #endif

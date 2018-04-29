@@ -3,7 +3,7 @@
 #ifndef _MIDI_
 #define _MIDI_
 
-#if __OSX__
+#ifdef __APPLE__
   #include "RtMidi.h"
 #else
   #include "rtmidi/RtMidi.h"

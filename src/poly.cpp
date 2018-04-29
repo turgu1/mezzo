@@ -214,7 +214,15 @@ void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
 
   // Do not transpose beyond 12 semi-tone...
 
-  if (note > (sample->getPitch() + 12)) return;
+  //if (note > (sample->getPitch() + 12)) return;
+
+  logger.DEBUG("Adding voice for note %d with sample (%s) pitch %d gain: %f pan: %d scale factor: %f ",
+               note,
+               sample->getName().c_str(),
+               sample->getPitch(),
+               gain,
+               pan,
+               Voice::getScaleFactor(note - sample->getPitch()));
 
   noteOff(note, false);
 

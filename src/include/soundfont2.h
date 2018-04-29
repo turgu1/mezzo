@@ -52,7 +52,9 @@ public:
   bool loadPreset(uint16_t presetIndex);
 
   bool loadMidiPresetNbr(uint16_t midiPresetNbr);
-  
+
+  inline Preset * getCurrentPreset() { return currentPreset; };
+
   inline bool loadSample(uint16_t sampleIndex) {
     if (sampleIndex < samples.size()) {
       assert(samples[sampleIndex] != NULL);
@@ -69,6 +71,9 @@ public:
     if (currentPreset) currentPreset->stopNote(note);
   }
 
+  inline Instrument * getInstrument(uint16_t index) {
+    return index < instruments.size() ? instruments[index] : NULL; 
+  };
 };
 
 #endif

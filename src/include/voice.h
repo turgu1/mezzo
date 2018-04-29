@@ -190,6 +190,8 @@ class Voice : public NewHandlerSupport<Voice> {
   inline bool isFadingOut()  { return fadingOut; }
   inline void incFadeOutPos(int value) { fadeOutPos += value; }
 
+  static float getScaleFactor(int16_t diff);
+
   /// This method is used by the SampleFeeder thread to read new data
   /// from the sample and put it in the next avail slot in the
   /// fifo buffer, if there is some room available.
