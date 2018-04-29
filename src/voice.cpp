@@ -29,18 +29,20 @@ void Voice::feedFifo()
 {
   if (isActive() && isAlive()) {
     if (!fifo->isFull()) {
-      BEGIN();
+      if (__sync_lock_test_and_set(&stateLock, 1) == 0) {
         uint16_t count = sample->getData(
           fifo->getTail(),
           fifoLoadPos,
-          SAMPLE_BUFFER_SAMPLE_COUNT
+          SAMPLE_BUFFER_SAMPLE_COUNT,
+          synth
         );
         if (count) {
           fifoLoadPos += count;
           fifo->setSampleCount(count);
           fifo->push();
         }
-      END();
+        END();
+      }
     }
   }
 }
@@ -49,12 +51,13 @@ void Voice::prepareFifo()
 {
   fifo->clear();
   // while (!fifo->isFull())
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 5; i++)
   {
     uint16_t count = sample->getData(
       fifo->getTail(),
       fifoLoadPos,
-      SAMPLE_BUFFER_SAMPLE_COUNT
+      SAMPLE_BUFFER_SAMPLE_COUNT,
+      synth
     );
     if (count) {
       fifoLoadPos += count;
@@ -122,15 +125,16 @@ void Voice::outOfMemory()
 void Voice::setup(samplep      sample,
                   char         note,
                   float        gain,
-                  Preset     & preset,
-                  Instrument & inst)
+                  Preset &     preset, 
+                  uint16_t     presetZoneIdx, 
+                  Instrument & inst, 
+                  uint16_t     instZoneIdx)
 {
   // TODO: Why gain is squared??
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
   this->gain     = gain * gain; // Gain is squared
-  this->pan      = pan;
   samplePos      =  0;
   sampleRealPos  =  0;
   scaleBuffPos   = -1;
@@ -142,10 +146,15 @@ void Voice::setup(samplep      sample,
   fifoLoadPos    = 0;
 
   synth.setDefaults(sample);
-  synth.setGens(inst.getGlobalGens(), inst.getGlobalGenCount);
-
+  synth.setGens(inst.getGlobalGens(),              inst.getGlobalGenCount());
+  synth.setGens(inst.getZoneGens(instZoneIdx),     inst.getZoneGenCount(instZoneIdx));
+  synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
+  synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
+  synth.completeParams();
+  
+  synth.showParams();
+  
   prepareFifo();
-
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...

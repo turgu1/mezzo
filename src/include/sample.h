@@ -7,6 +7,8 @@
 
 typedef class Sample * samplep;
 
+class Synthesizer;
+
 class Sample  : public NewHandlerSupport<Sample> {
 
 private:
@@ -57,7 +59,7 @@ public:
   /// with the value (-32768..32768) normalized to -1.0 .. 1.0
   /// Maximum size that can be loaded: 65535.
 
-  uint16_t getData(buffp buff, uint32_t pos, uint16_t qty, bool loop = true);
+  uint16_t getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & synth);
 
   /// Returns the name of the preset
   inline std::string &  getName() { return name; };

@@ -37,6 +37,8 @@ class Midi;
 typedef float sample_t;    ///< A single sample
 typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 
+#define KEY_NOT_USED 59999u
+
 #define PRIVATE             static
 
 #define FRAME_SIZE          (2 * sizeof(sample_t))            ///< A frame contains left and righ samples

@@ -15,9 +15,12 @@ private:
   uint32_t     startLoop;
   uint32_t     endLoop;
   uint32_t     sampleRate;
+  uint32_t     sizeSample;
+  uint32_t     sizeLoop;
+  bool         loop;
 
   enum setGensType { set, adjust };
-  void setGens(sfGenList * gens, uint8_t genCount, setType type);
+  void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 public:
   inline void setGens(sfGenList * gens, uint8_t genCount) {
     setGens(gens, genCount, set);
@@ -28,6 +31,19 @@ public:
   void setDefaults(Sample * sample);
 
   void process(buffp buff);
+  
+  void showParams();
+  void completeParams();
+  
+  inline uint32_t getStart()      { return start; };
+  inline uint32_t getEnd()        { return end; };
+  inline uint32_t getStartLoop()  { return startLoop; };
+  inline uint32_t getEndLoop()    { return endLoop; };
+  inline uint32_t getSampleRate() { return sampleRate; };
+  inline bool     isLooping()     { return loop; };
+  inline uint16_t getPan()        { return pan; };
+  inline uint32_t getSizeSample() { return sizeSample; };
+  inline uint32_t getSizeLoop()   { return sizeLoop; };
 };
 
 #endif

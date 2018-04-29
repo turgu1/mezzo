@@ -84,22 +84,26 @@ bool Sample::load()
   return true;
 }
 
-uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
+uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & synth)
 {
+  uint32_t offset         = (synth.getStart() - this->start);
+  uint32_t sizeFirstBlock = this->sizeFirstBlock - offset;
   uint16_t count = 0;
+  
   while (qty > 0) {
     uint16_t size;
-    if (pos >= sizeSample) {
-      if ((sizeLoop > 0) && loop) {
-        uint32_t thePos = startLoop + ((pos - sizeSample) % sizeLoop);
-        size = MIN(qty, endLoop - thePos);
+    if (pos >= synth.getSizeSample()) {
+      if (synth.isLooping()) {
+        uint32_t thePos = synth.getStartLoop() + 
+                          ((pos - synth.getSizeSample()) % synth.getSizeLoop());
+        size = MIN(qty, synth.getEndLoop() - thePos);
         if (thePos < sizeFirstBlock) {
           size = MIN(size, sizeFirstBlock - thePos);
-          Utils::shortToFloatNormalize(buff, &firstBlock[thePos], size);
+          Utils::shortToFloatNormalize(buff, &firstBlock[offset + thePos], size);
         }
         else {
-          size = MIN(size, sizeSample - thePos);
-          Utils::shortToFloatNormalize(buff, &data[start + thePos], size);
+          size = MIN(size, synth.getSizeSample() - thePos);
+          Utils::shortToFloatNormalize(buff, &data[synth.getStart() + thePos], size);
         }
       }
       else {
@@ -108,11 +112,11 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, bool loop)
     }
     else if (pos < sizeFirstBlock) {
       size = MIN(qty, sizeFirstBlock - pos);
-      Utils::shortToFloatNormalize(buff, &firstBlock[pos], size);
+      Utils::shortToFloatNormalize(buff, &firstBlock[offset + pos], size);
     }
     else {
-      size = MIN(qty, sizeSample - pos);
-      Utils::shortToFloatNormalize(buff, &data[start + pos], size);
+      size = MIN(qty, synth.getSizeSample() - pos);
+      Utils::shortToFloatNormalize(buff, &data[synth.getStart() + pos], size);
     }
     qty   -= size;
     count += size;

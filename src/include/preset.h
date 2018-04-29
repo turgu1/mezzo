@@ -40,7 +40,7 @@ private:
 
   aGlobalZone   globalZone; ///< The global zone
   aZone       * zones;
-  aZone       * keys[128];  ///< Shortcuts to the first zone related to a key
+  uint16_t      keys[128];  ///< Shortcuts to the first zone related to a key
   sfGenList   * gens;
   sfModList   * mods;
   int           zoneCount;
@@ -89,7 +89,15 @@ public:
   uint16_t getBankNbr() { return bankNbr; };
   Preset * getNextMidiPreset() { return nextMidiPreset; };
   void     setNextMidiPreset(Preset *p) { nextMidiPreset = p; };
+
   std::vector<presetInstrument *> & getInstrumentsList() { return instruments; };
+  
+  sfGenList * getGlobalGens()     { return globalZone.generators; }
+  uint8_t     getGlobalGenCount() { return globalZone.genCount; }
+  
+  sfGenList * getZoneGens(uint16_t idx) { return zones[idx].generators; }
+  uint8_t     getZoneGenCount(uint16_t idx) { return zones[idx].genCount; }
+
 };
 
 #endif

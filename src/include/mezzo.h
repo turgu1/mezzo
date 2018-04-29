@@ -11,6 +11,7 @@
 #include "sf2.h"
 
 #include "sample.h"
+#include "synthesizer.h"
 #include "preset.h"
 #include "instrument.h"
 #include "soundfont2.h"

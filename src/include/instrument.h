@@ -12,7 +12,6 @@ private:
     rangesType   keys;
     rangesType   velocities;
     int16_t      sampleIndex;
-    int16_t      pan;
     sfGenList  * generators;
     sfModList  * modulators;
     uint8_t      genCount;
@@ -31,7 +30,7 @@ private:
   std::string   name;         ///< The name of the instrument
   aGlobalZone   globalZone;   ///< The global zone
   aZone       * zones;
-  aZone       * keys[128];    ///< Shortcuts to the first zone related to a key
+  uint16_t      keys[128];    ///< Shortcuts to the first zone related to a key
   sfGenList   * gens;
   sfModList   * mods;
   int           zoneCount;
@@ -63,7 +62,7 @@ public:
   bool unload();
   void showZones();
 
-  void playNote(uint8_t note, uint8_t velocity, Preset & preset);
+  void playNote(uint8_t note, uint8_t velocity, Preset & preset, uint16_t presetZoneIdx);
   void stopNote(uint8_t note);
 
   /// Returns the name of the instrument
@@ -71,6 +70,9 @@ public:
 
   sfGenList * getGlobalGens()     { return globalZone.generators; }
   uint8_t     getGlobalGenCount() { return globalZone.genCount; }
+  
+  sfGenList * getZoneGens(uint16_t idx) { return zones[idx].generators; }
+  uint8_t     getZoneGenCount(uint16_t idx) { return zones[idx].genCount; }
 };
 
 #endif

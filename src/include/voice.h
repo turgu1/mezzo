@@ -118,7 +118,6 @@ class Voice : public NewHandlerSupport<Voice> {
 
   samplep sample;            ///< Pointer on the sample
   int8_t  note;              ///< Targeted note, can be different than the one from sample
-  int16_t pan;               ///< Panning as 0.1% value <= -50.0 (-500) means left, value >= 50.0 (500) means right
   bool    fadingOut;         ///< The note is being fade-out after key/pedal release
   bool    noteIsOn;          ///< The note is played
   float   gain;              ///< Gain to apply to this sample (depends on how the key was struck by the player)
@@ -142,7 +141,9 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample, char note, float gain, Preset & preset, Instrument & inst);
+  void setup(samplep sample, char note, float gain, 
+             Preset & preset, uint16_t presetZoneIdx, 
+            Instrument & inst, uint16_t instZoneIdx);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. Normal means that the note to be played is the same as
@@ -186,7 +187,7 @@ class Voice : public NewHandlerSupport<Voice> {
   inline voicep  getNext() { return next; }
   inline int8_t  getNote() { return note; }
   inline float   getGain() { return gain; }
-  inline int16_t  getPan() { return pan;  }
+  inline int16_t  getPan() { return synth.getPan();  }
 
   inline int getFadeOutPos() { return fadeOutPos; }
   inline bool isFadingOut()  { return fadingOut; }

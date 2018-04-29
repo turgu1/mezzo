@@ -209,10 +209,12 @@ voicep Poly::nextAvailable()
 // retrieve the oldest one from the current voices list.
 
 void Poly::addVoice(samplep      sample,
-                    char         note,
+                    uint8_t      note,
                     float        gain,
-                    Preset     & preset,
-                    Instrument & inst)
+                    Preset &     preset, 
+                    uint16_t     presetZoneIdx, 
+                    Instrument & inst, 
+                    uint16_t     instZoneIdx)
 {
   voicep voice;
 
@@ -221,14 +223,6 @@ void Poly::addVoice(samplep      sample,
   if (sample->getSampleRate() != 44100) {
     logger.DEBUG("sample %s at rate %d", sample->getName().c_str(), sample->getSampleRate());
   }
-
-  logger.DEBUG("Adding voice for note %d with sample (%s) pitch %d gain: %f pan: %d scale factor: %f ",
-               note,
-               sample->getName().c_str(),
-               sample->getPitch(),
-               gain,
-               pan,
-               Voice::getScaleFactor(note - sample->getPitch()));
 
   //noteOff(note, false);
 
@@ -247,7 +241,7 @@ void Poly::addVoice(samplep      sample,
   voiceCount++;
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
-  voice->setup(sample, note, gain, preset, inst);
+  voice->setup(sample, note, gain, preset, presetZoneIdx, inst, instZoneIdx);
 }
 
 //---- noteOff() ----
