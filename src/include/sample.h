@@ -31,7 +31,7 @@ private:
   SFSampleLink linkType;
   uint32_t     sizeSample;
   uint32_t     sizeLoop;
-  
+
   bool loaded;
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
@@ -51,18 +51,23 @@ public:
 
   bool load();
 
-  /// This method returns data from the samples, managing the location 
+  /// This method returns data from the samples, managing the location
   /// (in the pre-loaded buffer or not) and the looping generation. The
   /// data is converted from its short int representation to a float
   /// with the value (-32768..32768) normalized to -1.0 .. 1.0
   /// Maximum size that can be loaded: 65535.
-  
+
   uint16_t getData(buffp buff, uint32_t pos, uint16_t qty, bool loop = true);
-  
+
   /// Returns the name of the preset
-  std::string &  getName() { return name; };
-  uint8_t  getPitch() { return pitch; };
-  uint32_t getSampleRate() { return sampleRate; };
+  inline std::string &  getName() { return name; };
+  inline uint8_t  getPitch()      { return pitch; };
+  inline uint32_t getSampleRate() { return sampleRate; };
+  inline uint32_t getStart()      { return start; };
+  inline uint32_t getEnd()        { return end; };
+  inline uint32_t getStartLoop()  { return startLoop; };
+  inline uint32_t getEndLoop()    { return endLoop; };
+  //inline uint32_t get() { return ; };
 };
 
 #endif

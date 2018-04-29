@@ -130,6 +130,8 @@ class Voice : public NewHandlerSupport<Voice> {
   int     scaleBuffPos;
   uint32_t fifoLoadPos;
 
+  Synthesizer synth;
+  
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 
  public:
@@ -140,7 +142,7 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample, char note, float gain, int16_t pan);
+  void setup(samplep sample, char note, float gain, Preset & preset, Instrument & inst);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. Normal means that the note to be played is the same as

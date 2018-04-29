@@ -330,16 +330,24 @@ void Instrument::showZones()
   std::cerr << std::endl << "[End]" << std::endl;
 }
 
-void Instrument::playNote(uint8_t note, uint8_t velocity)
+void Instrument::playNote(uint8_t note, uint8_t velocity, Preset & preset)
 {
   aZone * z = keys[note];
   if (z == NULL) logger.ERROR("keys for note %d not found!", note);
-  while (z && (z->sampleIndex != -1) && (z->keys.byLo <= note) && (note <= z->keys.byHi)) {
-    if (((z->velocities.byLo <= velocity) && (velocity <= z->velocities.byHi)) ||
-        ((z->velocities.byLo - z->velocities.byHi) == 0)) {
+
+  while (z && (z->sampleIndex != -1) &&
+              (z->keys.byLo <= note) &&
+              (note <= z->keys.byHi)) {
+    if (((z->velocities.byLo <= velocity) &&
+         (velocity <= z->velocities.byHi)) ||
+         ((z->velocities.byLo - z->velocities.byHi) == 0)) {
       assert(z->sampleIndex < (int16_t) soundFont->samples.size());
       assert(soundFont->samples[z->sampleIndex] != NULL);
-      poly->addVoice(soundFont->samples[z->sampleIndex], note, velocity / 127.0f, z->pan);
+      poly->addVoice(
+        soundFont->samples[z->sampleIndex],
+        note, velocity / 127.0f,
+        preset, this
+      );
     }
     z++;
   }

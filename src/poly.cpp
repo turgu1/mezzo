@@ -208,7 +208,11 @@ voicep Poly::nextAvailable()
 // A sample is added to voices. If there is no more voice structure available,
 // retrieve the oldest one from the current voices list.
 
-void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
+void Poly::addVoice(samplep      sample,
+                    char         note,
+                    float        gain,
+                    Preset     & preset,
+                    Instrument & inst)
 {
   voicep voice;
 
@@ -243,7 +247,7 @@ void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
   voiceCount++;
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
-  voice->setup(sample, note, gain, pan);
+  voice->setup(sample, note, gain, preset, inst);
 }
 
 //---- noteOff() ----

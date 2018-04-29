@@ -63,11 +63,14 @@ public:
   bool unload();
   void showZones();
 
-  void playNote(uint8_t note, uint8_t velocity);
+  void playNote(uint8_t note, uint8_t velocity, Preset & preset);
   void stopNote(uint8_t note);
 
   /// Returns the name of the instrument
   std::string & getName() { return name; }
+
+  sfGenList * getGlobalGens()     { return globalZone.generators; }
+  uint8_t     getGlobalGenCount() { return globalZone.genCount; }
 };
 
 #endif

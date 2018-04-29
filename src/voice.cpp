@@ -119,7 +119,11 @@ void Voice::outOfMemory()
 
 //---- setup() ----
 
-void Voice::setup(samplep sample, char note, float gain, int16_t pan)
+void Voice::setup(samplep      sample,
+                  char         note,
+                  float        gain,
+                  Preset     & preset,
+                  Instrument & inst)
 {
   // TODO: Why gain is squared??
   // Connect the sample with the voice
@@ -136,6 +140,9 @@ void Voice::setup(samplep sample, char note, float gain, int16_t pan)
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
+
+  synth.setDefaults(sample);
+  synth.setGens(inst.getGlobalGens(), inst.getGlobalGenCount);
 
   prepareFifo();
 

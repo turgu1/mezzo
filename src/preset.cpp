@@ -18,7 +18,7 @@ Preset::Preset(char * presetName,
   bagCount = bagQty;
 
   nextMidiPreset = NULL;
-  
+
   init();
 
   logger.DEBUG("Preset [%s] created.", name.c_str());
@@ -363,7 +363,7 @@ void Preset::showZones()
   std::cerr << std::endl << "[End]" << std::endl;
 }
 
-void Preset::playNote(uint8_t note, uint8_t velocity) 
+void Preset::playNote(uint8_t note, uint8_t velocity)
 {
   aZone * z = zones;
   while (z->instrumentIndex != -999) {
@@ -372,21 +372,29 @@ void Preset::playNote(uint8_t note, uint8_t velocity)
       if ((z->keys.byLo <= note) && (note <= z->keys.byHi)) {
         if ((z->velocities.byLo <= velocity) &&
             (velocity <= z->velocities.byHi)) {
-          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+          soundFont->instruments[z->instrumentIndex]->playNote(
+            note, velocity, this
+          );
         }
         else if ((z->velocities.byLo == 0) &&
                  (z->velocities.byHi == 0)) {
-          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);                    
+          soundFont->instruments[z->instrumentIndex]->playNote(
+            note, velocity, this
+          );
         }
       }
       else if ((z->keys.byLo == 0) && (z->keys.byHi == 0)) {
         if ((z->velocities.byLo <= velocity) &&
             (velocity <= z->velocities.byHi)) {
-          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+          soundFont->instruments[z->instrumentIndex]->playNote(
+            note, velocity, this
+          );
         }
         else if ((z->velocities.byLo == 0) &&
                  (z->velocities.byHi == 0)) {
-          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);                    
+          soundFont->instruments[z->instrumentIndex]->playNote(
+            note, velocity, this
+          );                    
         }
       }
     }
