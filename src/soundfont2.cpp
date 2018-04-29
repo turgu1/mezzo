@@ -1,5 +1,7 @@
 #include "copyright.h"
 
+#include <iomanip>
+
 #include "mezzo.h"
 #include "soundfont2.h"
 
@@ -19,7 +21,8 @@ SoundFont2::SoundFont2(std::string & sf2Filename)
   assert(sizeof(genAmountType ) ==  2);
   assert(sizeof(sfGenList     ) ==  4);
 
-  currentPreset = NULL;
+  currentPreset   = NULL;
+  firstMidiPreset = NULL;
   
   file.open(sf2Filename);
   if (!file.is_open()) {
@@ -113,24 +116,58 @@ bool SoundFont2::loadInstrument(uint16_t instrumentIndex, rangesType & keys)
 bool SoundFont2::loadPreset(std::string & presetName)
 {
   for (uint16_t i = 0; i < presets.size(); i++) {
-    if (presetName == presets[i]->getName()) return loadPreset(i);
+    if (presetName == presets[i]->getName()) return loadPreset(presets[i]);
   }
   return false;
 }
 
-bool SoundFont2::loadMidiPresetNbr(uint16_t midiPresetNbr)
+bool SoundFont2::loadMidiPreset(uint8_t bankNbr, uint8_t midiNbr)
 {
-  for (uint16_t i = 0; i < presets.size(); i++) {
-    if (midiPresetNbr == presets[i]->getMidiNbr()) return loadPreset(i);
+  Preset * p = firstMidiPreset;
+  while (p && ((p->getBankNbr() != bankNbr) || (p->getMidiNbr() != midiNbr))) {
+    p = p->getNextMidiPreset();
   }
-  return false;  
+  if (p != NULL) return loadPreset(p);
+  return false;
+}
+
+bool SoundFont2::loadFirstPreset()
+{
+  return loadPreset(firstMidiPreset);
+}
+
+bool SoundFont2::loadNextPreset()
+{
+  if (currentPreset == NULL) return false;
+  return loadPreset(currentPreset->getNextMidiPreset());
+}
+
+bool SoundFont2::loadPreviousPreset()
+{
+  Preset * p = firstMidiPreset;
+  Preset * po = NULL;
+  
+  if (p == NULL) return false;
+  
+  while ((p != NULL) && (p != currentPreset)) {
+    po = p;
+    p = p->getNextMidiPreset();
+  }
+  if (po == NULL) return false;
+  return loadPreset(po);
 }
 
 bool SoundFont2::loadPreset(uint16_t presetIndex)
 {
-  if (presetIndex >= presets.size()) return false;
+  if (presetIndex < presets.size()) {
+    return loadPreset(presets[presetIndex]);
+  }
+  return false;
+}
 
-  assert(presets[presetIndex] != NULL);
+bool SoundFont2::loadPreset(Preset * preset)
+{
+  if (preset == NULL) return false;
 
   if (currentPreset) {
     currentPreset->unload();
@@ -165,7 +202,7 @@ bool SoundFont2::loadPreset(uint16_t presetIndex)
 
   sfGenList * pgens = (sfGenList *) ck->data;
 
-  currentPreset = presets[presetIndex];
+  currentPreset = preset;
   return currentPreset->load(pbags, pgens, pmods);
 }
 
@@ -258,12 +295,14 @@ bool SoundFont2::retrievePresetList()
     strncpy(name, preset->achPresetName, 20);
     name[20] = '\0';
 
+    Preset *p;
     presets.push_back(
-      new Preset(name,
-                 preset[0].wPreset,
-                 preset[0].wBank,
-                 preset[0].wPresetBagNdx,
-                 preset[1].wPresetBagNdx - preset[0].wPresetBagNdx));
+      p = new Preset(name,
+                     preset[0].wPreset,
+                     preset[0].wBank,
+                     preset[0].wPresetBagNdx,
+                     preset[1].wPresetBagNdx - preset[0].wPresetBagNdx));
+    addPresetToMidiList(p);
   }
 
   assert(strcmp(preset->achPresetName, "EOP") == 0);
@@ -327,4 +366,70 @@ bool SoundFont2::retrieveSamples()
   logger.DEBUG("Samples attributes retrieval completed.");
 
   return true;
+}
+
+void SoundFont2::addPresetToMidiList(Preset *preset)
+{
+  if (firstMidiPreset == NULL) {
+    firstMidiPreset = preset;
+    preset->setNextMidiPreset(NULL);
+  }
+  else {
+    Preset * p  = firstMidiPreset;
+    Preset * po = NULL;
+    while (p) {
+      if (p->getBankNbr() > preset->getBankNbr()) {
+        break;
+      }
+      else if (p->getBankNbr() == preset->getBankNbr()) {
+        if (p->getMidiNbr() > preset->getMidiNbr()) break;
+      }
+      po = p;
+      p = p->getNextMidiPreset();
+    }
+    preset->setNextMidiPreset(p);
+    if (po == NULL) {
+      firstMidiPreset = preset;
+    }
+    else {
+      po->setNextMidiPreset(preset);
+    }
+  }
+}
+
+void SoundFont2::showMidiPresetList()
+{
+  using namespace std;
+  
+  Preset * p = firstMidiPreset;
+  int i = 0;
+  int qty = presets.size();
+  
+  for (i = 0; i < 3; i++) cout << "Idx   Bk Mid  Name                 ";
+  cout << endl;
+  for (i = 0; i < 3; i++) cout << "---   -- ---  -------------------- ";
+  cout << endl;
+  
+  int nxt = 0;
+  while (i < qty) {
+    p = firstMidiPreset;
+    for (int j = 0; (p != NULL) && (j < nxt); j++) p = p->getNextMidiPreset();
+    if (p != NULL) {
+      unsigned k = 0;
+      while (k < presets.size()) {
+        if (presets[k] == p) break;
+        k++;
+      }
+      cout << setw(3) << right << k << ": "
+           << "[" << setw(2) << right << p->getBankNbr() 
+                  << setw(4) << right << p->getMidiNbr() << "] "
+           << setw(20) << left << p->getName() << " ";
+      if ((++i % 3) == 0) cout << endl;
+    }
+    else {
+      cout << endl;
+    }
+    nxt = (nxt + ((qty + 2) / 3)) % qty;
+  }
+  if ((i % 3) != 0) cout << endl;
 }

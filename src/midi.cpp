@@ -93,15 +93,17 @@ void midiCallBack (double timeStamp,
   (void) timeStamp;
   (void) userData;
 
+  static uint8_t bankNbr = 0;
+  
   int count = message->size();
 
   if (count <= 0) return;
 
   int channel = message->at(0) & MIDI_CHANNEL_MASK;
 
-  unsigned char command = message->at(0) & ((unsigned char) MIDI_COMMAND_MASK);
-  unsigned char data1 = (count > 1) ? message->at(1) : 0;
-  unsigned char data2 = (count > 2) ? message->at(2) : 0;
+  uint8_t command = message->at(0) & ((uint8_t) MIDI_COMMAND_MASK);
+  uint8_t data1 = (count > 1) ? message->at(1) : 0;
+  uint8_t data2 = (count > 2) ? message->at(2) : 0;
 
   if (command == MIDI_SYSEX) {
       command = message->at(0);
@@ -120,6 +122,9 @@ void midiCallBack (double timeStamp,
       break;
     case MIDI_CONTROL:
       switch (data1) {
+      case 0x20:
+        bankNbr = data2;
+        break;
       case 0x40:
         if (midi->sustainIsOn() && (data2 < config.midiSustainTreshold)) {
           midi->setSustainOff();
@@ -144,7 +149,7 @@ void midiCallBack (double timeStamp,
       if (!sound->holding()) {
         sound->wait();
         poly->inactivateAllVoices();
-        soundFont->loadMidiPresetNbr(data1);
+        soundFont->loadMidiPreset(bankNbr, data1);
         sound->conti();
       }
       break;
@@ -406,7 +411,7 @@ void Midi::selectDevice()
 
   devCount = midiPort->getPortCount();
 
-  if (!config.silent) showDevices(devCount);
+  showDevices(devCount);
 
   while (true) {
     string str;

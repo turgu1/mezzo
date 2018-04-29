@@ -35,6 +35,7 @@ private:
   uint16_t      midiNbr;    ///< The midi number associated with this preset
   uint16_t      bankNbr;    ///< The midi bank number
 
+  Preset       *nextMidiPreset;  ///< Midi/Bank number sort ptr
   uint16_t      bagIdx, bagCount;
 
   aGlobalZone   globalZone; ///< The global zone
@@ -69,7 +70,7 @@ public:
   ~Preset();
 
   /// Returns true if the preset has been loaded in memory
-  bool is_loaded() { return loaded; }
+  bool is_loaded() { return loaded; };
 
   /// Loads / Unloads the preset information in memory. That will include the
   /// loading / unloading of associated instruments and samples.
@@ -83,8 +84,11 @@ public:
   void stopNote(uint8_t note);
 
   /// Returns the name of the preset
-  std::string & getName() { return name; }
-  uint16_t getMidiNbr() { return midiNbr; }
+  std::string & getName() { return name; };
+  uint16_t getMidiNbr() { return midiNbr; };
+  uint16_t getBankNbr() { return bankNbr; };
+  Preset * getNextMidiPreset() { return nextMidiPreset; };
+  void     setNextMidiPreset(Preset *p) { nextMidiPreset = p; };
   std::vector<presetInstrument *> & getInstrumentsList() { return instruments; };
 };
 

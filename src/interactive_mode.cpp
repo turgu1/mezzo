@@ -24,16 +24,16 @@ char InteractiveMode::showMenuGetSelection()
   cout << endl;
   cout << "Menu:" << endl << "----" << endl;
 
-  cout << "a : Monitor active voice count   v : dump Voices state"      << endl
+  cout << "a : Monitor active voice count   P : Select Preset"          << endl
        << "b : Monitor midi messages        p : Show Preset Zones"      << endl
        << "e : Equalizer adjusments         i : Show Instruments Zones" << endl
        << "r : Reverb adjusments            + : Next Preset"            << endl
        << "s : Sound device selection       - : Previous Preset"        << endl
-       << "m : Midi device selection"                                   << endl
+       << "m : Midi device selection        v : dump Voices state"      << endl
        << "t : Transpose"                                               << endl
        // << "l - dump sample Library"        << endl
        // << "c - show Config read from file" << endl
-       << "x : eXit"                                            << endl << endl;
+       << "x : eXit"                                         << endl << endl;
 
   cout << "Your choice > ";
   cin >> setw(5) >> answer;
@@ -41,43 +41,61 @@ char InteractiveMode::showMenuGetSelection()
   return answer[0];
 }
 
+int16_t InteractiveMode::getNumber()
+{
+  using namespace std;
+
+  string str;
+  uint16_t nbr;
+
+  cin.clear();
+  cin.sync();
+
+  cin >> str;
+  if (str.empty()) return -1;
+  istringstream iss(str);
+  iss >> nbr;
+  
+  return nbr;
+}
+
 void InteractiveMode::menu()
 {
   using namespace std;
   Preset * p;
+  int16_t  nbr;
 
   while (true) {
     char ch = showMenuGetSelection();
 
     switch (ch) {
-    case 'a':
-      poly->monitorCount();
-      break;
-    case 'b':
-      midi->monitorMessages();
-      break;
-    case 'e':
-      equalizer->interactiveAdjust();
-      break;
-    case 'r':
-      reverb->interactiveAdjust();
-      break;
-    case 's':
-      sound->selectDevice();
-      break;
-    case 'm':
-      midi->selectDevice();
-      break;
-    case 't':
-      midi->transposeAdjust();
-      break;
-    // case 'l':
-    //   samples->showNotes();
-    //   break;
+    case 'x': return;
+    case 'a': poly->monitorCount();            break;
+    case 'b': midi->monitorMessages();         break;
+    case 'e': equalizer->interactiveAdjust();  break;
+    case 'r': reverb->interactiveAdjust();     break;
+    case 's': sound->selectDevice();           break;
+    case 'm': midi->selectDevice();            break;
+    case 't': midi->transposeAdjust();         break;
+    // case 'l': samples->showNotes();         break;
+    case 'v': poly->showState();               break;
+    // case 'c': config->showState();          break;
+    case '+': soundFont->loadNextPreset();     break;      
+    case '-': soundFont->loadPreviousPreset(); break;
+    
+    
+    case 'P':
+      soundFont->showMidiPresetList();
+      cout << endl << "Please enter preset index > ";
+      nbr = getNumber();
+      if (nbr >= 0) soundFont->loadPreset(nbr);
+      break;      
+      
     case 'p':
       p = soundFont->getCurrentPreset();
       if (p != NULL) p->showZones();
       break;
+      
     case 'i':
       p = soundFont->getCurrentPreset();
       if (p != NULL) {
@@ -87,51 +105,16 @@ void InteractiveMode::menu()
         }
         cout << "Please enter instrument index > ";
 
-        string str;
-        uint16_t nbr;
+        nbr = getNumber();
 
-        cin.clear();
-        cin.sync();
-
-        cin >> str;
-        if (str.empty()) break;
-        istringstream iss(str);
-        iss >> nbr;
-
-        if (nbr < pi.size()) {
+        if ((nbr >= 0) && ((unsigned)nbr < pi.size())) {
           Instrument * inst = soundFont->getInstrument(pi[nbr]->index);
           assert(inst != NULL);
           inst->showZones();
         }
       }
       break;
-    case '+':
-      p = soundFont->getCurrentPreset();
-      if (p != NULL) {
-        int i = p->getMidiNbr() + 1;
-        soundFont->loadMidiPresetNbr(i);
-      }
-      break;
-    case '-':
-      p = soundFont->getCurrentPreset();
-      if (p != NULL) {
-        int i = p->getMidiNbr() - 1;
-        if (i >= 0) {
-          soundFont->loadMidiPresetNbr(i);
-        }
-        else {
-          cout << "Already on first preset" << endl;
-        }
-      }
-      break;
-    case 'v':
-      poly->showState();
-      break;
-    // case 'c':
-    //   config->showState();
-    //   break;
-    case 'x':
-      return;
+
     default:
       cout << "Bad entry!" << endl;
       break;

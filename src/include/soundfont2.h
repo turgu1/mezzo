@@ -29,10 +29,12 @@ private:
   bool retrieveInstrumentList();
   bool retrievePresetList();
   bool retrieveSamples();
-
+  void addPresetToMidiList(Preset *preset);
+  
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
   Preset * currentPreset;
+  Preset * firstMidiPreset;
 
 public:
 
@@ -50,9 +52,15 @@ public:
 
   bool loadPreset(std::string & presetName);
   bool loadPreset(uint16_t presetIndex);
-
-  bool loadMidiPresetNbr(uint16_t midiPresetNbr);
-
+  bool loadPreset(Preset * p);
+  bool loadMidiPreset(uint8_t bankNbr, uint8_t midiNbr);
+  
+  bool loadNextPreset();
+  bool loadPreviousPreset();
+  bool loadFirstPreset();
+    
+  void showMidiPresetList();
+  
   inline Preset * getCurrentPreset() { return currentPreset; };
 
   inline bool loadSample(uint16_t sampleIndex) {

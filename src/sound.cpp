@@ -34,7 +34,7 @@ int soundCallback(const void *                     inputBuffer,
   }
   else {
     poly->mixer(buff, framesPerBuffer);
-    reverb->process(buff, framesPerBuffer);
+    //reverb->process(buff, framesPerBuffer);
     //equalizer->process(buff, framesPerBuffer);
     //if (config.replayEnabled) sound->push(buff);
   }

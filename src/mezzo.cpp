@@ -11,7 +11,7 @@ Mezzo::Mezzo()
   if (soundFont) delete soundFont;
   soundFont = new SoundFont2(config.soundFontFilename);
 
-  soundFont->loadMidiPresetNbr(0);
+  soundFont->loadFirstPreset();
 
   reverb    = new Reverb();
   poly      = new Poly();

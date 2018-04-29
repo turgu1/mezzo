@@ -17,6 +17,8 @@ Preset::Preset(char * presetName,
   bagIdx   = bagIndex;
   bagCount = bagQty;
 
+  nextMidiPreset = NULL;
+  
   init();
 
   logger.DEBUG("Preset [%s] created.", name.c_str());
@@ -361,42 +363,34 @@ void Preset::showZones()
   std::cerr << std::endl << "[End]" << std::endl;
 }
 
-void Preset::playNote(uint8_t note, uint8_t velocity) {
-  aZone * z = keys[note];
-  if (z) {
-    while ((z->instrumentIndex != -999) &&
-           (z->keys.byLo <= note) &&
-           (note <= z->keys.byHi)) {
-      if ((z->instrumentIndex != -1) &&
-          (z->velocities.byLo <= velocity) &&
-          (velocity <= z->velocities.byHi)) {
-        soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
-      }
-      z++;
-    }
-  }
-  else if (!keyShortCutPresent) {
-    z = zones;
-    assert(z != NULL);
-    if (velocitiesPresent) {
-      while (z->instrumentIndex != -999) {
-        if ((z->instrumentIndex != -1) &&
-            (z->velocities.byLo <= velocity) &&
+void Preset::playNote(uint8_t note, uint8_t velocity) 
+{
+  aZone * z = zones;
+  while (z->instrumentIndex != -999) {
+
+    if (z->instrumentIndex != -1) {
+      if ((z->keys.byLo <= note) && (note <= z->keys.byHi)) {
+        if ((z->velocities.byLo <= velocity) &&
             (velocity <= z->velocities.byHi)) {
           soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
         }
-        z++;
+        else if ((z->velocities.byLo == 0) &&
+                 (z->velocities.byHi == 0)) {
+          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);                    
+        }
+      }
+      else if ((z->keys.byLo == 0) && (z->keys.byHi == 0)) {
+        if ((z->velocities.byLo <= velocity) &&
+            (velocity <= z->velocities.byHi)) {
+          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
+        }
+        else if ((z->velocities.byLo == 0) &&
+                 (z->velocities.byHi == 0)) {
+          soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);                    
+        }
       }
     }
-    else {
-      while ((z->instrumentIndex != -999) &&
-             (z->instrumentIndex == -1)) {
-        z++;
-      }
-      if (z->instrumentIndex != -999) {
-        soundFont->instruments[z->instrumentIndex]->playNote(note, velocity);
-      }
-    }
+    z++;
   }
 }
 

@@ -214,7 +214,9 @@ void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
 
   // Do not transpose beyond 12 semi-tone...
 
-  //if (note > (sample->getPitch() + 12)) return;
+  if (sample->getSampleRate() != 44100) {
+    logger.DEBUG("sample %s at rate %d", sample->getName().c_str(), sample->getSampleRate());
+  }
 
   logger.DEBUG("Adding voice for note %d with sample (%s) pitch %d gain: %f pan: %d scale factor: %f ",
                note,
@@ -224,7 +226,7 @@ void Poly::addVoice(samplep sample, char note, float gain,  int16_t pan)
                pan,
                Voice::getScaleFactor(note - sample->getPitch()));
 
-  noteOff(note, false);
+  //noteOff(note, false);
 
   if (sample == NULL) {
     logger.DEBUG("Hum... sample is NULL...");
