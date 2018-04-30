@@ -9,13 +9,14 @@ class Instrument : public NewHandlerSupport<Instrument> {
 
 private:
   struct aZone {
-    rangesType   keys;
-    rangesType   velocities;
-    int16_t      sampleIndex;
-    sfGenList  * generators;
-    sfModList  * modulators;
-    uint8_t      genCount;
-    uint8_t      modCount;
+    rangesType    keys;
+    rangesType    velocities;
+    int16_t       sampleIndex;
+    sfGenList   * generators;
+    sfModList   * modulators;
+    uint8_t       genCount;
+    uint8_t       modCount;
+    Synthesizer   synth;
   };
 
   struct aGlobalZone {
@@ -58,11 +59,14 @@ public:
   bool load(sfBag      * bags,
             sfGenList  * generators,
             sfModList  * modulators,
-            rangesType & keysToLoad);
+            rangesType & keysToLoad,
+            Preset     & preset,
+            uint16_t     presetZoneIdx);
+
   bool unload();
   void showZones();
 
-  void playNote(uint8_t note, uint8_t velocity, Preset & preset, uint16_t presetZoneIdx);
+  void playNote(uint8_t note, uint8_t velocity);
   void stopNote(uint8_t note);
 
   /// Returns the name of the instrument
@@ -70,7 +74,7 @@ public:
 
   sfGenList * getGlobalGens()     { return globalZone.generators; }
   uint8_t     getGlobalGenCount() { return globalZone.genCount; }
-  
+
   sfGenList * getZoneGens(uint16_t idx) { return zones[idx].generators; }
   uint8_t     getZoneGenCount(uint16_t idx) { return zones[idx].genCount; }
 };

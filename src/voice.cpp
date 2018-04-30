@@ -34,7 +34,7 @@ void Voice::feedFifo()
           fifo->getTail(),
           fifoLoadPos,
           SAMPLE_BUFFER_SAMPLE_COUNT,
-          synth
+          *synth
         );
         if (count) {
           fifoLoadPos += count;
@@ -57,7 +57,7 @@ void Voice::prepareFifo()
       fifo->getTail(),
       fifoLoadPos,
       SAMPLE_BUFFER_SAMPLE_COUNT,
-      synth
+      *synth
     );
     if (count) {
       fifoLoadPos += count;
@@ -88,6 +88,7 @@ Voice::Voice()
   gain          = 1.0f;
   fifo          = new Fifo;
   next          = NULL;
+  synth         = NULL;
 
   scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
@@ -122,19 +123,18 @@ void Voice::outOfMemory()
 
 //---- setup() ----
 
-void Voice::setup(samplep      sample,
-                  char         note,
-                  float        gain,
-                  Preset &     preset, 
-                  uint16_t     presetZoneIdx, 
-                  Instrument & inst, 
-                  uint16_t     instZoneIdx)
+void Voice::setup(samplep       sample,
+                  char          note,
+                  float         gain,
+                  Synthesizer & synth)
 {
   // TODO: Why gain is squared??
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
   this->gain     = gain * gain; // Gain is squared
+  this->synth    = &synth;
+
   samplePos      =  0;
   sampleRealPos  =  0;
   scaleBuffPos   = -1;
@@ -145,15 +145,6 @@ void Voice::setup(samplep      sample,
   active         = false;
   fifoLoadPos    = 0;
 
-  synth.setDefaults(sample);
-  synth.setGens(inst.getGlobalGens(),              inst.getGlobalGenCount());
-  synth.setGens(inst.getZoneGens(instZoneIdx),     inst.getZoneGenCount(instZoneIdx));
-  synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
-  synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
-  synth.completeParams();
-  
-  synth.showParams();
-  
   prepareFifo();
 
   BEGIN();

@@ -38,7 +38,7 @@ void Preset::init()
   globalZone.modCount   =    0;
 
   for (int i = 0; i < 128; i++) keys[i] = KEY_NOT_USED;
-  
+
   keyShortCutPresent = false;
   velocitiesPresent = false;
 
@@ -275,7 +275,9 @@ bool Preset::load(sfBag     * bags,
 
   for (i = 0; i < zoneCount; i++) {
     assert(soundFont != NULL);
-    soundFont->loadInstrument(zones[i].instrumentIndex, zones[i].keys);
+    soundFont->loadInstrument(zones[i].instrumentIndex,
+                              zones[i].keys,
+                              *this, i);
   }
 
   // showZones();
@@ -372,13 +374,13 @@ void Preset::playNote(uint8_t note, uint8_t velocity)
         if ((zones[i].velocities.byLo <= velocity) &&
             (velocity <= zones[i].velocities.byHi)) {
           soundFont->instruments[zones[i].instrumentIndex]->playNote(
-            note, velocity, *this, i
+            note, velocity
           );
         }
         else if ((zones[i].velocities.byLo == 0) &&
                  (zones[i].velocities.byHi == 0)) {
           soundFont->instruments[zones[i].instrumentIndex]->playNote(
-            note, velocity, *this, i
+            note, velocity
           );
         }
       }
@@ -386,14 +388,14 @@ void Preset::playNote(uint8_t note, uint8_t velocity)
         if ((zones[i].velocities.byLo <= velocity) &&
             (velocity <= zones[i].velocities.byHi)) {
           soundFont->instruments[zones[i].instrumentIndex]->playNote(
-            note, velocity, *this, i
+            note, velocity
           );
         }
         else if ((zones[i].velocities.byLo == 0) &&
                  (zones[i].velocities.byHi == 0)) {
           soundFont->instruments[zones[i].instrumentIndex]->playNote(
-            note, velocity, *this, i
-          );                    
+            note, velocity
+          );
         }
       }
     }

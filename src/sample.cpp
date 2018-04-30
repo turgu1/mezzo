@@ -27,16 +27,22 @@ Sample::Sample(sfSample & info)
   name           = theName;
   start          = info.dwStart;
   end            = info.dwEnd;
-  startLoop      = info.dwStartloop - start;
-  endLoop        = info.dwEndloop - start;
   sampleRate     = info.dwSampleRate;
   pitch          = info.byOriginalPitch;
   correction     = info.chPitchCorrection;
   link           = info.wSampleLink;
   linkType       = info.sfSampleType;
 
+  if ((info.dwEndloop - info.dwStartloop) >= 32) {
+    startLoop    = info.dwStartloop - start;
+    endLoop      = info.dwEndloop - start;
+    sizeLoop     = endLoop - startLoop;
+  }
+  else {
+    startLoop = endLoop = sizeLoop = 0;
+  }
+
   sizeSample     = end - start;
-  sizeLoop       = endLoop - startLoop;
   sizeFirstBlock = 0;
 
   assert(sizeSample > 0);
@@ -89,12 +95,12 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
   uint32_t offset         = (synth.getStart() - this->start);
   uint32_t sizeFirstBlock = this->sizeFirstBlock - offset;
   uint16_t count = 0;
-  
+
   while (qty > 0) {
     uint16_t size;
     if (pos >= synth.getSizeSample()) {
       if (synth.isLooping()) {
-        uint32_t thePos = synth.getStartLoop() + 
+        uint32_t thePos = synth.getStartLoop() +
                           ((pos - synth.getSizeSample()) % synth.getSizeLoop());
         size = MIN(qty, synth.getEndLoop() - thePos);
         if (thePos < sizeFirstBlock) {

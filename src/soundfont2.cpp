@@ -23,7 +23,7 @@ SoundFont2::SoundFont2(std::string & sf2Filename)
 
   currentPreset   = NULL;
   firstMidiPreset = NULL;
-  
+
   file.open(sf2Filename);
   if (!file.is_open()) {
     logger.ERROR("Unable to open file %s.", sf2Filename.c_str());
@@ -68,15 +68,21 @@ void SoundFont2::outOfMemory()
   logger.FATAL("SoundFont2: Unable to allocate memory.");
 }
 
-bool SoundFont2::loadInstrument(std::string & instrumentName, rangesType & keys)
+bool SoundFont2::loadInstrument(std::string & instrumentName,
+                                rangesType  & keys,
+                                Preset      & preset,
+                                uint16_t      presetZoneIdx)
 {
   for (uint16_t i = 0; i < instruments.size(); i++) {
-    if (instrumentName == instruments[i]->getName()) return loadInstrument(i, keys);
+    if (instrumentName == instruments[i]->getName()) return loadInstrument(i, keys, preset, presetZoneIdx);
   }
   return false;
 }
 
-bool SoundFont2::loadInstrument(uint16_t instrumentIndex, rangesType & keys)
+bool SoundFont2::loadInstrument(uint16_t     instrumentIndex,
+                                rangesType & keys,
+                                Preset     & preset,
+                                uint16_t     presetZoneIdx)
 {
   if (instrumentIndex >= instruments.size()) return false;
 
@@ -110,7 +116,8 @@ bool SoundFont2::loadInstrument(uint16_t instrumentIndex, rangesType & keys)
 
   sfGenList * igens = (sfGenList *) ck->data;
 
-  return instruments[instrumentIndex]->load(ibags, igens, imods, keys);
+  return instruments[instrumentIndex]->load(ibags, igens, imods, keys,
+                                            preset, presetZoneIdx);
 }
 
 bool SoundFont2::loadPreset(std::string & presetName)
@@ -146,9 +153,9 @@ bool SoundFont2::loadPreviousPreset()
 {
   Preset * p = firstMidiPreset;
   Preset * po = NULL;
-  
+
   if (p == NULL) return false;
-  
+
   while ((p != NULL) && (p != currentPreset)) {
     po = p;
     p = p->getNextMidiPreset();
@@ -400,16 +407,16 @@ void SoundFont2::addPresetToMidiList(Preset *preset)
 void SoundFont2::showMidiPresetList()
 {
   using namespace std;
-  
+
   Preset * p = firstMidiPreset;
   int i = 0;
   int qty = presets.size();
-  
+
   for (i = 0; i < 3; i++) cout << "Idx   Bk Mid  Name                 ";
   cout << endl;
   for (i = 0; i < 3; i++) cout << "---   -- ---  -------------------- ";
   cout << endl;
-  
+
   int nxt = 0;
   while (i < qty) {
     p = firstMidiPreset;
@@ -421,7 +428,7 @@ void SoundFont2::showMidiPresetList()
         k++;
       }
       cout << setw(3) << right << k << ": "
-           << "[" << setw(2) << right << p->getBankNbr() 
+           << "[" << setw(2) << right << p->getBankNbr()
                   << setw(4) << right << p->getMidiNbr() << "] "
            << setw(20) << left << p->getName() << " ";
       if ((++i % 3) == 0) cout << endl;

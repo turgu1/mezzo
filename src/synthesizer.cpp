@@ -21,12 +21,12 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case sfGenOper_startAddrsCoarseOffset:
         start += (32768 * gens->genAmount.shAmount);
         break;
-      case sfGenOper_pan: 
+      case sfGenOper_pan:
         pan = (type == set) ?
                 gens->genAmount.shAmount :
                 (pan + gens->genAmount.shAmount);
         break;
-/*
+
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_vibLfoToPitch:
       case  sfGenOper_modEnvToPitch:
@@ -83,7 +83,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_unused5:
       case  sfGenOper_endOper:
         break;
-*/
     }
 
     gens++;
@@ -120,7 +119,7 @@ void Synthesizer::process(buffp buff)
 void Synthesizer::showParams()
 {
   using namespace std;
-  
+
   cout << "start:" << start
        << " end:" << end
        << " startLoop:" << startLoop

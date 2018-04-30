@@ -208,13 +208,10 @@ voicep Poly::nextAvailable()
 // A sample is added to voices. If there is no more voice structure available,
 // retrieve the oldest one from the current voices list.
 
-void Poly::addVoice(samplep      sample,
-                    uint8_t      note,
-                    float        gain,
-                    Preset &     preset, 
-                    uint16_t     presetZoneIdx, 
-                    Instrument & inst, 
-                    uint16_t     instZoneIdx)
+void Poly::addVoice(samplep       sample,
+                    uint8_t       note,
+                    float         gain,
+                    Synthesizer & synth)
 {
   voicep voice;
 
@@ -241,7 +238,7 @@ void Poly::addVoice(samplep      sample,
   voiceCount++;
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
-  voice->setup(sample, note, gain, preset, presetZoneIdx, inst, instZoneIdx);
+  voice->setup(sample, note, gain, synth);
 }
 
 //---- noteOff() ----
@@ -389,6 +386,8 @@ int Poly::mixer(buffp buff, int frameCount)
   maxVoicesMixed = MAX(maxVoicesMixed, mixedCount);
 
   long dur = duration->getElapse();
+
+  //std::cout << "<" << dur << ">" << std::endl;
 
   mixerDuration = MAX(mixerDuration, dur);
   delete duration;

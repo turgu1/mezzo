@@ -30,7 +30,7 @@ private:
   bool retrievePresetList();
   bool retrieveSamples();
   void addPresetToMidiList(Preset *preset);
-  
+
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
   Preset * currentPreset;
@@ -47,20 +47,26 @@ public:
   SoundFont2(std::string & sf2Filename);
   ~SoundFont2();
 
-  bool loadInstrument(std::string & instrumentName, rangesType & keys);
-  bool loadInstrument(uint16_t instrumentIndex, rangesType & keys);
+  bool loadInstrument(std::string & instrumentName,
+                      rangesType  & keys,
+                      Preset      & preset,
+                      uint16_t      presetZoneIdx);
+  bool loadInstrument(uint16_t instrumentIndex,
+                      rangesType  & keys,
+                      Preset      & preset,
+                      uint16_t      presetZoneIdx);
 
   bool loadPreset(std::string & presetName);
   bool loadPreset(uint16_t presetIndex);
   bool loadPreset(Preset * p);
   bool loadMidiPreset(uint8_t bankNbr, uint8_t midiNbr);
-  
+
   bool loadNextPreset();
   bool loadPreviousPreset();
   bool loadFirstPreset();
-    
+
   void showMidiPresetList();
-  
+
   inline Preset * getCurrentPreset() { return currentPreset; };
 
   inline bool loadSample(uint16_t sampleIndex) {
@@ -80,7 +86,7 @@ public:
   }
 
   inline Instrument * getInstrument(uint16_t index) {
-    return index < instruments.size() ? instruments[index] : NULL; 
+    return index < instruments.size() ? instruments[index] : NULL;
   };
 };
 

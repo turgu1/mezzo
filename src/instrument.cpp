@@ -62,7 +62,9 @@ bool Instrument::unload()
 bool Instrument::load(sfBag      * bags,
                       sfGenList  * generators,
                       sfModList  * modulators,
-                      rangesType & keysToLoad)
+                      rangesType & keysToLoad,
+                      Preset     & preset,
+                      uint16_t     presetZoneIdx)
 {
   int i, count;
 
@@ -238,6 +240,12 @@ bool Instrument::load(sfBag      * bags,
   for (i = 0; i < zoneCount; i++) {
     if ((keysToLoad.byLo <= zones[i].keys.byHi) && (keysToLoad.byHi >= zones[i].keys.byLo)) {
       soundFont->loadSample(zones[i].sampleIndex);
+      zones[i].synth.setDefaults(soundFont->samples[zones[i].sampleIndex]);
+      zones[i].synth.setGens(globalZone.generators, globalZone.genCount);
+      zones[i].synth.setGens(zones[i].generators,   zones[i].genCount);
+      zones[i].synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
+      zones[i].synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
+      zones[i].synth.completeParams();
     }
   }
 
@@ -325,15 +333,13 @@ void Instrument::showZones()
   std::cerr << std::endl << "[End]" << std::endl;
 }
 
-void Instrument::playNote(uint8_t note, 
-                          uint8_t velocity, 
-                          Preset & preset, 
-                          uint16_t presetZoneIdx)
+void Instrument::playNote(uint8_t note,
+                          uint8_t velocity)
 {
   uint16_t i = keys[note];
-  
+
   if (i == KEY_NOT_USED) return;
-  
+
   for (; i < zoneCount; i++) {
 
     if ((zones[i].sampleIndex != -1) &&
@@ -347,7 +353,7 @@ void Instrument::playNote(uint8_t note,
         poly->addVoice(
           soundFont->samples[zones[i].sampleIndex],
           note, velocity / 127.0f,
-          preset, presetZoneIdx, *this, i
+          zones[i].synth
         );
       }
     }
@@ -358,8 +364,8 @@ void Instrument::stopNote(uint8_t note)
 {
   int i = keys[note];
   if (i == KEY_NOT_USED) logger.ERROR("keys for note %d not found!", note);
-  while ((i < zoneCount) && 
-         (zones[i].sampleIndex != -1) && 
+  while ((i < zoneCount) &&
+         (zones[i].sampleIndex != -1) &&
          (zones[i].keys.byLo <= note) &&
          (note <= zones[i].keys.byHi)) {
     // soundFont->samples[zones[i].sampleIndex]->stopNote(note);
