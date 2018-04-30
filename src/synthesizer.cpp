@@ -1,5 +1,10 @@
 #include "mezzo.h"
 
+#include <math.h>
+#include <iomanip>
+
+#define centibelAttenuation(x) powf(10.0f, -x / 200.0f)
+
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
   while (genCount--) {
@@ -23,10 +28,17 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
       case sfGenOper_pan:
         pan = (type == set) ?
-                gens->genAmount.shAmount :
-                (pan + gens->genAmount.shAmount);
+          gens->genAmount.shAmount :
+          (pan + gens->genAmount.shAmount);
         break;
-
+      case  sfGenOper_overridingRootKey:
+        rootKey = gens->genAmount.shAmount;
+        break;
+      case  sfGenOper_initialAttenuation:
+        attenuationFactor = (type == set) ?
+          centibelAttenuation(gens->genAmount.shAmount) :
+          (attenuationFactor + centibelAttenuation(gens->genAmount.shAmount));
+        break;
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_vibLfoToPitch:
       case  sfGenOper_modEnvToPitch:
@@ -69,7 +81,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_startloopAddrsCoarseOffset:
       case  sfGenOper_keynum:
       case  sfGenOper_velocity:
-      case  sfGenOper_initialAttenuation:
       case  sfGenOper_reserved2:
       case  sfGenOper_endloopAddrsCoarseOffset:
       case  sfGenOper_coarseTune:
@@ -79,7 +90,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_reserved3:
       case  sfGenOper_scaleTuning:
       case  sfGenOper_exclusiveClass:
-      case  sfGenOper_overridingRootKey:
       case  sfGenOper_unused5:
       case  sfGenOper_endOper:
         break;
@@ -91,12 +101,14 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
 void Synthesizer::setDefaults(Sample * sample)
 {
-  start      = sample->getStart();
-  end        = sample->getEnd();
-  startLoop  = sample->getStartLoop();
-  endLoop    = sample->getEndLoop();
-  sampleRate = sample->getSampleRate();
-  loop       = startLoop != endLoop;
+  start             = sample->getStart();
+  end               = sample->getEnd();
+  startLoop         = sample->getStartLoop();
+  endLoop           = sample->getEndLoop();
+  sampleRate        = sample->getSampleRate();
+  rootKey           = sample->getPitch();
+  loop              = startLoop != endLoop;
+  attenuationFactor = 1.0f;
 }
 
 void Synthesizer::completeParams()
@@ -120,12 +132,15 @@ void Synthesizer::showParams()
 {
   using namespace std;
 
-  cout << "start:" << start
-       << " end:" << end
-       << " startLoop:" << startLoop
-       << " endLoop:" << endLoop
-       << " pan:" << pan
-       << " sizeSample:" << sizeSample
-       << " sizeLoop:" << sizeLoop
+  cout << "Synth:" 
+       << " +root:"       << rootKey
+       << " start:"       << start
+       << " end:"         << end
+       << " startLoop:"   << startLoop
+       << " endLoop:"     << endLoop
+       << " pan:"         << pan
+       << " sizeSample:"  << sizeSample
+       << " sizeLoop:"    << sizeLoop
+       << " attenuation:" << fixed << setw(7) << setprecision(5) << attenuationFactor
        << endl;
 }

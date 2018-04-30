@@ -17,6 +17,8 @@ private:
   uint32_t     sampleRate;
   uint32_t     sizeSample;
   uint32_t     sizeLoop;
+  float        attenuationFactor;
+  uint8_t      rootKey;
   bool         loop;
 
   enum setGensType { set, adjust };
@@ -35,15 +37,17 @@ public:
   void showParams();
   void completeParams();
   
-  inline uint32_t getStart()      { return start; };
-  inline uint32_t getEnd()        { return end; };
-  inline uint32_t getStartLoop()  { return startLoop; };
-  inline uint32_t getEndLoop()    { return endLoop; };
-  inline uint32_t getSampleRate() { return sampleRate; };
-  inline bool     isLooping()     { return loop; };
-  inline uint16_t getPan()        { return pan; };
-  inline uint32_t getSizeSample() { return sizeSample; };
-  inline uint32_t getSizeLoop()   { return sizeLoop; };
+  inline uint32_t getStart()       { return start; }
+  inline uint32_t getEnd()         { return end; }
+  inline uint32_t getStartLoop()   { return startLoop; }
+  inline uint32_t getEndLoop()     { return endLoop; }
+  inline uint32_t getSampleRate()  { return sampleRate; }
+  inline bool     isLooping()      { return loop; }
+  inline uint16_t getPan()         { return pan; }
+  inline uint32_t getSizeSample()  { return sizeSample; }
+  inline uint32_t getSizeLoop()    { return sizeLoop; }
+  inline float    getAttenuation() { return attenuationFactor; }
+  inline uint8_t  getRootKey()     { return rootKey; }
 };
 
 #endif

@@ -140,13 +140,15 @@ void Sample::showState()
 {
   using namespace std;
 
-  cout << "sample: "
-       << "name:"       << name       << " "
-       << "pitch:"      << pitch      << " "
-       << "start:"      << start      << " "
-       << "end:"        << end        << " "
-       << "startLoop:"  << startLoop  << " "
-       << "endLoop:"    << endLoop    << " "
-       << "size:"       << sizeSample << " "
-       << "loaded:"     << (loaded ? "yes" : "no")   << endl;
+  cerr << "sample:"
+       << " name:"       << name
+       << " pitch:"      << +pitch
+       << " start:"      << start
+       << " end:"        << end
+       << " startLoop:"  << startLoop
+       << " endLoop:"    << endLoop
+       << " size:"       << sizeSample
+       << " rate:"       << sampleRate
+       << " correction:" << +correction
+       << " loaded:"     << (loaded ? "yes" : "no") << endl;
 }

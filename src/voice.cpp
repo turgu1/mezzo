@@ -132,8 +132,8 @@ void Voice::setup(samplep       sample,
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
-  this->gain     = gain * gain; // Gain is squared
   this->synth    = &synth;
+  this->gain     = gain * synth.getAttenuation();
 
   samplePos      =  0;
   sampleRealPos  =  0;
@@ -166,9 +166,9 @@ int Voice::getNormalSamples(buffp buff)
   if (fifo->isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
     readSampleCount = 0;
-    logger.DEBUG("Underrun!!!");
-    fifo->showState();
-    logger.FATAL("Stop!");
+    // logger.DEBUG("Underrun!!!");
+    // fifo->showState();
+    // logger.FATAL("Stop!");
   }
   else {
     memcpy(buff,
@@ -191,7 +191,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
   //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[(note - sample->getPitch()) + 127];
+  float factor = scaleFactors[(note - synth->getRootKey()) + 127];
 
   assert(scaleBuff != NULL);
   assert(buff != NULL);

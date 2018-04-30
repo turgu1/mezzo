@@ -78,6 +78,7 @@ public:
             sfGenList * generators,
             sfModList * modulators);
   bool unload();
+  void showZone(uint16_t zIdx);
   void showZones();
 
   void playNote(uint8_t note, uint8_t velocity);
