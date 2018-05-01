@@ -35,7 +35,8 @@ class Poly : public NewHandlerSupport<Poly> {
   void   showState();
   voicep firstVoice();
   voicep nextVoice(voicep prev);
-  void   addVoice(samplep s, uint8_t note, float gain, Synthesizer & synth);
+  void   addVoice(samplep s, uint8_t note, float gain, Synthesizer & synth,
+                  Preset & preset, uint16_t presetZoneIdx);
   voicep nextAvailable();
   void   noteOff(char note, bool pedal_on);
   void   voicesSustainOff();

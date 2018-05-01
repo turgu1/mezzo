@@ -128,7 +128,9 @@ class Voice : public NewHandlerSupport<Voice> {
   buffp   scaleBuff;         ///< Used when scaling must be done (voice note != sample note)
   int     scaleBuffPos;
   uint32_t fifoLoadPos;
-  Synthesizer * synth;
+  Synthesizer synth;
+  float   old_y1, old_y2, old_y3, old_y4;
+  int     last_1st;
 
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 
@@ -140,7 +142,8 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample, char note, float gain, Synthesizer & synth);
+  void setup(samplep sample, char note, float gain,
+             Synthesizer & synth, Preset & preset, uint16_t presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. Normal means that the note to be played is the same as
@@ -184,7 +187,7 @@ class Voice : public NewHandlerSupport<Voice> {
   inline voicep  getNext() { return next; }
   inline int8_t  getNote() { return note; }
   inline float   getGain() { return gain; }
-  inline int16_t  getPan() { return synth->getPan();  }
+  inline int16_t  getPan() { return synth.getPan();  }
 
   inline int getFadeOutPos() { return fadeOutPos; }
   inline bool isFadingOut()  { return fadingOut; }

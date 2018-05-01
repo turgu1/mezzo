@@ -48,13 +48,9 @@ public:
   ~SoundFont2();
 
   bool loadInstrument(std::string & instrumentName,
-                      rangesType  & keys,
-                      Preset      & preset,
-                      uint16_t      presetZoneIdx);
+                      rangesType  & keys);
   bool loadInstrument(uint16_t instrumentIndex,
-                      rangesType  & keys,
-                      Preset      & preset,
-                      uint16_t      presetZoneIdx);
+                      rangesType  & keys);
 
   bool loadPreset(std::string & presetName);
   bool loadPreset(uint16_t presetIndex);

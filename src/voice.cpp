@@ -34,7 +34,7 @@ void Voice::feedFifo()
           fifo->getTail(),
           fifoLoadPos,
           SAMPLE_BUFFER_SAMPLE_COUNT,
-          *synth
+          synth
         );
         if (count) {
           fifoLoadPos += count;
@@ -57,7 +57,7 @@ void Voice::prepareFifo()
       fifo->getTail(),
       fifoLoadPos,
       SAMPLE_BUFFER_SAMPLE_COUNT,
-      *synth
+      synth
     );
     if (count) {
       fifoLoadPos += count;
@@ -88,7 +88,6 @@ Voice::Voice()
   gain          = 1.0f;
   fifo          = new Fifo;
   next          = NULL;
-  synth         = NULL;
 
   scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
@@ -126,13 +125,15 @@ void Voice::outOfMemory()
 void Voice::setup(samplep       sample,
                   char          note,
                   float         gain,
-                  Synthesizer & synth)
+                  Synthesizer & synth,
+                  Preset      & preset,
+                  uint16_t      presetZoneIdx)
 {
   // TODO: Why gain is squared??
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
-  this->synth    = &synth;
+  this->synth    = synth;
   this->gain     = gain * synth.getAttenuation();
 
   samplePos      =  0;
@@ -145,7 +146,16 @@ void Voice::setup(samplep       sample,
   active         = false;
   fifoLoadPos    = 0;
 
+  old_y1         =
+  old_y2         =
+  old_y3         =
+  old_y4         = 0.0f;
+  last_1st       = -1;
+
   prepareFifo();
+
+  synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
+  synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -180,6 +190,145 @@ int Voice::getNormalSamples(buffp buff)
   samplePos += readSampleCount;
   return readSampleCount;
 }
+
+// #define P1 ((x_3 - 9 * x_2 + 26 * x - 24) / -6)
+// #define P2 ((x_3 - 8 * x_2 + 18 * x - 12) /  2)
+// #define P3 ((x_3 - 7 * x_2 + 14 * x -  8) / -2)
+// #define P4 ((x_3 - 6 * x_2 + 11 * x -  6) /  6)
+//
+// uint16_t lagrange4th(buffp buff, float factor, uint16_t len)
+// {
+//   float x_3, x_2, x;
+//
+//   *buff++ = y1 * P1 + y2 * P2 + y3 * P3 + y4 * P4;
+//
+// }
+
+#if 1
+
+#define P1 ((x_3 - (x_2 + x_2 + x_2) + (x + x)) / -6.0f)
+#define P2 ((x_3 - (x_2 + x_2) - x + 2.0f) /  2.0f)
+#define P3 ((x_3 - x_2 - (x + x)) / -2.0f)
+#define P4 ((x_3 - x) / 6.0f)
+
+using namespace std;
+#include <iomanip>
+
+int Voice::getScaledSamples(buffp buff, int sampleCount)
+{
+  int count = 0;
+
+  float y1, y2, y3, y4;
+  float x_3, x_2, x;
+
+  //assert((note - sample->getPitch()) >= 0);
+
+  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
+
+  if (sample->getSampleRate() != config.samplingRate) {
+    factor *= (config.samplingRate / sample->getSampleRate());
+  }
+
+  assert(scaleBuff != NULL);
+  assert(buff != NULL);
+  assert(sampleCount > 0);
+
+  if (scaleBuffPos == -1) {
+    if (getNormalSamples(scaleBuff) == 0) return 0;
+    scaleBuffPos = 0;
+  }
+
+  float pos = sampleRealPos * factor;
+
+  float old;
+
+  old = 0.0;
+
+  y1 = old_y1;
+  y2 = old_y2;
+  y3 = old_y3;
+  y4 = old_y4;
+
+  int last_first = last_1st;
+
+  while (sampleCount--) {
+
+    float fipos;
+    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+    int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
+
+    if (last_first != ipos) {
+
+      y1 = y2;
+
+      if (ipos >= 0) {
+        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
+          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        }
+
+        y2 = old = scaleBuff[ipos];
+      }
+      else {
+        // We already have loaded next samples. Expected ipos to be -1 and related to
+        // the data already retrieved in the preceeding loop...
+        y2 = old;
+        //assert(ipos == -1);
+      }
+
+      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+        if (getNormalSamples(scaleBuff) == 0) break;
+        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      }
+      y3 = scaleBuff[ipos];
+
+      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
+        if (getNormalSamples(scaleBuff) == 0) break;
+        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
+        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      }
+      y4 = scaleBuff[ipos];
+    }
+    else {
+      // cout << '*' << endl;
+    }
+
+    last_first = ipos - 2;
+
+    // cout << "idx:" << setw(5) << (sampleRealPos + count)
+    //     << " pos:"  << setw(10) << pos
+    //     << " diff:" << setw(10) << diff
+    //     << " ipos:" << setw(6) << ipos
+    //     << " last_first:" << setw(6) << last_first
+    //     << " y1:" << setw(10) << y1
+    //     << " y2:" << setw(10) << y2
+    //     << " y3:" << setw(10) << y3
+    //     << " y4:" << setw(10) << y4 << endl;
+
+    x = diff;
+    x_2 = x * x;
+    x_3 = x_2 * x;
+
+    *buff++ = y1 * P1 + y2 * P2 + y3 * P3 + y4 * P4;
+
+    pos += factor;
+    count++;
+  }
+
+ endLoop:
+  old_y1 = y1;
+  old_y2 = y2;
+  old_y3 = y3;
+  old_y4 = y4;
+  last_1st = last_first;
+
+  sampleRealPos += count;
+  return count;
+}
+
+#else
 
 //---- getScaledSamples()
 //
@@ -309,6 +458,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   sampleRealPos += count;
   return count;
 }
+#endif
 
 void Voice::showState()
 {

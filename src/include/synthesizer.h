@@ -9,17 +9,18 @@
 class Synthesizer {
 
 private:
-  int16_t      pan;
-  uint32_t     start;
-  uint32_t     end;
-  uint32_t     startLoop;
-  uint32_t     endLoop;
-  uint32_t     sampleRate;
-  uint32_t     sizeSample;
-  uint32_t     sizeLoop;
-  float        attenuationFactor;
-  uint8_t      rootKey;
-  bool         loop;
+  int16_t  pan;
+  uint32_t start;
+  uint32_t end;
+  uint32_t startLoop;
+  uint32_t endLoop;
+  uint32_t sampleRate;
+  uint32_t sizeSample;
+  uint32_t sizeLoop;
+  float    attenuationFactor;
+  float    correctionFactor;
+  uint8_t  rootKey;
+  bool     loop;
 
   enum setGensType { set, adjust };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
@@ -33,10 +34,10 @@ public:
   void setDefaults(Sample * sample);
 
   void process(buffp buff);
-  
+
   void showParams();
   void completeParams();
-  
+
   inline uint32_t getStart()       { return start; }
   inline uint32_t getEnd()         { return end; }
   inline uint32_t getStartLoop()   { return startLoop; }
@@ -47,6 +48,7 @@ public:
   inline uint32_t getSizeSample()  { return sizeSample; }
   inline uint32_t getSizeLoop()    { return sizeLoop; }
   inline float    getAttenuation() { return attenuationFactor; }
+  inline float    getCorrection()  { return correctionFactor; }
   inline uint8_t  getRootKey()     { return rootKey; }
 };
 

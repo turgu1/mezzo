@@ -62,9 +62,7 @@ bool Instrument::unload()
 bool Instrument::load(sfBag      * bags,
                       sfGenList  * generators,
                       sfModList  * modulators,
-                      rangesType & keysToLoad,
-                      Preset     & preset,
-                      uint16_t     presetZoneIdx)
+                      rangesType & keysToLoad)
 {
   int count;
 
@@ -231,7 +229,7 @@ bool Instrument::load(sfBag      * bags,
 
         if (zones[zIdx].sampleIndex != -1) {
           zIdx++;       // Goto next zone
-        } 
+        }
         else {
           zoneCount--;
         }
@@ -248,8 +246,6 @@ bool Instrument::load(sfBag      * bags,
         zones[zIdx].synth.setDefaults(soundFont->samples[zones[zIdx].sampleIndex]);
         zones[zIdx].synth.setGens(globalZone.generators, globalZone.genCount);
         zones[zIdx].synth.setGens(zones[zIdx].generators,   zones[zIdx].genCount);
-        zones[zIdx].synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
-        zones[zIdx].synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
         zones[zIdx].synth.completeParams();
       }
       else {
@@ -295,7 +291,7 @@ void Instrument::showModulator(sfModList & m)
 void Instrument::showZone(uint16_t zIdx)
 {
   using namespace std;
-  
+
   cerr << "Zone "<< zIdx << ": " <<
     "keys ["         << +zones[zIdx].keys.byLo << "-" << +zones[zIdx].keys.byHi << "] " <<
     "velocities ["   << +zones[zIdx].velocities.byLo << "-" << +zones[zIdx].velocities.byHi << "] " <<
@@ -327,7 +323,7 @@ void Instrument::showZone(uint16_t zIdx)
 void Instrument::showZones()
 {
   using namespace std;
-  
+
   cerr << endl << "Zone List for Instrument [" << name << "]" << endl << endl;
 
   if ((globalZone.genCount > 0) || (globalZone.modCount > 0)) {
@@ -355,7 +351,9 @@ void Instrument::showZones()
 }
 
 void Instrument::playNote(uint8_t note,
-                          uint8_t velocity)
+                          uint8_t velocity,
+                          Preset & preset,
+                          uint16_t presetZoneIdx)
 {
   uint16_t zIdx = keys[note];
 
@@ -374,8 +372,9 @@ void Instrument::playNote(uint8_t note,
         poly->addVoice(
           soundFont->samples[zones[zIdx].sampleIndex],
           note, velocity / 127.0f,
-          zones[zIdx].synth
-        );
+          zones[zIdx].synth,
+          preset, presetZoneIdx);
+        // break;
       }
     }
   }

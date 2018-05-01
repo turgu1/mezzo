@@ -268,7 +268,7 @@ bool Preset::load(sfBag     * bags,
 
       if (zones[zIdx].instrumentIndex != -1) {
         zIdx++;       // Goto next zone
-      } 
+      }
       else {
         zoneCount--;
       }
@@ -289,8 +289,7 @@ bool Preset::load(sfBag     * bags,
     };
 
     soundFont->loadInstrument(zones[zIdx].instrumentIndex,
-                              zones[zIdx].keys,
-                              *this, zIdx);
+                              zones[zIdx].keys);
   }
 
   // showZones();
@@ -333,7 +332,7 @@ void Preset::showModulator(sfModList & m)
 void Preset::showZone(uint16_t zIdx)
 {
   using namespace std;
-  
+
   cerr << "Zone " << zIdx << ": " <<
     "keys ["         << +zones[zIdx].keys.byLo << "-" << +zones[zIdx].keys.byHi << "] " <<
     "velocities ["   << +zones[zIdx].velocities.byLo << "-" << +zones[zIdx].velocities.byHi << "] " <<
@@ -355,7 +354,7 @@ void Preset::showZone(uint16_t zIdx)
       showModulator(zones[zIdx].modulators[j]);
       cerr << endl;
     }
-  }  
+  }
 }
 
 void Preset::showZones()
@@ -396,28 +395,32 @@ void Preset::playNote(uint8_t note, uint8_t velocity)
         if ((zones[zIdx].velocities.byLo <= velocity) &&
             (velocity <= zones[zIdx].velocities.byHi)) {
           soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity
+            note, velocity, *this, zIdx
           );
+          // break;
         }
         else if ((zones[zIdx].velocities.byLo == 0) &&
                  (zones[zIdx].velocities.byHi == 0)) {
           soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity
+            note, velocity, *this, zIdx
           );
+          // break;
         }
       }
       else if ((zones[zIdx].keys.byLo == 0) && (zones[zIdx].keys.byHi == 0)) {
         if ((zones[zIdx].velocities.byLo <= velocity) &&
             (velocity <= zones[zIdx].velocities.byHi)) {
           soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity
+            note, velocity, *this, zIdx
           );
+          // break;
         }
         else if ((zones[zIdx].velocities.byLo == 0) &&
                  (zones[zIdx].velocities.byHi == 0)) {
           soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity
+            note, velocity, *this, zIdx
           );
+          // break;
         }
       }
     }

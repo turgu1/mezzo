@@ -69,6 +69,7 @@ public:
   inline uint32_t getEnd()        { return end; };
   inline uint32_t getStartLoop()  { return startLoop; };
   inline uint32_t getEndLoop()    { return endLoop; };
+  inline int8_t   getCorrection() { return correction; };
   //inline uint32_t get() { return ; };
 };
 

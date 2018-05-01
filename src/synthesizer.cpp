@@ -4,6 +4,7 @@
 #include <iomanip>
 
 #define centibelAttenuation(x) powf(10.0f, -x / 200.0f)
+#define cents(x) powf(2.0f, x / 200.0f)
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
@@ -107,7 +108,9 @@ void Synthesizer::setDefaults(Sample * sample)
   endLoop           = sample->getEndLoop();
   sampleRate        = sample->getSampleRate();
   rootKey           = sample->getPitch();
+  correctionFactor  = cents(sample->getCorrection());
   loop              = startLoop != endLoop;
+  pan               = 0;
   attenuationFactor = 1.0f;
 }
 
@@ -132,8 +135,8 @@ void Synthesizer::showParams()
 {
   using namespace std;
 
-  cout << "Synth:" 
-       << " +root:"       << rootKey
+  cout << "Synth:"
+       << " root:"        << +rootKey
        << " start:"       << start
        << " end:"         << end
        << " startLoop:"   << startLoop
@@ -142,5 +145,6 @@ void Synthesizer::showParams()
        << " sizeSample:"  << sizeSample
        << " sizeLoop:"    << sizeLoop
        << " attenuation:" << fixed << setw(7) << setprecision(5) << attenuationFactor
+       << " correction:" << fixed << setw(7) << setprecision(5) << correctionFactor
        << endl;
 }

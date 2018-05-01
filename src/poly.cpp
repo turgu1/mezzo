@@ -211,15 +211,17 @@ voicep Poly::nextAvailable()
 void Poly::addVoice(samplep       sample,
                     uint8_t       note,
                     float         gain,
-                    Synthesizer & synth)
+                    Synthesizer & synth,
+                    Preset      & preset,
+                    uint16_t presetZoneIdx)
 {
   voicep voice;
 
   // Do not transpose beyond 12 semi-tone...
 
-  if (sample->getSampleRate() != 44100) {
-    logger.DEBUG("sample %s at rate %d", sample->getName().c_str(), sample->getSampleRate());
-  }
+  // if (sample->getSampleRate() != 44100) {
+  //   logger.DEBUG("sample %s at rate %d", sample->getName().c_str(), sample->getSampleRate());
+  // }
 
   //noteOff(note, false);
 
@@ -238,7 +240,7 @@ void Poly::addVoice(samplep       sample,
   voiceCount++;
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
-  voice->setup(sample, note, gain, synth);
+  voice->setup(sample, note, gain, synth, preset, presetZoneIdx);
 }
 
 //---- noteOff() ----

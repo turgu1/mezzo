@@ -59,15 +59,13 @@ public:
   bool load(sfBag      * bags,
             sfGenList  * generators,
             sfModList  * modulators,
-            rangesType & keysToLoad,
-            Preset     & preset,
-            uint16_t     presetZoneIdx);
+            rangesType & keysToLoad);
 
   bool unload();
   void showZone(uint16_t zIdx);
   void showZones();
 
-  void playNote(uint8_t note, uint8_t velocity);
+  void playNote(uint8_t note, uint8_t velocity, Preset & preset, uint16_t presetZoneIdx);
   void stopNote(uint8_t note);
 
   /// Returns the name of the instrument

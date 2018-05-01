@@ -28,7 +28,7 @@ BOOST_LIBDIR := /usr/local/lib
 # ----- Flags, Libraries and Includes -----
 
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
-               -Wno-char-subscripts -Wno-unused-function -pthread -g -fno-inline
+               -Wno-char-subscripts -Wno-unused-function -pthread -O3 #-g -fno-inline
 
 # CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
 #               -Wno-char-subscripts -Wno-unused-function -O3 -pthread

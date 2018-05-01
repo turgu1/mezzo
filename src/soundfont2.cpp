@@ -69,20 +69,18 @@ void SoundFont2::outOfMemory()
 }
 
 bool SoundFont2::loadInstrument(std::string & instrumentName,
-                                rangesType  & keys,
-                                Preset      & preset,
-                                uint16_t      presetZoneIdx)
+                                rangesType  & keys)
 {
   for (uint16_t i = 0; i < instruments.size(); i++) {
-    if (instrumentName == instruments[i]->getName()) return loadInstrument(i, keys, preset, presetZoneIdx);
+    if (instrumentName == instruments[i]->getName()) {
+      return loadInstrument(i, keys);
+    }
   }
   return false;
 }
 
 bool SoundFont2::loadInstrument(uint16_t     instrumentIndex,
-                                rangesType & keys,
-                                Preset     & preset,
-                                uint16_t     presetZoneIdx)
+                                rangesType & keys)
 {
   if (instrumentIndex >= instruments.size()) return false;
 
@@ -116,8 +114,7 @@ bool SoundFont2::loadInstrument(uint16_t     instrumentIndex,
 
   sfGenList * igens = (sfGenList *) ck->data;
 
-  return instruments[instrumentIndex]->load(ibags, igens, imods, keys,
-                                            preset, presetZoneIdx);
+  return instruments[instrumentIndex]->load(ibags, igens, imods, keys);
 }
 
 bool SoundFont2::loadPreset(std::string & presetName)
@@ -363,9 +360,9 @@ bool SoundFont2::retrieveSamples()
        pos < (ck->len - sizeof(sfSample));
        pos += sizeof(sfSample), smplInfo++) {
 
-    if (smplInfo->dwSampleRate != 44100) {
-      logger.WARNING("Sample Rate (%d Hz) not compatible with the application", smplInfo->dwSampleRate);
-    }
+    // if (smplInfo->dwSampleRate != config.samplingRate) {
+    //   logger.WARNING("Sample Rate (%d Hz) not compatible with the application", smplInfo->dwSampleRate);
+    // }
 
     samples.push_back(new Sample(*smplInfo));
   }
