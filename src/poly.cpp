@@ -339,6 +339,7 @@ int Poly::mixer(buffp buff, int frameCount)
         voice->BEGIN();
           voice->inactivate();
         voice->END();
+        voiceCount--;
       }
 
       maxFrameCount = MAX(maxFrameCount, count);
