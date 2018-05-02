@@ -116,21 +116,23 @@ class Voice : public NewHandlerSupport<Voice> {
   volatile bool  active;     ///< This voice is active and is being played
   volatile int   stateLock;  ///< Locked by threads when reading/updating data
 
-  samplep sample;            ///< Pointer on the sample
-  int8_t  note;              ///< Targeted note, can be different than the one from sample
-  bool    fadingOut;         ///< The note is being fade-out after key/pedal release
-  bool    noteIsOn;          ///< The note is played
-  float   gain;              ///< Gain to apply to this sample (depends on how the key was struck by the player)
-  int     fadeOutPos;        ///< Index in the fade-out gain vector
-  int     samplePos;         ///< Position in the sample stream of frames
-  int     sampleRealPos;     ///< Position in the scaled (or not) processed stream of samples
-  Fifo  * fifo;              ///< Fifo for samples retrieved through threading
-  buffp   scaleBuff;         ///< Used when scaling must be done (voice note != sample note)
-  int     scaleBuffPos;
-  uint32_t fifoLoadPos;
+  samplep     sample;        ///< Pointer on the sample
+  int8_t      note;          ///< Targeted note, can be different than the one from sample
+  bool        fadingOut;     ///< The note is being fade-out after key/pedal release
+  bool        noteIsOn;      ///< The note is played
+  float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
+  int         fadeOutPos;    ///< Index in the fade-out gain vector
+  int         samplePos;     ///< Position in the sample stream of frames
+  int         sampleRealPos; ///< Position in the scaled (or not) processed stream of samples
+  Fifo      * fifo;          ///< Fifo for samples retrieved through threading
+  buffp       scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
+  int         scaleBuffPos;
+  uint16_t    scaleBuffSize;
+  uint32_t    fifoLoadPos;
   Synthesizer synth;
-  float   old_y1, old_y2, old_y3, old_y4;
-  int     last_1st;
+  float       old_y1, old_y2, old_y3, old_y4;
+  int32_t     last_first;
+  int16_t     ipos;
 
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 
@@ -142,8 +144,12 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample, char note, float gain,
-             Synthesizer & synth, Preset & preset, uint16_t presetZoneIdx);
+  void setup(samplep sample, 
+             char note, 
+             float gain,
+             Synthesizer synth, 
+             Preset      & preset, 
+             uint16_t presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. Normal means that the note to be played is the same as

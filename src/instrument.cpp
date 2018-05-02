@@ -241,6 +241,15 @@ bool Instrument::load(sfBag      * bags,
   }
 
   for (uint16_t zIdx = 0; zIdx < zoneCount; zIdx++) {
+    
+    if ((zones[zIdx].keys.byHi == 0) && (zones[zIdx].keys.byLo == 0)) {
+      zones[zIdx].keys.byHi = 127;
+    };
+
+    if ((zones[zIdx].velocities.byHi == 0) && (zones[zIdx].velocities.byLo == 0)) {
+      zones[zIdx].velocities.byHi = 127;
+    };
+    
     if ((keysToLoad.byLo <= zones[zIdx].keys.byHi) && (keysToLoad.byHi >= zones[zIdx].keys.byLo)) {
       if (soundFont->loadSample(zones[zIdx].sampleIndex)) {
         zones[zIdx].synth.setDefaults(soundFont->samples[zones[zIdx].sampleIndex]);
@@ -360,22 +369,17 @@ void Instrument::playNote(uint8_t note,
   if (zIdx == KEY_NOT_USED) return;
 
   for (; zIdx < zoneCount; zIdx++) {
-
-    if ((zones[zIdx].sampleIndex != -1) &&
-        (zones[zIdx].keys.byLo <= note) &&
-        (note <= zones[zIdx].keys.byHi)) {
-      if (((zones[zIdx].velocities.byLo <= velocity) &&
-          (velocity <= zones[zIdx].velocities.byHi)) ||
-          ((zones[zIdx].velocities.byLo == 0) && (zones[zIdx].velocities.byHi == 0))) {
-        assert(zones[zIdx].sampleIndex < (int16_t) soundFont->samples.size());
-        assert(soundFont->samples[zones[zIdx].sampleIndex] != NULL);
-        poly->addVoice(
-          soundFont->samples[zones[zIdx].sampleIndex],
-          note, velocity / 127.0f,
-          zones[zIdx].synth,
-          preset, presetZoneIdx);
-        // break;
-      }
+    if ((zones[zIdx].keys.byLo <= note) &&
+        (note <= zones[zIdx].keys.byHi) &&
+        (zones[zIdx].velocities.byLo <= velocity) &&
+        (velocity <= zones[zIdx].velocities.byHi)) {
+      assert(zones[zIdx].sampleIndex < (int16_t) soundFont->samples.size());
+      assert(soundFont->samples[zones[zIdx].sampleIndex] != NULL);
+      poly->addVoice(
+        soundFont->samples[zones[zIdx].sampleIndex],
+        note, velocity / 127.0f,
+        zones[zIdx].synth,
+        preset, presetZoneIdx);
     }
   }
 }

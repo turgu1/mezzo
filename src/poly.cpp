@@ -298,6 +298,8 @@ int Poly::mixer(buffp buff, int frameCount)
       float   voiceGain = voice->getGain() * config.masterVolume;
       float * fadeOutGain = &fadeOutScaleDown[voice->getFadeOutPos()];
 
+      //if (voiceGain > 1.0) logger.DEBUG("Gain: %7.3f", voiceGain);
+      
       if (voice->isFadingOut()) {
         // If at the end of fade_out processing, clip the number of frames to be mixed
         if ((FADE_OUT_FRAME_COUNT - voice->getFadeOutPos()) < count) {

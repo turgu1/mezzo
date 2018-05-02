@@ -122,14 +122,13 @@ void Voice::outOfMemory()
 
 //---- setup() ----
 
-void Voice::setup(samplep       sample,
-                  char          note,
-                  float         gain,
-                  Synthesizer & synth,
-                  Preset      & preset,
-                  uint16_t      presetZoneIdx)
+void Voice::setup(samplep             sample,
+                  char                note,
+                  float               gain,
+                  Synthesizer  synth,
+                  Preset       & preset,
+                  uint16_t            presetZoneIdx)
 {
-  // TODO: Why gain is squared??
   // Connect the sample with the voice
   this->sample   = sample;
   this->note     = note;
@@ -139,19 +138,14 @@ void Voice::setup(samplep       sample,
   samplePos      =  0;
   sampleRealPos  =  0;
   scaleBuffPos   = -1;
+  scaleBuffSize  =  0;
 
   fadingOut      = false;
   fadeOutPos     = 0;
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
-
-  old_y1         =
-  old_y2         =
-  old_y3         =
-  old_y4         = 0.0f;
-  last_1st       = -1;
-
+  
   prepareFifo();
 
   synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
@@ -191,25 +185,78 @@ int Voice::getNormalSamples(buffp buff)
   return readSampleCount;
 }
 
-// #define P1 ((x_3 - 9 * x_2 + 26 * x - 24) / -6)
-// #define P2 ((x_3 - 8 * x_2 + 18 * x - 12) /  2)
-// #define P3 ((x_3 - 7 * x_2 + 14 * x -  8) / -2)
-// #define P4 ((x_3 - 6 * x_2 + 11 * x -  6) /  6)
-//
-// uint16_t lagrange4th(buffp buff, float factor, uint16_t len)
-// {
-//   float x_3, x_2, x;
-//
-//   *buff++ = y1 * P1 + y2 * P2 + y3 * P3 + y4 * P4;
-//
-// }
+
+#if 0
+
+/// Lagrange 7th order interpolation polynomes.
+///
+/// We used seven consecutive locations (named x1 to x7) and compute
+/// the following equations using 
+///
+///    x1 = 3, x2 = 2, x3 = 1, x4 = 0, x5 = 1, x6 = 2, x7 = 3:
+///
+/// P1 = (x (x (x (x ((x - 3) x - 5) + 15) + 4) - 12)) / 720
+/// P2 = (x (x (x (x ((2 - x) x + 10) - 20) - 9) + 18)) / 120
+/// P3 = (x (x (x (x ((x - 1) x - 13) + 13) + 36) - 36)) / 48
+//  P4 = (x² (x² (14 - x²) - 49) + 36) / 36
+/// P5 = (x (x (x (x (x (x + 1) - 13) - 13) + 36) + 36)) / 48
+/// P6 = (x (x (x (x ((- x - 2) x + 10) + 20) - 9) - 18)) / 120
+/// P7 = (x (x (x (x (x (x + 3) - 5) - 15) + 4) + 12)) / 720
+///
+/// These equations are used in a "sliding window" for wich we only
+/// compute interpolation located between x4 and x5.
+
+P1(x) = ((x * (x * (x * (x * ((x - 3.0f) * x - 5.0f) + 15.0f) + 4.0f) - 12.0f)) / 720.0f)
+P2(x) = ((x * (x * (x * (x * ((2.0f - x) * x + 10.0f) - 20.0f) - 9.0f) + 18.0f)) / 120.0f)
+P3(x) = ((x (x (x (x ((x - 1.0f) x - 13.0f) + 13.0f) + 36.0f) - 36.0f)) / 48.0f)
+P4(x) = ((x * x * (x * x * (14.0f - x * x) - 49.0f) + 36.0f) / 36.0f)
+P5(x) = ((x * (x * (x * (x * (x * (x + 1.0f) - 13.0f) - 13.0f) + 36.0f) + 36.0f)) / 48.0f)
+P6(x) = ((x * (x * (x * (x * ((- x - 2.0f) * x + 10.0f) + 20.0f) - 9.0f) - 18.0f)) / 120.0f)
+P7(x) = ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) / 720.0f)
+
+#undef P1
+#undef P2
+#undef P3
+#undef P4
+#undef P5
+#undef P6
+#undef P7
+
+#endif
 
 #if 1
 
-#define P1 ((x_3 - (x_2 + x_2 + x_2) + (x + x)) / -6.0f)
-#define P2 ((x_3 - (x_2 + x_2) - x + 2.0f) /  2.0f)
-#define P3 ((x_3 - x_2 - (x + x)) / -2.0f)
-#define P4 ((x_3 - x) / 6.0f)
+/// Lagrange 4th order interpolation polynomes.
+///
+/// We used four consecutive locations (named x1 to x4) and compute
+/// the following equations using x1 = -1, x2 = 0, x3 = 1, x4 = 2:
+///
+///      (x  - x2)(x  - x3)(x  - x4)    
+/// P1 = --------------------------- = x³ - 3x² + 2x / -6 = x ((3 - x) x - 2) / 6
+///      (x1 - x2)(x1 - x3)(x1 - x4)
+///
+///      (x  - x1)(x  - x3)(x  - x4)
+/// P2 = --------------------------- = x³ - 2x² - x + 2 / 2 = x ((x - 2) x - 1) + 2 / 2
+///      (x2 - x1)(x2 - x3)(x2 - x4)
+/// 
+///
+///      (x  - x1)(x  - x2)(x  - x4)
+/// P3 = --------------------------- = x³ - x² - 2x / -2 = x ((1 - x) x + 2) / 2
+///      (x3 - x1)(x3 - x2)(x3 - x4)
+///
+///      (x  - x1)(x  - x2)(x  - x3)
+/// P4 = --------------------------- = x³ - x / 6 = x (x² - 1) / 6
+///      (x4 - x1)(x4 - x3)(x4 - x3)
+///
+/// (the last equation on the right are Horner's forms)
+///
+/// These equations are used in a "sliding window" for wich we only
+/// compute interpolation located between x2 and x3.
+
+#define P1(x) ((x * ((3.0f - x) * x - 2.0f)) / 6.0f)
+#define P2(x) ((x * ((x - 2.0f) * x - 1.0f) + 2.0f) / 2.0f)
+#define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
+#define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
 
 using namespace std;
 #include <iomanip>
@@ -219,7 +266,6 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   int count = 0;
 
   float y1, y2, y3, y4;
-  float x_3, x_2, x;
 
   //assert((note - sample->getPitch()) >= 0);
 
@@ -234,68 +280,89 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   assert(sampleCount > 0);
 
   if (scaleBuffPos == -1) {
-    if (getNormalSamples(scaleBuff) == 0) return 0;
+    if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) return 0;
     scaleBuffPos = 0;
+    ipos         = 0;
+    last_first   = -1;
+    old_y1       =
+    old_y2       =
+    old_y3       =
+    old_y4       = 0.0f;
   }
 
   float pos = sampleRealPos * factor;
-
-  float old;
-
-  old = 0.0;
-
+  float old = 0.0f;
+  
   y1 = old_y1;
   y2 = old_y2;
   y3 = old_y3;
   y4 = old_y4;
 
-  int last_first = last_1st;
-
   while (sampleCount--) {
 
     float fipos;
     float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
-    if (last_first != ipos) {
+    if (last_first != fipos) {
 
-      y1 = y2;
+      if ((fipos - last_first) == 1) {
+        y1 = y2;
+        y2 = y3;
+        y3 = y4;
 
-      if (ipos >= 0) {
-        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
-          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        if (++ipos >= scaleBuffSize) {
+          ipos = 0;
+          scaleBuffPos += scaleBuffSize;
+          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
         }
-
-        y2 = old = scaleBuff[ipos];
+        y4 = scaleBuff[ipos];
       }
       else {
-        // We already have loaded next samples. Expected ipos to be -1 and related to
-        // the data already retrieved in the preceeding loop...
-        y2 = old;
-        //assert(ipos == -1);
+        ipos = fipos - scaleBuffPos;
+        
+        if ((fipos - last_first) == 2) {
+          y1 = y3;
+        }
+        else if ((fipos - last_first) == 3) {
+          y1 = y4;
+        }
+        else {
+          //Need to used a larger order than 4...
+          //logger.FATAL("Internal error. Scale factor too large: %8.4f (%d)", factor, fipos - last_first);
+        }
+        if (ipos >= 0) {
+          if (ipos >= scaleBuffSize) {
+            ipos = 0;
+            scaleBuffPos += scaleBuffSize;
+            if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
+          }
+        
+          y2 = old = scaleBuff[ipos];
+        }
+        else {
+          // We already have loaded next samples. Expected ipos to be -1 and related to
+          // the data already retrieved in the preceeding loop...
+          y2 = old;
+          if (ipos != -1) logger.DEBUG("Oups, ipos = %d", ipos);
+        }
+        
+        if (++ipos >= scaleBuffSize) {
+          ipos = 0;
+          scaleBuffPos += scaleBuffSize;
+          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
+         }
+        y3 = scaleBuff[ipos];
+        
+        if (++ipos >= scaleBuffSize) {
+          ipos = 0;
+          scaleBuffPos += scaleBuffSize;
+          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
+        }
+        y4 = scaleBuff[ipos];
       }
-
-      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-        if (getNormalSamples(scaleBuff) == 0) break;
-        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
-      }
-      y3 = scaleBuff[ipos];
-
-      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-        if (getNormalSamples(scaleBuff) == 0) break;
-        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
-      }
-      y4 = scaleBuff[ipos];
+      
+      last_first = fipos;
     }
-    else {
-      // cout << '*' << endl;
-    }
-
-    last_first = ipos - 2;
 
     // cout << "idx:" << setw(5) << (sampleRealPos + count)
     //     << " pos:"  << setw(10) << pos
@@ -307,28 +374,30 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     //     << " y3:" << setw(10) << y3
     //     << " y4:" << setw(10) << y4 << endl;
 
-    x = diff;
-    x_2 = x * x;
-    x_3 = x_2 * x;
-
-    *buff++ = y1 * P1 + y2 * P2 + y3 * P3 + y4 * P4;
+    *buff++ = (y1 * P1(diff)) + (y2 * P2(diff)) + (y3 * P3(diff)) + (y4 * P4(diff));
 
     pos += factor;
     count++;
   }
-
- endLoop:
+  
+endLoop:
   old_y1 = y1;
   old_y2 = y2;
   old_y3 = y3;
   old_y4 = y4;
-  last_1st = last_first;
 
   sampleRealPos += count;
   return count;
 }
 
-#else
+#undef P1
+#undef P2
+#undef P3
+#undef P4
+
+#endif
+
+#if 0
 
 //---- getScaledSamples()
 //
@@ -347,7 +416,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   assert(sampleCount > 0);
 
   if (scaleBuffPos == -1) {
-    if (getNormalSamples(scaleBuff) == 0) return 0;
+    if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) return 0;
     scaleBuffPos = 0;
   }
 
@@ -369,10 +438,10 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
       int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
       if (ipos >= 0) {
-        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
-          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        while (ipos >= scaleBuffSize) {
+          ipos -= scaleBuffSize;
+          scaleBuffPos += scaleBuffSize;
+          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
         }
 
         old = *a++ = scaleBuff[ipos];
@@ -385,10 +454,10 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
         assert(ipos == -1);
       }
 
-      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-        if (getNormalSamples(scaleBuff) == 0) break;
-        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      if (++ipos >= scaleBuffSize) {
+        ipos -= scaleBuffSize;
+        scaleBuffPos += scaleBuffSize;
+        if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
       }
 
       // We do a linear approximation... not the best, but good enough...
@@ -424,10 +493,10 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
       int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
       if (ipos >= 0) {
-        while (ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-          if (getNormalSamples(scaleBuff) == 0) goto endLoop;
-          ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-          scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+        while (ipos >= scaleBuffSize) {
+          ipos -= scaleBuffSize;
+          scaleBuffPos += scaleBuffSize;
+          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
         }
 
         old = a = scaleBuff[ipos];
@@ -439,10 +508,10 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
         assert(ipos == -1);
       }
 
-      if (++ipos >= SAMPLE_BUFFER_SAMPLE_COUNT) {
-        if (getNormalSamples(scaleBuff) == 0) break;
-        ipos -= SAMPLE_BUFFER_SAMPLE_COUNT;
-        scaleBuffPos += SAMPLE_BUFFER_SAMPLE_COUNT;
+      if (++ipos >= scaleBuffSize) {
+        ipos -= scaleBuffSize;
+        scaleBuffPos += scaleBuffSize;
+        if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
       }
 
       // We do a linear approximation... not the best, but good enough...

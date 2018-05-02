@@ -51,8 +51,8 @@ bool Utils::fileExists(const char * name) {
 
 void Utils::stereoPanning(buffp dst, buffp src, int16_t pan, int len)
 {
-  float left  = MIN(1.0, (pan - 500.0) / -1000.0);
-  float right = MIN(1.0, (pan + 500.0) /  1000.0);
+  float left  = (pan == 0 ? 1.0 : MIN(1.0, (pan - 500.0) / -1000.0));
+  float right = (pan == 0 ? 1.0 : MIN(1.0, (pan + 500.0) /  1000.0));
 
   if (left < 0.001) {
     while (len--) {

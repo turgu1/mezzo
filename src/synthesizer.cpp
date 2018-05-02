@@ -36,9 +36,14 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         rootKey = gens->genAmount.shAmount;
         break;
       case  sfGenOper_initialAttenuation:
-        attenuationFactor = (type == set) ?
-          centibelAttenuation(gens->genAmount.shAmount) :
-          (attenuationFactor + centibelAttenuation(gens->genAmount.shAmount));
+        if (type == set) {
+          attenuationFactor = centibelAttenuation(gens->genAmount.shAmount);
+        }
+        else {
+          std::cout << "old:" << attenuationFactor;
+          attenuationFactor = attenuationFactor * centibelAttenuation((gens->genAmount.shAmount));
+          std::cout << " new:" << attenuationFactor << std::endl;
+        }
         break;
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_vibLfoToPitch:

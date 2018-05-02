@@ -390,39 +390,12 @@ void Preset::showZones()
 void Preset::playNote(uint8_t note, uint8_t velocity)
 {
   for (uint16_t zIdx = 0; zIdx < zoneCount; zIdx++) {
-    if (zones[zIdx].instrumentIndex != -1) {
-      if ((zones[zIdx].keys.byLo <= note) && (note <= zones[zIdx].keys.byHi)) {
-        if ((zones[zIdx].velocities.byLo <= velocity) &&
-            (velocity <= zones[zIdx].velocities.byHi)) {
-          soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity, *this, zIdx
-          );
-          // break;
-        }
-        else if ((zones[zIdx].velocities.byLo == 0) &&
-                 (zones[zIdx].velocities.byHi == 0)) {
-          soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity, *this, zIdx
-          );
-          // break;
-        }
-      }
-      else if ((zones[zIdx].keys.byLo == 0) && (zones[zIdx].keys.byHi == 0)) {
-        if ((zones[zIdx].velocities.byLo <= velocity) &&
-            (velocity <= zones[zIdx].velocities.byHi)) {
-          soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity, *this, zIdx
-          );
-          // break;
-        }
-        else if ((zones[zIdx].velocities.byLo == 0) &&
-                 (zones[zIdx].velocities.byHi == 0)) {
-          soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
-            note, velocity, *this, zIdx
-          );
-          // break;
-        }
-      }
+    if ((zones[zIdx].keys.byLo <= note) && 
+        (note <= zones[zIdx].keys.byHi) &&
+        (zones[zIdx].velocities.byLo <= velocity) &&
+        (velocity <= zones[zIdx].velocities.byHi)) {
+      soundFont->instruments[zones[zIdx].instrumentIndex]->playNote(
+        note, velocity, *this, zIdx);
     }
   }
 }
@@ -432,9 +405,7 @@ void Preset::stopNote(uint8_t note) {
   while ((zIdx < zoneCount) &&
          (zones[zIdx].keys.byLo <= note) &&
          (note <= zones[zIdx].keys.byHi)) {
-    if (zones[zIdx].instrumentIndex != -1) {
-      soundFont->instruments[zones[zIdx].instrumentIndex]->stopNote(note);
-    }
+    soundFont->instruments[zones[zIdx].instrumentIndex]->stopNote(note);
     zIdx++;
   }
 }
