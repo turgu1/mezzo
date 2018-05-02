@@ -55,6 +55,22 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_velocity:
         velocity = gens->genAmount.wAmount;
         break;
+      case  sfGenOper_delayVolEnv:
+        break;
+      case  sfGenOper_attackVolEnv:
+        break;
+      case  sfGenOper_holdVolEnv:
+        break;
+      case  sfGenOper_decayVolEnv:
+        break;
+      case  sfGenOper_sustainVolEnv:
+        break;
+      case  sfGenOper_releaseVolEnv:
+        break;
+      case  sfGenOper_keynumToVolEnvHold:
+        break;
+      case  sfGenOper_keynumToVolEnvDecay:
+        break;
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_vibLfoToPitch:
       case  sfGenOper_modEnvToPitch:
@@ -81,14 +97,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_releaseModEnv:
       case  sfGenOper_keynumToModEnvHold:
       case  sfGenOper_keynumToModEnvDecay:
-      case  sfGenOper_delayVolEnv:
-      case  sfGenOper_attackVolEnv:
-      case  sfGenOper_holdVolEnv:
-      case  sfGenOper_decayVolEnv:
-      case  sfGenOper_sustainVolEnv:
-      case  sfGenOper_releaseVolEnv:
-      case  sfGenOper_keynumToVolEnvHold:
-      case  sfGenOper_keynumToVolEnvDecay:
       case  sfGenOper_instrumentID:
       case  sfGenOper_reserved1:
       case  sfGenOper_keyRange:
@@ -113,17 +121,27 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
 void Synthesizer::setDefaults(Sample * sample)
 {
-  start             = sample->getStart();
-  end               = sample->getEnd();
-  startLoop         = sample->getStartLoop();
-  endLoop           = sample->getEndLoop();
-  sampleRate        = sample->getSampleRate();
-  rootKey           = sample->getPitch();
-  correctionFactor  = cents(sample->getCorrection());
-  loop              = startLoop != endLoop;
-  pan               =    0;
-  attenuationFactor = 1.0f;
-  velocity          =   -1;
+  start                   = sample->getStart();
+  end                     = sample->getEnd();
+  startLoop               = sample->getStartLoop();
+  endLoop                 = sample->getEndLoop();
+  sampleRate              = sample->getSampleRate();
+  rootKey                 = sample->getPitch();
+  correctionFactor        = cents(sample->getCorrection());
+  loop                    = startLoop != endLoop;
+  delayVolEnv             =        
+  attackVolEnv            =
+  holdVolEnv              =
+  decayVolEnv             =
+  sustainVolEnv           =
+  releaseVolEnv           =
+  keynumToVolEnvHold      =
+  keynumToVolEnvDecay     =
+  pan                     =    0;
+  attenuationFactor       = 1.0f;
+  velocity                =   -1;
+
+
 }
 
 void Synthesizer::completeParams()
@@ -161,3 +179,32 @@ void Synthesizer::showParams()
        << " velocity:"    << +velocity
        << endl;
 }
+
+void Synthesizer::toStereo(buffp dst, buffp src, int len)
+{
+  const float prop  = M_SQRT2 * 0.5;
+  const float angle = ((float) pan) * M_PI;
+  
+  const float left  = prop * (cos(angle) - sin(angle));
+  const float right = prop * (cos(angle) + sin(angle));
+  
+  if (left < 0.001) {
+    while (len--) {
+      *dst++ = 0.0;
+      *dst++ = *src++;
+    }
+  }
+  else if (right < 0.001) {
+    while (len--) {
+      *dst++ = *src++;
+      *dst++ = 0.0;
+    }
+  }
+  else {
+    while (len--) {
+      *dst++ = *src * left;
+      *dst++ = *src++ * right;
+    }
+  }
+}
+

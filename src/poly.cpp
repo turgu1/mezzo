@@ -290,7 +290,7 @@ int Poly::mixer(buffp buff, int frameCount)
     if (count > 0) {
 
       // TODO: Integrate panning with other transformation
-      Utils::stereoPanning(tmpBuff, voiceBuff, voice->getPan(), count);
+      voice->synth.toStereo(tmpBuff, voiceBuff, voice->getPan(), count);
 
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;

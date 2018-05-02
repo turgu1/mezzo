@@ -52,6 +52,8 @@ public:
   inline float    getCorrection()  { return correctionFactor; }
   inline uint8_t  getRootKey()     { return rootKey; }
   inline int8_t   getVelocity()    { return velocity; }
+  
+  void toStereo(buffp dst, buffp src, int len);
 };
 
 #endif

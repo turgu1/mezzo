@@ -1,6 +1,7 @@
 #include "copyright.h"
 
 #include <sys/stat.h>
+#include <cmath>
 
 #include "mezzo.h"
 #include "utils.h"
@@ -49,27 +50,3 @@ bool Utils::fileExists(const char * name) {
   return (stat (name, &buffer) == 0);
 }
 
-void Utils::stereoPanning(buffp dst, buffp src, int16_t pan, int len)
-{
-  float left  = (pan == 0 ? 1.0 : MIN(1.0, (pan - 500.0) / -1000.0));
-  float right = (pan == 0 ? 1.0 : MIN(1.0, (pan + 500.0) /  1000.0));
-
-  if (left < 0.001) {
-    while (len--) {
-      *dst++ = 0.0;
-      *dst++ = *src++;
-    }
-  }
-  else if (right < 0.001) {
-    while (len--) {
-      *dst++ = *src++;
-      *dst++ = 0.0;
-    }
-  }
-  else {
-    while (len--) {
-      *dst++ = *src * left;
-      *dst++ = *src++ * right;
-    }
-  }
-}
