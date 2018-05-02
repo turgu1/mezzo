@@ -118,10 +118,8 @@ class Voice : public NewHandlerSupport<Voice> {
 
   samplep     sample;        ///< Pointer on the sample
   int8_t      note;          ///< Targeted note, can be different than the one from sample
-  bool        fadingOut;     ///< The note is being fade-out after key/pedal release
   bool        noteIsOn;      ///< The note is played
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
-  int         fadeOutPos;    ///< Index in the fade-out gain vector
   int         samplePos;     ///< Position in the sample stream of frames
   int         sampleRealPos; ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
@@ -196,10 +194,6 @@ class Voice : public NewHandlerSupport<Voice> {
   inline float   getGain() { return gain; }
   inline int16_t  getPan() { return synth.getPan();  }
 
-  inline int getFadeOutPos() { return fadeOutPos; }
-  inline bool isFadingOut()  { return fadingOut; }
-  inline void incFadeOutPos(int value) { fadeOutPos += value; }
-
   static float getScaleFactor(int16_t diff);
 
   /// This method is used by the SampleFeeder thread to read new data
@@ -209,9 +203,11 @@ class Voice : public NewHandlerSupport<Voice> {
   void prepareFifo();
 
   inline void clearFifo()       { fifo->clear();        }
-  inline void fadeOut()         { fadingOut = true;     }
-  inline void noteOff()         { noteIsOn = false;     }
+  inline void noteOff()         { noteIsOn = false; synth.keyHasBeenReleased(); }
   inline bool isNoteOn()        { return noteIsOn;      }
+
+  inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t len) {
+    return synth.transform(tmpBuff, voiceBuff, len); }
 };
 
 #endif

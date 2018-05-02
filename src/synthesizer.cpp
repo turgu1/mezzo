@@ -3,11 +3,14 @@
 #include <math.h>
 #include <iomanip>
 
-#define centibelAttenuation(x) powf(10.0f, -x / 200.0f)
-#define cents(x) powf(2.0f, x / 200.0f)
+#define centibelToRatio(x) powf(10.0f, -((float) x) / 200.0f)
+#define centsToRatio(x) powf(2.0f, x / 1200.0f)
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
+  int32_t iVal;
+  float fVal;
+
   while (genCount--) {
     switch (gens->sfGenOper) {
       case sfGenOper_startAddrsOffset:
@@ -46,26 +49,45 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
       case  sfGenOper_initialAttenuation:
         if (type == set) {
-          attenuationFactor = centibelAttenuation(gens->genAmount.shAmount);
+          attenuationFactor = centibelToRatio(gens->genAmount.shAmount);
         }
         else {
-          attenuationFactor = attenuationFactor * centibelAttenuation((gens->genAmount.shAmount));
+          attenuationFactor *= centibelToRatio(gens->genAmount.shAmount);
         }
         break;
       case  sfGenOper_velocity:
         velocity = gens->genAmount.wAmount;
         break;
       case  sfGenOper_delayVolEnv:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        delayVolEnv = (type == set) ? iVal : (delayVolEnv + iVal);
         break;
       case  sfGenOper_attackVolEnv:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        attackVolEnv = (type == set) ? iVal : (attackVolEnv + iVal);
         break;
       case  sfGenOper_holdVolEnv:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        holdVolEnv = (type == set) ? iVal : (holdVolEnv + iVal);
         break;
       case  sfGenOper_decayVolEnv:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        decayVolEnv = (type == set) ? iVal : (decayVolEnv + iVal);
         break;
       case  sfGenOper_sustainVolEnv:
+        fVal = (gens->genAmount.shAmount >= 1000) ? 0.0f :
+               ((gens->genAmount.shAmount <= 0)   ? 1.0f :
+                centibelToRatio(gens->genAmount.shAmount));
+        sustainVolEnv = (type == set) ? fVal : (sustainVolEnv * fVal);
         break;
       case  sfGenOper_releaseVolEnv:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        releaseVolEnv = (type == set) ? iVal : (releaseVolEnv + iVal);
         break;
       case  sfGenOper_keynumToVolEnvHold:
         break;
@@ -127,21 +149,21 @@ void Synthesizer::setDefaults(Sample * sample)
   endLoop                 = sample->getEndLoop();
   sampleRate              = sample->getSampleRate();
   rootKey                 = sample->getPitch();
-  correctionFactor        = cents(sample->getCorrection());
+  correctionFactor        = centsToRatio(sample->getCorrection());
   loop                    = startLoop != endLoop;
-  delayVolEnv             =        
+  delayVolEnv             =
   attackVolEnv            =
   holdVolEnv              =
   decayVolEnv             =
-  sustainVolEnv           =
-  releaseVolEnv           =
-  keynumToVolEnvHold      =
-  keynumToVolEnvDecay     =
-  pan                     =    0;
-  attenuationFactor       = 1.0f;
-  velocity                =   -1;
-
-
+  releaseVolEnv           =     0;
+  sustainVolEnv           =  1.0f;
+  amplVolEnv              =  1.0f;
+  // keynumToVolEnvHold      =
+  // keynumToVolEnvDecay     =
+  pan                     =     0;
+  attenuationFactor       =  1.0f;
+  velocity                =    -1;
+  keyReleased             = false;
 }
 
 void Synthesizer::completeParams()
@@ -154,6 +176,16 @@ void Synthesizer::completeParams()
     sizeSample = end - start;
   }
   sizeLoop  = endLoop - startLoop;
+
+  attackVolEnvStart   = delayVolEnv;
+  holdVolEnvStart     = attackVolEnvStart + attackVolEnv;
+  decayVolEnvStart    = holdVolEnvStart   + holdVolEnv;
+  sustainVolEnvStart  = decayVolEnvStart   + decayVolEnv;
+
+  attackVolEnvRate  = attackVolEnv == 0 ? 1.0 : (1.0 / (float) attackVolEnv);
+  decayVolEnvRate   = decayVolEnv == 0 ? 1.0 : ((1.0 - sustainVolEnv) / (float) decayVolEnv);
+  releaseVolEnvRate = releaseVolEnv == 0 ? 1.0 : (sustainVolEnv / (float) releaseVolEnv);
+  pos = 0;
 }
 
 void Synthesizer::process(buffp buff)
@@ -176,18 +208,25 @@ void Synthesizer::showParams()
        << " sizeLoop:"    << sizeLoop
        << " attenuation:" << fixed << setw(7) << setprecision(5) << attenuationFactor
        << " correction:"  << fixed << setw(7) << setprecision(5) << correctionFactor
-       << " velocity:"    << +velocity
-       << endl;
+       << " velocity:"    << +velocity << endl
+       << "         "
+       << "VolEnv:[D:" << delayVolEnv
+       << ",A:" << attackVolEnv << "@" << attackVolEnvRate
+       << ",H:" << holdVolEnv
+       << ",D:" << decayVolEnv << "@" << decayVolEnvRate
+       << ",S:" << sustainVolEnv
+       << ",R:" << releaseVolEnv << "@" << releaseVolEnvRate
+       << "]" << endl;
 }
 
-void Synthesizer::toStereo(buffp dst, buffp src, int len)
+void Synthesizer::toStereo(buffp dst, buffp src, uint16_t len)
 {
   const float prop  = M_SQRT2 * 0.5;
   const float angle = ((float) pan) * M_PI;
-  
+
   const float left  = prop * (cos(angle) - sin(angle));
   const float right = prop * (cos(angle) + sin(angle));
-  
+
   if (left < 0.001) {
     while (len--) {
       *dst++ = 0.0;
@@ -208,3 +247,54 @@ void Synthesizer::toStereo(buffp dst, buffp src, int len)
   }
 }
 
+// TODO: Convert from linear attack/decay/release to something better...
+
+bool Synthesizer::volumeEnvelope(buffp dst, buffp src, uint16_t len)
+{
+  bool endOfSound = false;
+  uint32_t thePos = pos;
+
+  while (len--) {
+    if (keyReleased) {                        // release
+      if (thePos < (keyReleasedPos + releaseVolEnv)) {
+        amplVolEnv -= releaseVolEnvRate;
+      }
+      else {
+        amplVolEnv = 0.0f;
+        endOfSound = true;
+      }
+    }
+    else {
+      if (thePos < attackVolEnvStart) {       // delay
+        amplVolEnv = 0.0;
+      }
+      else if (thePos < holdVolEnvStart) {    // attack
+        amplVolEnv += attackVolEnvRate;
+      }
+      else if (thePos < decayVolEnvStart) {   // hold
+        // amplVolEnv stay as current
+      }
+      else if (thePos < sustainVolEnvStart) { // decay
+        amplVolEnv -= decayVolEnvRate;
+      }
+    }
+    amplVolEnv = MAX(MIN(1.0f, amplVolEnv), 0.0f);
+    *dst++ = *src++ * amplVolEnv;
+    thePos += 1;
+  }
+
+  return endOfSound;
+}
+
+bool Synthesizer::transform(buffp dst, buffp src, uint16_t len)
+{
+  bool endOfSound;
+
+  endOfSound = volumeEnvelope(src, src, len);
+
+  toStereo(dst, src, len);
+
+  pos += len;
+
+  return endOfSound;
+}

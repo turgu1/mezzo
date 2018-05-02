@@ -87,12 +87,6 @@ Poly::Poly()
 
   voiceCount = maxVoiceCount = 0;
 
-  float length = FADE_OUT_FRAME_COUNT;
-
-  for (int i = 0; i < FADE_OUT_FRAME_COUNT; i++) {
-    fadeOutScaleDown[i] = powf(1.0 - (i / length), 6);
-  }
-
   tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
   voiceBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
@@ -250,8 +244,7 @@ void Poly::noteOff(char note, bool pedalOn)
   voicep voice = voices;
   while (voice) {
     if (voice->isActive() && (voice->getNote() == note)) {
-      voice->noteOff();
-      if (!pedalOn) voice->fadeOut();
+      if (!pedalOn) voice->noteOff();
     }
     voice = voice->getNext();
   }
@@ -261,7 +254,7 @@ void Poly::voicesSustainOff()
 {
   voicep voice = voices;
   while (voice) {
-    if (voice->isActive() && !voice->isNoteOn()) voice->fadeOut();
+    if (voice->isActive() && voice->isNoteOn()) voice->noteOff();
     voice = voice->getNext();
   }
 }
@@ -289,23 +282,14 @@ int Poly::mixer(buffp buff, int frameCount)
 
     if (count > 0) {
 
-      // TODO: Integrate panning with other transformation
-      voice->synth.toStereo(tmpBuff, voiceBuff, voice->getPan(), count);
+      bool endOfSound = voice->transform(tmpBuff, voiceBuff, count);
 
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;
 
       float   voiceGain = voice->getGain() * config.masterVolume;
-      float * fadeOutGain = &fadeOutScaleDown[voice->getFadeOutPos()];
 
       //if (voiceGain > 1.0) logger.DEBUG("Gain: %7.3f", voiceGain);
-      
-      if (voice->isFadingOut()) {
-        // If at the end of fade_out processing, clip the number of frames to be mixed
-        if ((FADE_OUT_FRAME_COUNT - voice->getFadeOutPos()) < count) {
-          count = (FADE_OUT_FRAME_COUNT - voice->getFadeOutPos());
-        }
-      }
 
       #if USE_NEON_INTRINSICS
 
@@ -321,15 +305,11 @@ int Poly::mixer(buffp buff, int frameCount)
         }
         i = count >> 1;
 
-        if (voice->isFadingOut()) voice->incFadeOutPos(i);
-
         while (i--) {
           float32x4_t vecOut = vld1q_f32(buffOut);
           float32x4_t vecIn = vld1q_f32(buffIn);
 
-          vecIn = vmulq_n_f32(vecIn, voice->isFadingOut() ?
-                              *fadeOutGain++ * voiceGain :
-                              voiceGain);
+          vecIn = vmulq_n_f32(vecIn, voiceGain);
           vecOut = vaddq_f32(vecOut, vecIn);
           vst1q_f32(buffOut, vecOut);
 
@@ -341,35 +321,24 @@ int Poly::mixer(buffp buff, int frameCount)
 
         i = count;  // This will be our running counter
 
-        if (voice->isFadingOut()) voice->incFadeOutPos(count);
-
         sample_t  a, b;
 
         while (i--) {
-          float gain = voice->isFadingOut() ?
-            *fadeOutGain++ * voiceGain :
-            voiceGain;
-
           a = *buffOut;
-          b = *buffIn++ * gain;
+          b = *buffIn++ * voiceGain;
           *buffOut++ = MIX(a, b);
 
           a = *buffOut;
-          b = *buffIn++ * gain;
+          b = *buffIn++ * voiceGain;
           *buffOut++ = MIX(a, b);
         }
 
       #endif
 
-      if (voice->isFadingOut()) {
-        if (voice->getFadeOutPos() >= FADE_OUT_FRAME_COUNT) {
-          // We reached the end of the fadeout process.
-          // We desactivate the current voice.
-          voice->BEGIN();
-            voice->inactivate();
-          voice->END();
-          voiceCount--;
-        }
+      if (endOfSound) {
+        voice->BEGIN();
+          voice->inactivate();
+        voice->END();
       }
 
       maxFrameCount = MAX(maxFrameCount, count);

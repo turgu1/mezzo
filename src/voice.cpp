@@ -82,8 +82,6 @@ Voice::Voice()
   sample        = NULL;
   samplePos     = 0;
   sampleRealPos = 0;
-  fadingOut     = false;
-  fadeOutPos    = 0;
   noteIsOn      = false;
   gain          = 1.0f;
   fifo          = new Fifo;
@@ -140,8 +138,6 @@ void Voice::setup(samplep      sample,
   scaleBuffPos   = -1;
   scaleBuffSize  =  0;
 
-  fadingOut      = false;
-  fadeOutPos     = 0;
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
@@ -150,6 +146,7 @@ void Voice::setup(samplep      sample,
 
   synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
   synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
+  synth.completeParams();
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -537,9 +534,7 @@ void Voice::showState()
 
   cout << "> act:"   << (active ? "true" : "false")             << " "
        << "state:"   << (stateStr[state])                       << " "
-       << "pos:"     << (sampleRealPos)                              << " "
-       << "fadeout:" << (fadingOut ? "true" : "false")          << " "
-       << "dp:"      << (fadeOutPos)                            << " "
+       << "pos:"     << (sampleRealPos)                         << " "
        << "sample:"  << (sample == NULL ? "none" : "see below") << endl;
 
   cout << "   note:" << (note)                                  << " "

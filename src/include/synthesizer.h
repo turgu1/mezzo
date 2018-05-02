@@ -9,6 +9,7 @@
 class Synthesizer {
 
 private:
+  uint32_t pos;
   uint32_t start;
   uint32_t end;
   uint32_t startLoop;
@@ -16,12 +17,28 @@ private:
   uint32_t sampleRate;
   uint32_t sizeSample;
   uint32_t sizeLoop;
+  uint32_t  delayVolEnv;
+  uint32_t  attackVolEnv;
+  uint32_t  holdVolEnv;
+  uint32_t  decayVolEnv;
+  uint32_t  releaseVolEnv;
+  uint32_t  attackVolEnvStart;
+  uint32_t  holdVolEnvStart;
+  uint32_t  decayVolEnvStart;
+  uint32_t  sustainVolEnvStart;
+  uint32_t  keyReleasedPos;
+  float    attackVolEnvRate;
+  float    decayVolEnvRate;
+  float    releaseVolEnvRate;
+  float    sustainVolEnv;
+  float    amplVolEnv;
   float    attenuationFactor;
   float    correctionFactor;
   int16_t  pan;
   uint8_t  rootKey;
   int8_t   velocity;
   bool     loop;
+  bool     keyReleased;
 
   enum setGensType { set, adjust };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
@@ -52,8 +69,16 @@ public:
   inline float    getCorrection()  { return correctionFactor; }
   inline uint8_t  getRootKey()     { return rootKey; }
   inline int8_t   getVelocity()    { return velocity; }
-  
-  void toStereo(buffp dst, buffp src, int len);
+
+  void keyHasBeenReleased() {
+    keyReleased = true;
+    keyReleasedPos = pos;
+    releaseVolEnvRate = releaseVolEnv == 0 ? 1.0 : (amplVolEnv / (float)releaseVolEnv);
+  }
+
+  bool volumeEnvelope(buffp dst, buffp src, uint16_t len);
+  void  toStereo(buffp dst, buffp src, uint16_t len);
+  bool transform(buffp dst, buffp src, uint16_t len);
 };
 
 #endif

@@ -7,16 +7,9 @@
 
 #define MAX_VOICES 256  ///< Maximum number of voices at any time
 
-#if USE_NEON_INTRINSICS
-  #define FADE_OUT_FRAME_COUNT (20*1024)
-#else
-  #define FADE_OUT_FRAME_COUNT (40*1024)
-#endif
-
 class Poly : public NewHandlerSupport<Poly> {
 
  private:
-  float        fadeOutScaleDown[FADE_OUT_FRAME_COUNT];
   voicep       voices;
   volatile int voiceCount;
   volatile int maxVoiceCount;
