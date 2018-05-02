@@ -144,11 +144,11 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample, 
-             char note, 
+  void setup(samplep sample,
+             char note,
              float gain,
-             Synthesizer synth, 
-             Preset      & preset, 
+             Synthesizer synth,
+             Preset      & preset,
              uint16_t presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
@@ -167,7 +167,8 @@ class Voice : public NewHandlerSupport<Voice> {
   /// the note being played by the voice to supply scaled or
   /// non-scaled samples.
   inline int getSamples(buffp buff, int sampleCount) {
-    if (note == sample->getPitch()) {
+    if ((note == sample->getPitch()) &&
+        (sample->getSampleRate() == config.samplingRate)) {
       return getNormalSamples(buff);
     }
     else {

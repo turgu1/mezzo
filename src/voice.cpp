@@ -122,12 +122,12 @@ void Voice::outOfMemory()
 
 //---- setup() ----
 
-void Voice::setup(samplep             sample,
-                  char                note,
-                  float               gain,
+void Voice::setup(samplep      sample,
+                  char         note,
+                  float        gain,
                   Synthesizer  synth,
-                  Preset       & preset,
-                  uint16_t            presetZoneIdx)
+                  Preset     & preset,
+                  uint16_t     presetZoneIdx)
 {
   // Connect the sample with the voice
   this->sample   = sample;
@@ -145,7 +145,7 @@ void Voice::setup(samplep             sample,
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
-  
+
   prepareFifo();
 
   synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
@@ -191,7 +191,7 @@ int Voice::getNormalSamples(buffp buff)
 /// Lagrange 7th order interpolation polynomes.
 ///
 /// We used seven consecutive locations (named x1 to x7) and compute
-/// the following equations using 
+/// the following equations using
 ///
 ///    x1 = 3, x2 = 2, x3 = 1, x4 = 0, x5 = 1, x6 = 2, x7 = 3:
 ///
@@ -231,14 +231,14 @@ P7(x) = ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) 
 /// We used four consecutive locations (named x1 to x4) and compute
 /// the following equations using x1 = -1, x2 = 0, x3 = 1, x4 = 2:
 ///
-///      (x  - x2)(x  - x3)(x  - x4)    
+///      (x  - x2)(x  - x3)(x  - x4)
 /// P1 = --------------------------- = x³ - 3x² + 2x / -6 = x ((3 - x) x - 2) / 6
 ///      (x1 - x2)(x1 - x3)(x1 - x4)
 ///
 ///      (x  - x1)(x  - x3)(x  - x4)
 /// P2 = --------------------------- = x³ - 2x² - x + 2 / 2 = x ((x - 2) x - 1) + 2 / 2
 ///      (x2 - x1)(x2 - x3)(x2 - x4)
-/// 
+///
 ///
 ///      (x  - x1)(x  - x2)(x  - x4)
 /// P3 = --------------------------- = x³ - x² - 2x / -2 = x ((1 - x) x + 2) / 2
@@ -272,7 +272,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
 
   if (sample->getSampleRate() != config.samplingRate) {
-    factor *= (config.samplingRate / sample->getSampleRate());
+    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
   }
 
   assert(scaleBuff != NULL);
@@ -292,7 +292,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
   float pos = sampleRealPos * factor;
   float old = 0.0f;
-  
+
   y1 = old_y1;
   y2 = old_y2;
   y3 = old_y3;
@@ -319,7 +319,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
       }
       else {
         ipos = fipos - scaleBuffPos;
-        
+
         if ((fipos - last_first) == 2) {
           y1 = y3;
         }
@@ -336,7 +336,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
             scaleBuffPos += scaleBuffSize;
             if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
           }
-        
+
           y2 = old = scaleBuff[ipos];
         }
         else {
@@ -345,14 +345,14 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
           y2 = old;
           if (ipos != -1) logger.DEBUG("Oups, ipos = %d", ipos);
         }
-        
+
         if (++ipos >= scaleBuffSize) {
           ipos = 0;
           scaleBuffPos += scaleBuffSize;
           if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
          }
         y3 = scaleBuff[ipos];
-        
+
         if (++ipos >= scaleBuffSize) {
           ipos = 0;
           scaleBuffPos += scaleBuffSize;
@@ -360,7 +360,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
         }
         y4 = scaleBuff[ipos];
       }
-      
+
       last_first = fipos;
     }
 
@@ -379,7 +379,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     pos += factor;
     count++;
   }
-  
+
 endLoop:
   old_y1 = y1;
   old_y2 = y2;

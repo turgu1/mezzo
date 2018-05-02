@@ -9,7 +9,6 @@
 class Synthesizer {
 
 private:
-  int16_t  pan;
   uint32_t start;
   uint32_t end;
   uint32_t startLoop;
@@ -19,7 +18,9 @@ private:
   uint32_t sizeLoop;
   float    attenuationFactor;
   float    correctionFactor;
+  int16_t  pan;
   uint8_t  rootKey;
+  int8_t   velocity;
   bool     loop;
 
   enum setGensType { set, adjust };
@@ -50,6 +51,7 @@ public:
   inline float    getAttenuation() { return attenuationFactor; }
   inline float    getCorrection()  { return correctionFactor; }
   inline uint8_t  getRootKey()     { return rootKey; }
+  inline int8_t   getVelocity()    { return velocity; }
 };
 
 #endif

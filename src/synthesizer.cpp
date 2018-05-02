@@ -27,6 +27,15 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case sfGenOper_startAddrsCoarseOffset:
         start += (32768 * gens->genAmount.shAmount);
         break;
+      case sfGenOper_endAddrsCoarseOffset:
+        end += (32768 * gens->genAmount.shAmount);
+        break;
+      case  sfGenOper_startloopAddrsCoarseOffset:
+        startLoop += (32768 * gens->genAmount.shAmount);
+        break;
+      case  sfGenOper_endloopAddrsCoarseOffset:
+        endLoop += (32768 * gens->genAmount.shAmount);
+        break;
       case sfGenOper_pan:
         pan = (type == set) ?
           gens->genAmount.shAmount :
@@ -40,10 +49,11 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
           attenuationFactor = centibelAttenuation(gens->genAmount.shAmount);
         }
         else {
-          std::cout << "old:" << attenuationFactor;
           attenuationFactor = attenuationFactor * centibelAttenuation((gens->genAmount.shAmount));
-          std::cout << " new:" << attenuationFactor << std::endl;
         }
+        break;
+      case  sfGenOper_velocity:
+        velocity = gens->genAmount.wAmount;
         break;
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_vibLfoToPitch:
@@ -52,7 +62,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_initialFilterQ:
       case  sfGenOper_modLfoToFilterFc:
       case  sfGenOper_modEnvToFilterFc:
-      case  sfGenOper_endAddrsCoarseOffset:
       case  sfGenOper_modLfoToVolume:
       case  sfGenOper_unused1:
       case  sfGenOper_chorusEffectsSend:
@@ -84,11 +93,8 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_reserved1:
       case  sfGenOper_keyRange:
       case  sfGenOper_velRange:
-      case  sfGenOper_startloopAddrsCoarseOffset:
       case  sfGenOper_keynum:
-      case  sfGenOper_velocity:
       case  sfGenOper_reserved2:
-      case  sfGenOper_endloopAddrsCoarseOffset:
       case  sfGenOper_coarseTune:
       case  sfGenOper_fineTune:
       case  sfGenOper_sampleID:
@@ -115,8 +121,9 @@ void Synthesizer::setDefaults(Sample * sample)
   rootKey           = sample->getPitch();
   correctionFactor  = cents(sample->getCorrection());
   loop              = startLoop != endLoop;
-  pan               = 0;
+  pan               =    0;
   attenuationFactor = 1.0f;
+  velocity          =   -1;
 }
 
 void Synthesizer::completeParams()
@@ -150,6 +157,7 @@ void Synthesizer::showParams()
        << " sizeSample:"  << sizeSample
        << " sizeLoop:"    << sizeLoop
        << " attenuation:" << fixed << setw(7) << setprecision(5) << attenuationFactor
-       << " correction:" << fixed << setw(7) << setprecision(5) << correctionFactor
+       << " correction:"  << fixed << setw(7) << setprecision(5) << correctionFactor
+       << " velocity:"    << +velocity
        << endl;
 }
