@@ -128,9 +128,6 @@ class Voice : public NewHandlerSupport<Voice> {
   uint16_t    scaleBuffSize;
   uint32_t    fifoLoadPos;
   Synthesizer synth;
-  float       old_y1, old_y2, old_y3, old_y4;
-  int32_t     last_first;
-  int16_t     ipos;
 
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 

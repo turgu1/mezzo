@@ -200,6 +200,7 @@ void Synthesizer::completeParams()
   decayVolEnvRate   = decayVolEnv   == 0 ? attenuationFactor : ((attenuationFactor - sustainVolEnv) / (float) decayVolEnv);
   releaseVolEnvRate = releaseVolEnv == 0 ? attenuationFactor : (sustainVolEnv / (float) releaseVolEnv);
 
+  showParams();
   // cout
   // << "VolEnv:[D:" << delayVolEnv
   // << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
@@ -235,11 +236,11 @@ void Synthesizer::showParams()
        << " velocity:"    << +velocity << endl
        << "         "
        << "VolEnv:[D:" << delayVolEnv
-       << ",A:" << attackVolEnv << "@" << setprecision(9) << attackVolEnvRate
-       << ",H:" << holdVolEnv
-       << ",D:" << decayVolEnv << "@" << setprecision(9) << decayVolEnvRate
-       << ",S:" << sustainVolEnv
-       << ",R:" << releaseVolEnv << "@" << setprecision(9) << releaseVolEnvRate
+       << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
+       << ",H:" << holdVolEnv    << "/" << holdVolEnvStart
+       << ",D:" << decayVolEnv   << "@" << decayVolEnvRate  << "/" << decayVolEnvStart
+       << ",S:" << sustainVolEnv << "/" << sustainVolEnvStart
+       << ",R:" << releaseVolEnv << "@" << releaseVolEnvRate
        << "]" << endl;
 }
 

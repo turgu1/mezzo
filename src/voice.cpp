@@ -87,7 +87,7 @@ Voice::Voice()
   fifo          = new Fifo;
   next          = NULL;
 
-  scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
+  scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT+7];
 
   scaleBuffPos = -1;
 
@@ -146,8 +146,10 @@ void Voice::setup(samplep      sample,
 
   synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
   synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
-  synth.completeParams();
 
+  std::cout << sample->getName() << "..." << std::endl << std::flush;
+  synth.completeParams();
+  
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
@@ -203,13 +205,75 @@ int Voice::getNormalSamples(buffp buff)
 /// These equations are used in a "sliding window" for wich we only
 /// compute interpolation located between x4 and x5.
 
-P1(x) = ((x * (x * (x * (x * ((x - 3.0f) * x - 5.0f) + 15.0f) + 4.0f) - 12.0f)) / 720.0f)
-P2(x) = ((x * (x * (x * (x * ((2.0f - x) * x + 10.0f) - 20.0f) - 9.0f) + 18.0f)) / 120.0f)
-P3(x) = ((x (x (x (x ((x - 1.0f) x - 13.0f) + 13.0f) + 36.0f) - 36.0f)) / 48.0f)
-P4(x) = ((x * x * (x * x * (14.0f - x * x) - 49.0f) + 36.0f) / 36.0f)
-P5(x) = ((x * (x * (x * (x * (x * (x + 1.0f) - 13.0f) - 13.0f) + 36.0f) + 36.0f)) / 48.0f)
-P6(x) = ((x * (x * (x * (x * ((- x - 2.0f) * x + 10.0f) + 20.0f) - 9.0f) - 18.0f)) / 120.0f)
-P7(x) = ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) / 720.0f)
+#define P1(x) ((x * (x * (x * (x * ((x - 3.0f) * x - 5.0f) + 15.0f) + 4.0f) - 12.0f)) / 720.0f)
+#define P2(x) ((x * (x * (x * (x * ((2.0f - x) * x + 10.0f) - 20.0f) - 9.0f) + 18.0f)) / 120.0f)
+#define P3(x) ((x * (x * (x * (x * ((x - 1.0f) * x - 13.0f) + 13.0f) + 36.0f) - 36.0f)) / 48.0f)
+#define P4(x) ((x * x * (x * x * (14.0f - x * x) - 49.0f) + 36.0f) / 36.0f)
+#define P5(x) ((x * (x * (x * (x * (x * (x + 1.0f) - 13.0f) - 13.0f) + 36.0f) + 36.0f)) / 48.0f)
+#define P6(x) ((x * (x * (x * (x * ((- x - 2.0f) * x + 10.0f) + 20.0f) - 9.0f) - 18.0f)) / 120.0f)
+#define P7(x) ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) / 720.0f)
+
+using namespace std;  
+#include <iomanip>
+
+int Voice::getScaledSamples(buffp buff, int sampleCount)
+{
+  int count = 0;
+
+  //assert((note - sample->getPitch()) >= 0);
+
+  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
+
+  if (sample->getSampleRate() != config.samplingRate) {
+    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
+  }
+
+  assert(scaleBuff != NULL);
+  assert(buff != NULL);
+  assert(sampleCount > 0);
+
+  if (scaleBuffPos == -1) {
+    if ((scaleBuffSize = getNormalSamples(&scaleBuff[7])) == 0) return 0;
+    scaleBuffPos = 0;
+    scaleBuff[0] =
+    scaleBuff[1] =
+    scaleBuff[2] =
+    scaleBuff[3] =
+    scaleBuff[4] =
+    scaleBuff[5] =
+    scaleBuff[6] = 0.0f;
+  }
+
+  float pos = sampleRealPos * factor;
+
+  while (sampleCount--) {
+
+    float fipos;
+    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+    uint16_t ipos = ((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
+
+    if (fipos >= (scaleBuffPos + scaleBuffSize)) {
+      scaleBuffPos += scaleBuffSize;
+      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 7 << LOG_SAMPLE_SIZE);
+      if ((scaleBuffSize = getNormalSamples(&scaleBuff[7])) == 0) break;
+    }
+
+    float * y = &scaleBuff[ipos - 4 + 7];
+    *buff++ = (y[0] * P1(diff)) + 
+              (y[1] * P2(diff)) + 
+              (y[2] * P3(diff)) + 
+              (y[3] * P4(diff)) +
+              (y[4] * P5(diff)) +
+              (y[5] * P6(diff)) +
+              (y[6] * P7(diff));
+
+    pos += factor;
+    count++;
+  }
+
+  sampleRealPos += count;
+  return count;
+}
 
 #undef P1
 #undef P2
@@ -221,7 +285,7 @@ P7(x) = ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) 
 
 #endif
 
-#if 1
+#if 0
 
 /// Lagrange 4th order interpolation polynomes.
 ///
@@ -262,8 +326,6 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 {
   int count = 0;
 
-  float y1, y2, y3, y4;
-
   //assert((note - sample->getPitch()) >= 0);
 
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
@@ -277,111 +339,37 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   assert(sampleCount > 0);
 
   if (scaleBuffPos == -1) {
-    if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) return 0;
+    if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) return 0;
     scaleBuffPos = 0;
-    ipos         = 0;
-    last_first   = -1;
-    old_y1       =
-    old_y2       =
-    old_y3       =
-    old_y4       = 0.0f;
+    scaleBuff[0] =
+    scaleBuff[1] =
+    scaleBuff[2] =
+    scaleBuff[3] = 0.0f;
   }
 
   float pos = sampleRealPos * factor;
-  float old = 0.0f;
-
-  y1 = old_y1;
-  y2 = old_y2;
-  y3 = old_y3;
-  y4 = old_y4;
 
   while (sampleCount--) {
 
     float fipos;
     float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+    uint16_t ipos = ((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
 
-    if (last_first != fipos) {
-
-      if ((fipos - last_first) == 1) {
-        y1 = y2;
-        y2 = y3;
-        y3 = y4;
-
-        if (++ipos >= scaleBuffSize) {
-          ipos = 0;
-          scaleBuffPos += scaleBuffSize;
-          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
-        }
-        y4 = scaleBuff[ipos];
-      }
-      else {
-        ipos = fipos - scaleBuffPos;
-
-        if ((fipos - last_first) == 2) {
-          y1 = y3;
-        }
-        else if ((fipos - last_first) == 3) {
-          y1 = y4;
-        }
-        else {
-          //Need to used a larger order than 4...
-          //logger.FATAL("Internal error. Scale factor too large: %8.4f (%d)", factor, fipos - last_first);
-        }
-        if (ipos >= 0) {
-          if (ipos >= scaleBuffSize) {
-            ipos = 0;
-            scaleBuffPos += scaleBuffSize;
-            if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
-          }
-
-          y2 = old = scaleBuff[ipos];
-        }
-        else {
-          // We already have loaded next samples. Expected ipos to be -1 and related to
-          // the data already retrieved in the preceeding loop...
-          y2 = old;
-          if (ipos != -1) logger.DEBUG("Oups, ipos = %d", ipos);
-        }
-
-        if (++ipos >= scaleBuffSize) {
-          ipos = 0;
-          scaleBuffPos += scaleBuffSize;
-          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
-         }
-        y3 = scaleBuff[ipos];
-
-        if (++ipos >= scaleBuffSize) {
-          ipos = 0;
-          scaleBuffPos += scaleBuffSize;
-          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
-        }
-        y4 = scaleBuff[ipos];
-      }
-
-      last_first = fipos;
+    if (fipos >= (scaleBuffPos + scaleBuffSize)) {
+      scaleBuffPos += scaleBuffSize;
+      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
     }
 
-    // cout << "idx:" << setw(5) << (sampleRealPos + count)
-    //     << " pos:"  << setw(10) << pos
-    //     << " diff:" << setw(10) << diff
-    //     << " ipos:" << setw(6) << ipos
-    //     << " last_first:" << setw(6) << last_first
-    //     << " y1:" << setw(10) << y1
-    //     << " y2:" << setw(10) << y2
-    //     << " y3:" << setw(10) << y3
-    //     << " y4:" << setw(10) << y4 << endl;
-
-    *buff++ = (y1 * P1(diff)) + (y2 * P2(diff)) + (y3 * P3(diff)) + (y4 * P4(diff));
+    float * y = &scaleBuff[ipos - 2 + 4];
+    *buff++ = (y[0] * P1(diff)) + 
+              (y[1] * P2(diff)) + 
+              (y[2] * P3(diff)) + 
+              (y[3] * P4(diff));
 
     pos += factor;
     count++;
   }
-
-endLoop:
-  old_y1 = y1;
-  old_y2 = y2;
-  old_y3 = y3;
-  old_y4 = y4;
 
   sampleRealPos += count;
   return count;
@@ -394,7 +382,7 @@ endLoop:
 
 #endif
 
-#if 0
+#if 1
 
 //---- getScaledSamples()
 //
@@ -406,7 +394,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
   //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[(note - synth->getRootKey()) + 127];
+  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
 
   assert(scaleBuff != NULL);
   assert(buff != NULL);

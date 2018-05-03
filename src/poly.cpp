@@ -211,12 +211,6 @@ void Poly::addVoice(samplep       sample,
 {
   voicep voice;
 
-  // Do not transpose beyond 12 semi-tone...
-
-  // if (sample->getSampleRate() != 44100) {
-  //   logger.DEBUG("sample %s at rate %d", sample->getName().c_str(), sample->getSampleRate());
-  // }
-
   //noteOff(note, false);
 
   if (sample == NULL) {
@@ -326,13 +320,16 @@ int Poly::mixer(buffp buff, int frameCount)
         sample_t  a, b;
 
         while (i--) {
+          float v;
+          
           a = *buffOut;
           b = *buffIn++ * voiceGain;
-          *buffOut++ = MIX(a, b);
+          *buffOut++ = v = MIX(a, b);
 
+          if (v > 1.0f) std::cout << "!" << std::flush;
           a = *buffOut;
           b = *buffIn++ * voiceGain;
-          *buffOut++ = MIX(a, b);
+          *buffOut++ = v = MIX(a, b);
         }
 
       #endif
