@@ -15,7 +15,7 @@ Instrument::Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty
 
   init();
 
-  logger.DEBUG("Instrument [%s] created.", name.c_str());
+  // logger.DEBUG("Instrument [%s] created.", name.c_str());
 }
 
 void Instrument::init()
@@ -241,7 +241,7 @@ bool Instrument::load(sfBag      * bags,
   }
 
   for (uint16_t zIdx = 0; zIdx < zoneCount; zIdx++) {
-    
+
     if ((zones[zIdx].keys.byHi == 0) && (zones[zIdx].keys.byLo == 0)) {
       zones[zIdx].keys.byHi = 127;
     };
@@ -249,7 +249,7 @@ bool Instrument::load(sfBag      * bags,
     if ((zones[zIdx].velocities.byHi == 0) && (zones[zIdx].velocities.byLo == 0)) {
       zones[zIdx].velocities.byHi = 127;
     };
-    
+
     if ((keysToLoad.byLo <= zones[zIdx].keys.byHi) && (keysToLoad.byHi >= zones[zIdx].keys.byLo)) {
       if (soundFont->loadSample(zones[zIdx].sampleIndex)) {
         zones[zIdx].synth.setDefaults(soundFont->samples[zones[zIdx].sampleIndex]);
@@ -266,7 +266,7 @@ bool Instrument::load(sfBag      * bags,
 
   // showZones();
 
-  logger.DEBUG("Instrument %s (re) loaded.", name.c_str());
+  // logger.DEBUG("Instrument %s (re) loaded.", name.c_str());
   return true;
 }
 

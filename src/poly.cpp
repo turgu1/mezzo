@@ -254,7 +254,9 @@ void Poly::voicesSustainOff()
 {
   voicep voice = voices;
   while (voice) {
-    if (voice->isActive() && voice->isNoteOn()) voice->noteOff();
+    // When we receive the signal that the sustain pedal is off, we
+    // don't want to stop notes that are still strucked by the player
+    if (voice->isActive() && !voice->isNoteOn()) voice->noteOff();
     voice = voice->getNext();
   }
 }
@@ -335,6 +337,8 @@ int Poly::mixer(buffp buff, int frameCount)
 
       #endif
 
+      // if endOfSound, we are at the end of the envelope sequence
+      // and will now get rid of the voice.
       if (endOfSound) {
         voice->BEGIN();
           voice->inactivate();

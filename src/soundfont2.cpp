@@ -128,7 +128,8 @@ bool SoundFont2::loadPreset(std::string & presetName)
 bool SoundFont2::loadMidiPreset(uint8_t bankNbr, uint8_t midiNbr)
 {
   Preset * p = firstMidiPreset;
-  while (p && ((p->getBankNbr() != bankNbr) || (p->getMidiNbr() != midiNbr))) {
+  while (p && ((p->getBankNbr() != bankNbr) ||
+               (p->getMidiNbr() != midiNbr))) {
     p = p->getNextMidiPreset();
   }
   if (p != NULL) return loadPreset(p);
@@ -367,16 +368,16 @@ bool SoundFont2::retrieveSamples()
     samples.push_back(new Sample(*smplInfo));
   }
 
-  logger.DEBUG("Samples attributes retrieval completed.");
+  // logger.DEBUG("Samples attributes retrieval completed.");
 
   return true;
 }
 
-void SoundFont2::addPresetToMidiList(Preset *preset)
+void SoundFont2::addPresetToMidiList(Preset * preset)
 {
+  preset->setNextMidiPreset(NULL);
   if (firstMidiPreset == NULL) {
     firstMidiPreset = preset;
-    preset->setNextMidiPreset(NULL);
   }
   else {
     Preset * p  = firstMidiPreset;
@@ -385,11 +386,12 @@ void SoundFont2::addPresetToMidiList(Preset *preset)
       if (p->getBankNbr() > preset->getBankNbr()) {
         break;
       }
-      else if (p->getBankNbr() == preset->getBankNbr()) {
-        if (p->getMidiNbr() > preset->getMidiNbr()) break;
+      else if ((p->getBankNbr() == preset->getBankNbr()) &&
+               (p->getMidiNbr() > preset->getMidiNbr())) {
+        break;
       }
       po = p;
-      p = p->getNextMidiPreset();
+      p  = p->getNextMidiPreset();
     }
     preset->setNextMidiPreset(p);
     if (po == NULL) {
@@ -405,7 +407,6 @@ void SoundFont2::showMidiPresetList()
 {
   using namespace std;
 
-  Preset * p = firstMidiPreset;
   int i = 0;
   int qty = presets.size();
 
@@ -415,8 +416,10 @@ void SoundFont2::showMidiPresetList()
   cout << endl;
 
   int nxt = 0;
-  while (i < qty) {
-    p = firstMidiPreset;
+  int lineCount = (qty + 2) / 3;
+
+  while (lineCount) {
+    Preset * p = firstMidiPreset;
     for (int j = 0; (p != NULL) && (j < nxt); j++) p = p->getNextMidiPreset();
     if (p != NULL) {
       unsigned k = 0;
@@ -428,12 +431,17 @@ void SoundFont2::showMidiPresetList()
            << "[" << setw(2) << right << p->getBankNbr()
                   << setw(4) << right << p->getMidiNbr() << "] "
            << setw(20) << left << p->getName() << " ";
-      if ((++i % 3) == 0) cout << endl;
+      if ((++i % 3) == 0) {
+        cout << endl;
+        lineCount--;
+      }
     }
     else {
       cout << endl;
+      lineCount--;
     }
     nxt = (nxt + ((qty + 2) / 3)) % qty;
   }
+
   if ((i % 3) != 0) cout << endl;
 }

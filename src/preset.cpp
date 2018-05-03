@@ -21,7 +21,7 @@ Preset::Preset(char * presetName,
 
   init();
 
-  logger.DEBUG("Preset [%s] created.", name.c_str());
+  // logger.DEBUG("Preset [%s] created.", name.c_str());
 }
 
 void Preset::init()
@@ -294,7 +294,7 @@ bool Preset::load(sfBag     * bags,
 
   // showZones();
 
-  logger.DEBUG("Preset %s loaded.", name.c_str());
+  // logger.DEBUG("Preset %s loaded.", name.c_str());
 
   loaded = true;
   return true;
@@ -390,7 +390,7 @@ void Preset::showZones()
 void Preset::playNote(uint8_t note, uint8_t velocity)
 {
   for (uint16_t zIdx = 0; zIdx < zoneCount; zIdx++) {
-    if ((zones[zIdx].keys.byLo <= note) && 
+    if ((zones[zIdx].keys.byLo <= note) &&
         (note <= zones[zIdx].keys.byHi) &&
         (zones[zIdx].velocities.byLo <= velocity) &&
         (velocity <= zones[zIdx].velocities.byHi)) {

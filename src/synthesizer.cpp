@@ -3,7 +3,7 @@
 #include <math.h>
 #include <iomanip>
 
-#define centibelToRatio(x) powf(10.0f, -((float) x) / 200.0f)
+#define centibelToRatio(x) powf(10.0f, ((float) x) / 200.0f)
 #define centsToRatio(x) powf(2.0f, x / 1200.0f)
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
@@ -49,18 +49,18 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
       case  sfGenOper_initialAttenuation:
         if (type == set) {
-          attenuationFactor = centibelToRatio(gens->genAmount.shAmount);
+          attenuationFactor = centibelToRatio(-gens->genAmount.shAmount);
         }
         else {
-          attenuationFactor *= centibelToRatio(gens->genAmount.shAmount);
+          attenuationFactor *= centibelToRatio(-gens->genAmount.shAmount);
         }
         break;
       case  sfGenOper_velocity:
         velocity = gens->genAmount.wAmount;
         break;
-        
+
       // ----- Volume envelope -----
-      
+
       case  sfGenOper_delayVolEnv:
         iVal = gens->genAmount.shAmount == -32768 ? 0 :
                config.samplingRate * centsToRatio(gens->genAmount.shAmount);
@@ -84,7 +84,7 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_sustainVolEnv:
         fVal = (gens->genAmount.shAmount >= 1000) ? 0.0f :
                ((gens->genAmount.shAmount <= 0)   ? 1.0f :
-                centibelToRatio(gens->genAmount.shAmount));
+                centibelToRatio(-gens->genAmount.shAmount));
         sustainVolEnv = (type == set) ? fVal : (sustainVolEnv * fVal);
         break;
       case  sfGenOper_releaseVolEnv:
@@ -96,20 +96,19 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
       case  sfGenOper_keynumToVolEnvDecay:
         break;
+
       case  sfGenOper_modLfoToPitch:
-      case  sfGenOper_vibLfoToPitch:
-      case  sfGenOper_modEnvToPitch:
-      case  sfGenOper_initialFilterFc:
-      case  sfGenOper_initialFilterQ:
       case  sfGenOper_modLfoToFilterFc:
-      case  sfGenOper_modEnvToFilterFc:
       case  sfGenOper_modLfoToVolume:
-      case  sfGenOper_chorusEffectsSend:
-      case  sfGenOper_reverbEffectsSend:
       case  sfGenOper_delayModLFO:
       case  sfGenOper_freqModLFO:
+
+      case  sfGenOper_vibLfoToPitch:
       case  sfGenOper_delayVibLFO:
       case  sfGenOper_freqVibLFO:
+
+      case  sfGenOper_modEnvToPitch:
+      case  sfGenOper_modEnvToFilterFc:
       case  sfGenOper_delayModEnv:
       case  sfGenOper_attackModEnv:
       case  sfGenOper_holdModEnv:
@@ -118,11 +117,20 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_releaseModEnv:
       case  sfGenOper_keynumToModEnvHold:
       case  sfGenOper_keynumToModEnvDecay:
+
+      case  sfGenOper_initialFilterFc:
+      case  sfGenOper_initialFilterQ:
+
+      case  sfGenOper_chorusEffectsSend:
+      case  sfGenOper_reverbEffectsSend:
+
       case  sfGenOper_keynum:
+
       case  sfGenOper_coarseTune:
       case  sfGenOper_fineTune:
-      case  sfGenOper_sampleModes:
       case  sfGenOper_scaleTuning:
+
+      case  sfGenOper_sampleModes:
       case  sfGenOper_exclusiveClass:
 
       case  sfGenOper_keyRange:
@@ -191,16 +199,16 @@ void Synthesizer::completeParams()
   attackVolEnvRate  = attackVolEnv  == 0 ? attenuationFactor : (attenuationFactor / (float) attackVolEnv);
   decayVolEnvRate   = decayVolEnv   == 0 ? attenuationFactor : ((attenuationFactor - sustainVolEnv) / (float) decayVolEnv);
   releaseVolEnvRate = releaseVolEnv == 0 ? attenuationFactor : (sustainVolEnv / (float) releaseVolEnv);
-  
-  cout
-  << "VolEnv:[D:" << delayVolEnv
-  << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
-  << ",H:" << holdVolEnv    << "/" << holdVolEnvStart
-  << ",D:" << decayVolEnv   << "@" << decayVolEnvRate  << "/" << decayVolEnvStart
-  << ",S:" << sustainVolEnv << "/" << sustainVolEnvStart
-  << ",R:" << releaseVolEnv << "@" << releaseVolEnvRate
-  << "]" << endl;
-  
+
+  // cout
+  // << "VolEnv:[D:" << delayVolEnv
+  // << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
+  // << ",H:" << holdVolEnv    << "/" << holdVolEnvStart
+  // << ",D:" << decayVolEnv   << "@" << decayVolEnvRate  << "/" << decayVolEnvStart
+  // << ",S:" << sustainVolEnv << "/" << sustainVolEnvStart
+  // << ",R:" << releaseVolEnv << "@" << releaseVolEnvRate
+  // << "]" << endl;
+
   pos = 0;
 }
 
@@ -262,13 +270,13 @@ void Synthesizer::toStereo(buffp dst, buffp src, uint16_t len)
     }
   }
 }
-
+//585745
 // TODO: Convert from linear attack/decay/release to something better...
 
 bool Synthesizer::volumeEnvelope(buffp dst, buffp src, uint16_t len)
 {
   using namespace std;
-  
+
   bool endOfSound = false;
   uint32_t thePos = pos;
 
@@ -276,7 +284,6 @@ bool Synthesizer::volumeEnvelope(buffp dst, buffp src, uint16_t len)
     if (keyReleased) {                        // release
       if (thePos < (keyReleasedPos + releaseVolEnv)) {
         amplVolEnv -= releaseVolEnvRate;
-        cout << "R";
       }
       else {
         amplVolEnv = 0.0f;
@@ -286,22 +293,17 @@ bool Synthesizer::volumeEnvelope(buffp dst, buffp src, uint16_t len)
     else {
       if (thePos < attackVolEnvStart) {       // delay
         amplVolEnv = 0.0;
-        cout << "D";
       }
       else if (thePos < holdVolEnvStart) {    // attack
-        cout << "A";
         amplVolEnv += attackVolEnvRate;
       }
       else if (thePos < decayVolEnvStart) {   // hold
         // amplVolEnv stay as current
-        cout << "H";
       }
       else if (thePos < sustainVolEnvStart) { // decay
         amplVolEnv -= decayVolEnvRate;
-        cout << "D";
       }
       else {
-        cout << "S";
         amplVolEnv = sustainVolEnv;
       }
     }
@@ -325,6 +327,6 @@ bool Synthesizer::transform(buffp dst, buffp src, uint16_t len)
 
   // if (endOfSound) std::cout << "End of Sound" << std::endl;
   // std::cout << "[" << amplVolEnv << "]" << std::endl;
-  
+
   return endOfSound;
 }
