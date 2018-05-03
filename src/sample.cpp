@@ -93,35 +93,36 @@ bool Sample::load()
 uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & synth)
 {
   const uint32_t offset         = (synth.getStart() - start);
-  const uint32_t sizeFirstBlock = this->sizeFirstBlock - offset;
-  const uint32_t maxSampleSize = synth.isLooping() ? synth.getEndLoop() : synth.getSizeSample();
-
+  const uint32_t sizeFirstBlock = synth.isLooping() ? MIN(this->sizeFirstBlock - offset, synth.getEndLoop()) :
+                                                      this->sizeFirstBlock - offset;
+  const uint32_t maxSampleSize  = synth.isLooping() ? synth.getEndLoop() :
+                                                      synth.getSizeSample();
   uint16_t count = 0;
 
   // We will loop until a full buffer was returned or we are at the end
   // of the sample (no looping case)
 
   while (qty > 0) {
-    uint16_t size;
+    uint16_t sizeToGet;
     if (pos >= maxSampleSize) {
       // The position is now passed the end of the sample.
       if (synth.isLooping()) {
-        
+
         // We are looping. Find where we are in the loop portion
         uint32_t thePos = synth.getStartLoop() +
                           ((pos - maxSampleSize) % synth.getSizeLoop());
-        size = MIN(qty, maxSampleSize - thePos);
-        
+        sizeToGet = MIN(qty, maxSampleSize - thePos);
+
         // If we are still in the chached block, get some data from it
         if (thePos < sizeFirstBlock) {
-          size = MIN(size, sizeFirstBlock - thePos);
-          Utils::shortToFloatNormalize(buff, &firstBlock[offset + thePos], size);
+          sizeToGet = MIN(sizeToGet, sizeFirstBlock - thePos);
+          Utils::shortToFloatNormalize(buff, &firstBlock[offset + thePos], sizeToGet);
         }
         else {
-          //size = MIN(size, synth.getSizeSample() - thePos);
-          Utils::shortToFloatNormalize(buff, &data[synth.getStart() + thePos], size);
+          //sizeToGet = MIN(sizeToGet, synth.getSizeSample() - thePos);
+          Utils::shortToFloatNormalize(buff, &data[synth.getStart() + thePos], sizeToGet);
         }
-        std::cout << "[thePos:" << thePos << ",siz:" << size << "]#" << std::endl << std::flush;
+        assert((thePos + sizeToGet) <= maxSampleSize);
       }
       else {
         // We are not looping. Send back what was read.
@@ -129,22 +130,20 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
       }
     }
     else if (pos < sizeFirstBlock) {
-      size = MIN(qty, sizeFirstBlock - pos);
-      Utils::shortToFloatNormalize(buff, &firstBlock[offset + pos], size);
+      sizeToGet = MIN(qty, sizeFirstBlock - pos);
+      Utils::shortToFloatNormalize(buff, &firstBlock[offset + pos], sizeToGet);
+      assert((pos + sizeToGet) <= maxSampleSize);
     }
     else {
-      size = MIN(qty, maxSampleSize - pos);
-      Utils::shortToFloatNormalize(buff, &data[synth.getStart() + pos], size);      
+      sizeToGet = MIN(qty, maxSampleSize - pos);
+      Utils::shortToFloatNormalize(buff, &data[synth.getStart() + pos], sizeToGet);
+      assert((pos + sizeToGet) <= maxSampleSize);
     }
-    
-    if (pos < maxSampleSize) {
-      std::cout << "[pos:" << pos << ",siz:" << size << "]" << std::endl << std::flush;
-    }
-    
-    qty   -= size;
-    count += size;
-    buff  += size;
-    pos   += size;
+
+    qty   -= sizeToGet;
+    count += sizeToGet;
+    buff  += sizeToGet;
+    pos   += sizeToGet;
   }
 
   assert(qty == 0);

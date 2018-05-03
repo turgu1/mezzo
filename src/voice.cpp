@@ -149,7 +149,7 @@ void Voice::setup(samplep      sample,
 
   std::cout << sample->getName() << "..." << std::endl << std::flush;
   synth.completeParams();
-  
+
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
@@ -213,7 +213,7 @@ int Voice::getNormalSamples(buffp buff)
 #define P6(x) ((x * (x * (x * (x * ((- x - 2.0f) * x + 10.0f) + 20.0f) - 9.0f) - 18.0f)) / 120.0f)
 #define P7(x) ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) / 720.0f)
 
-using namespace std;  
+using namespace std;
 #include <iomanip>
 
 int Voice::getScaledSamples(buffp buff, int sampleCount)
@@ -259,9 +259,9 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     }
 
     float * y = &scaleBuff[ipos - 4 + 7];
-    *buff++ = (y[0] * P1(diff)) + 
-              (y[1] * P2(diff)) + 
-              (y[2] * P3(diff)) + 
+    *buff++ = (y[0] * P1(diff)) +
+              (y[1] * P2(diff)) +
+              (y[2] * P3(diff)) +
               (y[3] * P4(diff)) +
               (y[4] * P5(diff)) +
               (y[5] * P6(diff)) +
@@ -285,7 +285,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
 #endif
 
-#if 0
+#if 1
 
 /// Lagrange 4th order interpolation polynomes.
 ///
@@ -362,9 +362,9 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     }
 
     float * y = &scaleBuff[ipos - 2 + 4];
-    *buff++ = (y[0] * P1(diff)) + 
-              (y[1] * P2(diff)) + 
-              (y[2] * P3(diff)) + 
+    *buff++ = (y[0] * P1(diff)) +
+              (y[1] * P2(diff)) +
+              (y[2] * P3(diff)) +
               (y[3] * P4(diff));
 
     pos += factor;
@@ -382,7 +382,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
 #endif
 
-#if 1
+#if 0
 
 //---- getScaledSamples()
 //
