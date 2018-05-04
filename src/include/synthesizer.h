@@ -27,6 +27,9 @@ private:
   uint32_t decayVolEnvStart;
   uint32_t sustainVolEnvStart;
   uint32_t keyReleasedPos;
+  float    initialFilterFc;
+  float    initialFilterQ;
+  float    a0, a1, a2, b1, b2, z1, z2;
   float    attackVolEnvRate;
   float    decayVolEnvRate;
   float    releaseVolEnvRate;
@@ -42,6 +45,26 @@ private:
 
   enum setGensType { set, adjust };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
+
+  // The biQuad is a by-product of the following:
+  //
+  //   http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+  //
+  // Not sure if the end-state of it is the right one. Seems to be
+  // similar to the one used in the Polyphone program.
+
+  void biQuadSetup();
+  inline void biQuadFilter(buffp src, uint16_t len) {
+    while (len--) {
+      float val = *src * a0 + z1;
+      z1 = (*src * a1) + z2 - (b1 * val);
+      z2 = (*src * a2) - (b2 * val);
+      *src++ = val;
+    }
+  }
+
+  inline bool volumeEnvelope(buffp src, uint16_t len);
+  inline void  toStereo(buffp dst, buffp src, uint16_t len);
 
 public:
   inline void setGens(sfGenList * gens, uint8_t genCount) {
@@ -78,8 +101,6 @@ public:
       1.0 : (amplVolEnv / (float)releaseVolEnv);
   }
 
-  bool volumeEnvelope(buffp dst, buffp src, uint16_t len);
-  void  toStereo(buffp dst, buffp src, uint16_t len);
   bool transform(buffp dst, buffp src, uint16_t len);
 };
 

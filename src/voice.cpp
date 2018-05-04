@@ -147,7 +147,7 @@ void Voice::setup(samplep      sample,
   synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
   synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
 
-  std::cout << sample->getName() << "..." << std::endl << std::flush;
+  //std::cout << sample->getName() << "..." << std::endl << std::flush;
   synth.completeParams();
 
   BEGIN();
@@ -329,7 +329,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   //assert((note - sample->getPitch()) >= 0);
 
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-  
+
   if (sample->getSampleRate() != config.samplingRate) {
     factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
   }
@@ -351,7 +351,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   // of samples since the start of the note. pos is where we need to
   // get someting from the sample, taking into account pitch changes of all
   // kind.
-  
+
   float pos = sampleRealPos * factor;
 
   while (sampleCount--) {
@@ -361,7 +361,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     int16_t ipos = ((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
 
     if (fipos >= (scaleBuffPos + scaleBuffSize)) {
-      std::cout << "[" << fipos << "," << ipos << "]" << std::endl << std::flush;
+      // std::cout << "[" << fipos << "," << ipos << "]" << std::endl << std::flush;
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
