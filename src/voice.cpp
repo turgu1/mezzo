@@ -329,7 +329,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   //assert((note - sample->getPitch()) >= 0);
 
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-
+  
   if (sample->getSampleRate() != config.samplingRate) {
     factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
   }
@@ -347,18 +347,25 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     scaleBuff[3] = 0.0f;
   }
 
+  // sampleRealPos is the postion where we are at the output as a number
+  // of samples since the start of the note. pos is where we need to
+  // get someting from the sample, taking into account pitch changes of all
+  // kind.
+  
   float pos = sampleRealPos * factor;
 
   while (sampleCount--) {
 
     float fipos;
     float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    uint16_t ipos = ((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
+    int16_t ipos = ((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
 
     if (fipos >= (scaleBuffPos + scaleBuffSize)) {
+      std::cout << "[" << fipos << "," << ipos << "]" << std::endl << std::flush;
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
+      if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
     }
 
     float * y = &scaleBuff[ipos - 2 + 4];
