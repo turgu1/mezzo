@@ -273,7 +273,7 @@ void Synthesizer::toStereo(buffp dst, buffp src, uint16_t len)
     while (len--) { *dst++ = *src * left; *dst++ = *src++ * right; }
   }
 }
-#if 0
+#if 1
 void Synthesizer::biQuadSetup()
 {
   if (initialFilterQ == 1.0f) {
