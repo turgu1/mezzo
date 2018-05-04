@@ -29,8 +29,8 @@ char InteractiveMode::showMenuGetSelection()
        << "e : Equalizer adjusments         i : Show Instruments Zones" << endl
        << "r : Reverb adjusments            + : Next Preset"            << endl
        << "s : Sound device selection       - : Previous Preset"        << endl
-       << "m : Midi device selection        v : dump Voices state"      << endl
-       << "t : Transpose"                                               << endl
+       << "m : Midi device selection        V : dump Voices state"      << endl
+       << "t : Transpose                    f : toggle low-pass filter" << endl
        // << "l - dump sample Library"        << endl
        // << "c - show Config read from file" << endl
        << "x : eXit"                                         << endl << endl;
@@ -80,15 +80,23 @@ void InteractiveMode::menu()
     // case 'l': samples->showNotes();         break;
     case 'v': poly->showState();               break;
     // case 'c': config->showState();          break;
-    case '+': soundFont->loadNextPreset();     break;      
-    case '-': soundFont->loadPreviousPreset(); break;
     
+    case '+': 
+      soundFont->loadNextPreset();
+      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
+      break;  
+          
+    case '-': 
+      soundFont->loadPreviousPreset(); 
+      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
+      break;
     
     case 'P':
       soundFont->showMidiPresetList();
       cout << endl << "Please enter preset index > ";
       nbr = getNumber();
       if (nbr >= 0) soundFont->loadPreset(nbr);
+      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
       break;      
       
     case 'p':
@@ -115,6 +123,12 @@ void InteractiveMode::menu()
       }
       break;
 
+    case 'f':
+      Synthesizer::toggleFilter();
+      cout << "Low-Pass Filter is now "
+           << (Synthesizer::isFilterEnabled() ? "Enable" : "Disable") << endl;
+      break;
+      
     default:
       cout << "Bad entry!" << endl;
       break;

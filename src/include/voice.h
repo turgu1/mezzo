@@ -121,7 +121,7 @@ class Voice : public NewHandlerSupport<Voice> {
   bool        noteIsOn;      ///< The note is played
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
   int         samplePos;     ///< Position in the sample stream of frames
-  int         sampleRealPos; ///< Position in the scaled (or not) processed stream of samples
+  uint32_t    sampleRealPos; ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
   buffp       scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
   int         scaleBuffPos;

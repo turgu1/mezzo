@@ -374,11 +374,10 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
               (y[2] * P3(diff)) +
               (y[3] * P4(diff));
 
-    pos += factor;
+    pos += (factor * synth.vibrato(sampleRealPos++));
     count++;
   }
 
-  sampleRealPos += count;
   return count;
 }
 

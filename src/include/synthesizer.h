@@ -1,6 +1,8 @@
 #ifndef _SYNTHESIZER_
 #define _SYNTHESIZER_
 
+#include <iostream>
+
 // A synthesizer is containing the generators and code to
 // transform samples in relashionship with the generators. A synthesizer
 // is attached to each voice and is central to the transformation of
@@ -37,11 +39,15 @@ private:
   float    amplVolEnv;
   float    attenuationFactor;
   float    correctionFactor;
+  uint32_t delayVibLFO;
+  uint32_t vibLfoToPitch;
+  uint32_t durationVibLFO;
   int16_t  pan;
   uint8_t  rootKey;
   int8_t   velocity;
   bool     loop;
   bool     keyReleased;
+  static bool filterEnabled;
 
   enum setGensType { set, adjust };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
@@ -59,16 +65,59 @@ private:
 
   void biQuadSetup();
   inline void biQuadFilter(buffp src, uint16_t len) {
-    while (len--) {
-      float val = *src * a0 + z1;
-      z1 = (*src * a1) + z2 - (b1 * val);
-      z2 = (*src * a2) - (b2 * val);
-      *src++ = val;
+    if (filterEnabled) {
+      while (len--) {
+        float val = *src * a0 + z1;
+        z1 = (*src * a1) + z2 - (b1 * val);
+        z2 = (*src * a2) - (b2 * val);
+        *src++ = val;
+      }
     }
   }
 
-  inline bool volumeEnvelope(buffp src, uint16_t len);
-  inline void  toStereo(buffp dst, buffp src, uint16_t len);
+  inline bool volumeEnvelope(buffp src, uint16_t len) {
+    using namespace std;
+
+    bool endOfSound = false;
+    uint32_t thePos = pos;
+
+    while (len--) {
+      if (keyReleased) {                        // release
+        if (thePos < (keyReleasedPos + releaseVolEnv)) {
+          amplVolEnv -= releaseVolEnvRate;
+        }
+        else {
+          amplVolEnv = 0.0f;
+          endOfSound = true;
+        }
+      }
+      else {
+        if      (thePos < attackVolEnvStart ) amplVolEnv  = 0.0;                 // delay  
+        else if (thePos < holdVolEnvStart   ) amplVolEnv += attackVolEnvRate;    // attack
+        else if (thePos < decayVolEnvStart  ) ;                                  // hold
+        else if (thePos < sustainVolEnvStart) amplVolEnv -= decayVolEnvRate;     // decay
+        else                                  amplVolEnv = sustainVolEnv;        // sustain
+      }
+      amplVolEnv = MAX(MIN(attenuationFactor, amplVolEnv), 0.0f);
+      *src *= amplVolEnv;
+      src++;
+      thePos += 1;
+    }
+
+    return endOfSound;
+  }
+  
+  inline void  toStereo(buffp dst, buffp src, uint16_t len) {
+    const float prop  = M_SQRT2 * 0.5;
+    const float angle = ((float) pan) * M_PI;
+
+    const float left  = prop * (cos(angle) - sin(angle));
+    const float right = prop * (cos(angle) + sin(angle));
+
+    if      (left  < 0.001) while (len--) { *dst++ = 0.0; *dst++ = *src++; }
+    else if (right < 0.001) while (len--) { *dst++ = *src++; *dst++ = 0.0; }
+    else                    while (len--) { *dst++ = *src * left; *dst++ = *src++ * right; }
+  }
 
 public:
   inline void setGens(sfGenList * gens, uint8_t genCount) {
@@ -98,6 +147,9 @@ public:
   inline uint8_t  getRootKey()     { return rootKey;           }
   inline int8_t   getVelocity()    { return velocity;          }
 
+  static void toggleFilter()       { filterEnabled = !filterEnabled; }
+  static bool isFilterEnabled()    { return filterEnabled; }
+  
   void keyHasBeenReleased() {
     keyReleased = true;
     keyReleasedPos = pos;
@@ -106,6 +158,28 @@ public:
   }
 
   bool transform(buffp dst, buffp src, uint16_t len);
+  
+  inline float vibrato(uint32_t pos) 
+  {
+    if ((vibLfoToPitch  == 0) || 
+        (durationVibLFO == 0)) {
+      //showParams();
+      return 1.0f;
+    }
+    else {
+      std::cout << "#" << std::flush;
+      if (pos < delayVibLFO) {
+        return 1.0f;
+      }
+      else {
+        float half = durationVibLFO / 2;
+        uint32_t loc = (pos - delayVibLFO) % durationVibLFO;
+        half = centsToRatio(((half - abs(loc - half))/half) * ((float)vibLfoToPitch));
+        std::cout << "<" << half << ">" << std::endl << std::flush;
+        return half;
+      }
+    }
+  }
 };
 
 #endif

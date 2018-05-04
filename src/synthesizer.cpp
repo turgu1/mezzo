@@ -3,8 +3,7 @@
 #include <math.h>
 #include <iomanip>
 
-#define centibelToRatio(x) powf(10.0f, ((float) x) / 200.0f)
-#define centsToRatio(x) powf(2.0f, x / 1200.0f)
+bool Synthesizer::filterEnabled = true;
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
@@ -99,12 +98,28 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
       // Low-Pass BiQuad Filter
       case  sfGenOper_initialFilterFc:
-        fVal = centsToRatio(gens->genAmount.shAmount);
+        fVal = centsToRatio(gens->genAmount.shAmount) / config.samplingRate;
         initialFilterFc = (type == set) ? fVal : initialFilterFc * fVal;
         break;
       case  sfGenOper_initialFilterQ:
-        fVal = - float(gens->genAmount.shAmount) / 10.0;
+        fVal = float(gens->genAmount.shAmount) / 10.0;
         initialFilterQ = (type == set) ? fVal : initialFilterQ + fVal;
+        break;
+
+      // Vibrato
+      
+      case  sfGenOper_vibLfoToPitch:
+        iVal = gens->genAmount.shAmount;
+        vibLfoToPitch = (type == set) ? iVal : (iVal + vibLfoToPitch);
+        break;
+      case  sfGenOper_delayVibLFO:
+        iVal = gens->genAmount.shAmount == -32768 ? 0 :
+               config.samplingRate * centsToRatio(gens->genAmount.shAmount);
+        delayVibLFO = (type == set) ? iVal : (delayVibLFO + iVal);
+        break;
+      case  sfGenOper_freqVibLFO:
+        iVal = centsToDuration(gens->genAmount.shAmount);
+        durationVibLFO = (type == set) ? iVal : (iVal + durationVibLFO);
         break;
 
       case  sfGenOper_modLfoToPitch:
@@ -112,10 +127,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_modLfoToVolume:
       case  sfGenOper_delayModLFO:
       case  sfGenOper_freqModLFO:
-
-      case  sfGenOper_vibLfoToPitch:
-      case  sfGenOper_delayVibLFO:
-      case  sfGenOper_freqVibLFO:
 
       case  sfGenOper_modEnvToPitch:
       case  sfGenOper_modEnvToFilterFc:
@@ -183,8 +194,11 @@ void Synthesizer::setDefaults(Sample * sample)
   attenuationFactor       =  1.0f;
   velocity                =    -1;
   keyReleased             = false;
-  initialFilterFc         = config.samplingRate * centsToRatio(13500);
-  initialFilterQ          = 1.0f; // centibelToRatio(0)
+  initialFilterFc         = centsToRatio(13500) / config.samplingRate;
+  initialFilterQ          =  1.0f;  // DB
+  vibLfoToPitch           =     0;
+  delayVibLFO             =     0;
+  durationVibLFO          =     0;
 }
 
 void Synthesizer::completeParams()
@@ -211,7 +225,7 @@ void Synthesizer::completeParams()
 
   biQuadSetup();
 
-  //showParams();
+  showParams();
   // cout
   // << "VolEnv:[D:" << delayVolEnv
   // << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
@@ -252,28 +266,16 @@ void Synthesizer::showParams()
        << ",D:" << decayVolEnv   << "@" << decayVolEnvRate  << "/" << decayVolEnvStart
        << ",S:" << sustainVolEnv << "/" << sustainVolEnvStart
        << ",R:" << releaseVolEnv << "@" << releaseVolEnvRate
-       << "]" << endl;
+       << "]"   << endl
+       << "         "
+       <<"Vib:[D:" << delayVibLFO
+       << ",P:" << vibLfoToPitch
+       << ",D:" << durationVibLFO 
+       << "]"   << endl;
 }
 
-void Synthesizer::toStereo(buffp dst, buffp src, uint16_t len)
-{
-  const float prop  = M_SQRT2 * 0.5;
-  const float angle = ((float) pan) * M_PI;
-
-  const float left  = prop * (cos(angle) - sin(angle));
-  const float right = prop * (cos(angle) + sin(angle));
-
-  if (left < 0.001) {
-    while (len--) { *dst++ = 0.0; *dst++ = *src++; }
-  }
-  else if (right < 0.001) {
-    while (len--) { *dst++ = *src++; *dst++ = 0.0; }
-  }
-  else {
-    while (len--) { *dst++ = *src * left; *dst++ = *src++ * right; }
-  }
-}
 #if 1
+
 void Synthesizer::biQuadSetup()
 {
   if (initialFilterQ == 1.0f) {
@@ -291,6 +293,11 @@ void Synthesizer::biQuadSetup()
     b2 = (1 - K / initialFilterQ + K * K) * norm;
   }
   z1 = z2 = 0.0f;
+  
+  // std::cout << "[Fc:" << initialFilterFc << ",Q:" << initialFilterQ 
+  //           << ", a0:" << a0 << ",a1:" << a1 << ",a2:" << a2
+  //           << ", b1:" << b1 << ",b2:" << b2 << "]"
+  //           << std::endl << std:: flush;
 }
 
 #else
@@ -314,51 +321,6 @@ void Synthesizer::biQuadSetup()
   z1 = z2 = 0.0f;
 }
 #endif
-
-// TODO: Convert from linear attack/decay/release to something better...
-
-bool Synthesizer::volumeEnvelope(buffp src, uint16_t len)
-{
-  using namespace std;
-
-  bool endOfSound = false;
-  uint32_t thePos = pos;
-
-  while (len--) {
-    if (keyReleased) {                        // release
-      if (thePos < (keyReleasedPos + releaseVolEnv)) {
-        amplVolEnv -= releaseVolEnvRate;
-      }
-      else {
-        amplVolEnv = 0.0f;
-        endOfSound = true;
-      }
-    }
-    else {
-      if (thePos < attackVolEnvStart) {       // delay
-        amplVolEnv = 0.0;
-      }
-      else if (thePos < holdVolEnvStart) {    // attack
-        amplVolEnv += attackVolEnvRate;
-      }
-      else if (thePos < decayVolEnvStart) {   // hold
-        // amplVolEnv stay as current
-      }
-      else if (thePos < sustainVolEnvStart) { // decay
-        amplVolEnv -= decayVolEnvRate;
-      }
-      else {
-        amplVolEnv = sustainVolEnv;
-      }
-    }
-    amplVolEnv = MAX(MIN(attenuationFactor, amplVolEnv), 0.0f);
-    *src *= amplVolEnv;
-    src++;
-    thePos += 1;
-  }
-
-  return endOfSound;
-}
 
 bool Synthesizer::transform(buffp dst, buffp src, uint16_t len)
 {
