@@ -273,7 +273,7 @@ void Synthesizer::toStereo(buffp dst, buffp src, uint16_t len)
     while (len--) { *dst++ = *src * left; *dst++ = *src++ * right; }
   }
 }
-
+#if 0
 void Synthesizer::biQuadSetup()
 {
   if (initialFilterQ == 1.0f) {
@@ -284,14 +284,36 @@ void Synthesizer::biQuadSetup()
     float K = tan(M_PI * initialFilterFc);
     float norm = 1 / (1 + K / initialFilterQ + K * K);
 
-    a0   = K * K * norm;
-    a1   = 2 * a0;
-    a2   = a0;
-    b1   = 2 * (K * K - 1) * norm;
-    b2   = (1 - K / initialFilterQ + K * K) * norm;
+    a0 = K * K * norm;
+    a1 = 2 * a0;
+    a2 = a0;
+    b1 = 2 * (K * K - 1) * norm;
+    b2 = (1 - K / initialFilterQ + K * K) * norm;
   }
   z1 = z2 = 0.0f;
 }
+
+#else
+
+// Butterworth low-pass parameters
+void Synthesizer::biQuadSetup()
+{
+  if (initialFilterQ == 1.0f) {
+    a0 = 1.0f;
+    a1 = a2 = b1 = b2 = 0.0f;
+  }
+  else {
+    float alpha = 1 / tan(M_PI * initialFilterFc / config.samplingRate);
+
+    a0 = 1 / (1 + (2 * alpha) + (alpha * alpha));
+    a1 = 2 * a0;
+    a2 = a0;
+    b1 = 2 * a0 * (1 - (alpha * alpha));
+    b2 = a0 * (1 - (2 * alpha) + (alpha * alpha));
+  }
+  z1 = z2 = 0.0f;
+}
+#endif
 
 // TODO: Convert from linear attack/decay/release to something better...
 
