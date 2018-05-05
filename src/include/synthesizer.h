@@ -92,7 +92,7 @@ private:
         }
       }
       else {
-        if      (thePos < attackVolEnvStart ) amplVolEnv  = 0.0;                 // delay  
+        if      (thePos < attackVolEnvStart ) amplVolEnv  = 0.0;                 // delay
         else if (thePos < holdVolEnvStart   ) amplVolEnv += attackVolEnvRate;    // attack
         else if (thePos < decayVolEnvStart  ) ;                                  // hold
         else if (thePos < sustainVolEnvStart) amplVolEnv -= decayVolEnvRate;     // decay
@@ -106,7 +106,7 @@ private:
 
     return endOfSound;
   }
-  
+
   inline void  toStereo(buffp dst, buffp src, uint16_t len) {
     const float prop  = M_SQRT2 * 0.5;
     const float angle = ((float) pan) * M_PI;
@@ -114,9 +114,9 @@ private:
     const float left  = prop * (cos(angle) - sin(angle));
     const float right = prop * (cos(angle) + sin(angle));
 
-    if      (left  < 0.001) while (len--) { *dst++ = 0.0; *dst++ = *src++; }
-    else if (right < 0.001) while (len--) { *dst++ = *src++; *dst++ = 0.0; }
-    else                    while (len--) { *dst++ = *src * left; *dst++ = *src++ * right; }
+    if      (left  < 0.001) while (len--) { *dst++ = *src++; *dst++ = 0.0; }
+    else if (right < 0.001) while (len--) { *dst++ = 0.0; *dst++ = *src++; }
+    else                    while (len--) { *dst++ = *src * right; *dst++ = *src++ * left; }
   }
 
 public:
@@ -149,7 +149,7 @@ public:
 
   static void toggleFilter()       { filterEnabled = !filterEnabled; }
   static bool isFilterEnabled()    { return filterEnabled; }
-  
+
   void keyHasBeenReleased() {
     keyReleased = true;
     keyReleasedPos = pos;
@@ -158,28 +158,8 @@ public:
   }
 
   bool transform(buffp dst, buffp src, uint16_t len);
-  
-  inline float vibrato(uint32_t pos) 
-  {
-    if ((vibLfoToPitch  == 0) || 
-        (durationVibLFO == 0)) {
-      //showParams();
-      return 1.0f;
-    }
-    else {
-      std::cout << "#" << std::flush;
-      if (pos < delayVibLFO) {
-        return 1.0f;
-      }
-      else {
-        float half = durationVibLFO / 2;
-        uint32_t loc = (pos - delayVibLFO) % durationVibLFO;
-        half = centsToRatio(((half - abs(loc - half))/half) * ((float)vibLfoToPitch));
-        std::cout << "<" << half << ">" << std::endl << std::flush;
-        return half;
-      }
-    }
-  }
+
+  float vibrato(uint32_t pos);
 };
 
 #endif

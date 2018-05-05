@@ -144,11 +144,11 @@ void Voice::setup(samplep      sample,
 
   prepareFifo();
 
-  synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
-  synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
+  this->synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
+  this->synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
 
   //std::cout << sample->getName() << "..." << std::endl << std::flush;
-  synth.completeParams();
+  this->synth.completeParams();
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -331,6 +331,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
 
   if (sample->getSampleRate() != config.samplingRate) {
+    // resampling is required
     factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
   }
 
@@ -339,6 +340,8 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   assert(sampleCount > 0);
 
   if (scaleBuffPos == -1) {
+    // We are at the beginning of the voice rendition.
+    // Get first bucket of samples to start the process.
     if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) return 0;
     scaleBuffPos = 0;
     scaleBuff[0] =
@@ -352,7 +355,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
   // get someting from the sample, taking into account pitch changes of all
   // kind.
 
-  float pos = sampleRealPos * factor;
+  float pos = sampleRealPos * factor * synth.vibrato(sampleRealPos);
 
   while (sampleCount--) {
 
@@ -361,12 +364,14 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     int16_t ipos = ((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
 
     if (fipos >= (scaleBuffPos + scaleBuffSize)) {
-      // std::cout << "[" << fipos << "," << ipos << "]" << std::endl << std::flush;
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
       if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
     }
+
+    assert(ipos > -4);
+    if (ipos < 0) std::cout << "ipos:[" << ipos << "]" << std::endl <<std::flush;
 
     float * y = &scaleBuff[ipos - 2 + 4];
     *buff++ = (y[0] * P1(diff)) +
@@ -374,7 +379,8 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
               (y[2] * P3(diff)) +
               (y[3] * P4(diff));
 
-    pos += (factor * synth.vibrato(sampleRealPos++));
+    sampleRealPos++;
+    pos = sampleRealPos * factor * synth.vibrato(sampleRealPos);
     count++;
   }
 

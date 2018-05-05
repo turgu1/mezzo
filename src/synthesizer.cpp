@@ -107,7 +107,7 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
 
       // Vibrato
-      
+
       case  sfGenOper_vibLfoToPitch:
         iVal = gens->genAmount.shAmount;
         vibLfoToPitch = (type == set) ? iVal : (iVal + vibLfoToPitch);
@@ -224,7 +224,7 @@ void Synthesizer::completeParams()
   releaseVolEnvRate = releaseVolEnv == 0 ? attenuationFactor : (sustainVolEnv / (float) releaseVolEnv);
 
   biQuadSetup();
-
+  std::cout << "completeParams" << std::endl;
   showParams();
   // cout
   // << "VolEnv:[D:" << delayVolEnv
@@ -247,7 +247,7 @@ void Synthesizer::showParams()
 {
   using namespace std;
 
-  cout << "Synth:"
+  cout << "Synth@" << this << ": "
        << " root:"        << +rootKey
        << " start:"       << start
        << " end:"         << end
@@ -270,7 +270,7 @@ void Synthesizer::showParams()
        << "         "
        <<"Vib:[D:" << delayVibLFO
        << ",P:" << vibLfoToPitch
-       << ",D:" << durationVibLFO 
+       << ",D:" << durationVibLFO
        << "]"   << endl;
 }
 
@@ -293,8 +293,8 @@ void Synthesizer::biQuadSetup()
     b2 = (1 - K / initialFilterQ + K * K) * norm;
   }
   z1 = z2 = 0.0f;
-  
-  // std::cout << "[Fc:" << initialFilterFc << ",Q:" << initialFilterQ 
+
+  // std::cout << "[Fc:" << initialFilterFc << ",Q:" << initialFilterQ
   //           << ", a0:" << a0 << ",a1:" << a1 << ",a2:" << a2
   //           << ", b1:" << b1 << ",b2:" << b2 << "]"
   //           << std::endl << std:: flush;
@@ -338,4 +338,43 @@ bool Synthesizer::transform(buffp dst, buffp src, uint16_t len)
   // std::cout << "[" << amplVolEnv << "]" << std::endl;
 
   return endOfSound;
+}
+
+float Synthesizer::vibrato(uint32_t pos)
+{
+  static bool first = true;
+  static bool showIt = false;
+
+  return 1.0f;
+  if ((vibLfoToPitch  == 0) ||
+      (durationVibLFO == 0)) {
+    return 1.0f;
+  }
+  else {
+    if (pos < delayVibLFO) {
+      return 1.0f;
+    }
+    else {
+      float half = durationVibLFO / 2;
+      uint32_t loc = (pos - delayVibLFO) % durationVibLFO;
+      half = centsToRatio(((half - abs(loc - half))/half) * ((float)vibLfoToPitch));
+      if (first) {
+        if (loc == 0) {
+          showIt = true;
+        }
+        else {
+          first = false;
+        }
+      }
+      else {
+        if (loc == 0) {
+          showIt = false;
+        }
+      }
+      if (showIt) {
+         std::cout << "<" << half << ">" << std::endl << std::flush;
+      }
+      return half;
+    }
+  }
 }
