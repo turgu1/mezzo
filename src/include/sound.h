@@ -65,11 +65,17 @@ class Sound : public NewHandlerSupport<Sound> {
    Sound();
   ~Sound();
 
+  /// Open PortAudio stream
+  void openPort(int devNbr);
+  
   /// Show available devices to user
   void showDevices(int devCount);
+  
+  /// Find device number from configuration data
+  int findDeviceNbr();
 
   /// Interactive device selection
-  void selectDevice();
+  int selectDevice(int defaultNbr);
 
   bool holding() { return hold; }
 

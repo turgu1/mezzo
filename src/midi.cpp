@@ -177,18 +177,69 @@ void midiCallBack (double timeStamp,
   }
 }
 
-//---- Midi() ----
+//---- showDevices() ----
 
-Midi::Midi()
+void Midi::showDevices(int devCount)
+{
+  using namespace std;
+
+  cout << endl << endl;
+  cout << "MIDI Input Device list:" << endl;
+  cout << "----------------------"  << endl;
+
+  for (int i = 0; i < devCount; i++) {
+    cout << "Device " << i << ": " <<  midiPort->getPortName(i) << endl;
+  }
+  cout << "[End of list]" << endl << endl;
+}
+
+//---- selectDevice() ----
+
+int Midi::selectDevice(int defaultNbr)
 {
   using namespace std;
 
   int devCount;
   int devNbr = -1;
 
-  monitoring = false;
-  sustainOn  = false;
-  midiPort   = NULL;
+  devCount = midiPort->getPortCount();
+
+  showDevices(devCount);
+
+  while (true) {
+    string userData;
+    int userNbr;
+    cout << "Please enter MIDI device number to use [" << defaultNbr << "]> ";
+
+    getline(cin, userData);
+
+    if (userData.length() == 0) {
+      devNbr = defaultNbr;
+      break;
+    }
+    
+    userNbr = atoi(userData.c_str());
+
+    if ((userNbr < 0) || (userNbr >= devCount)) {
+      cout << "!! Invalid device number[" << userNbr << "]. Please try again !!" << endl;
+    }
+    else {
+      devNbr = userNbr;
+      break;
+    }
+  }
+
+  cout << "MIDI Device Selected: " << devNbr << endl;
+
+  return devNbr;
+}
+
+//---- findDeviceNbr() ----
+
+int Midi::findDeviceNbr()
+{
+  int devCount;
+  int devNbr = -1;
 
   try {
     midiPort = new RtMidiIn();
@@ -202,41 +253,47 @@ Midi::Midi()
   if (devCount == 0) {
     logger.FATAL("No midi device found.");
   }
-  if (config.interactive) {
-    selectDevice();
-  }
-  else {
-    if (!config.silent) showDevices(devCount);
 
-    for (int i = 0; i < devCount; i++) {
-      //cout << i << ": " << midiPort->getPortName(i) << endl;
-      if ((devNbr == -1) &&
-          (strcasestr(midiPort->getPortName(i).c_str(), config.midiDeviceName.c_str()) != NULL)) {
-        devNbr = i;
-      }
-    }
-
-    devNbr = config.midiDeviceNbr == -1 ? devNbr : config.midiDeviceNbr;
-
-    if (devNbr == -1) {
-      devNbr = 0;
-      logger.INFO("Default Midi Device (0) selected.");
-    }
-    else {
-      logger.INFO("MIDI Device Selected: %d.", devNbr);;
-    }
-
-    try {
-      midiPort->openPort(devNbr, "Mezzo Midi Port");
-    }
-    catch (RtMidiError &error) {
-      logger.FATAL("Unable to open MIDI Device: %s.", error.what());
+  for (int i = 0; i < devCount; i++) {
+    //cout << i << ": " << midiPort->getPortName(i) << endl;
+    if ((devNbr == -1) &&
+        (strcasestr(midiPort->getPortName(i).c_str(), config.midiDeviceName.c_str()) != NULL)) {
+      devNbr = i;
     }
   }
+
+  devNbr = config.midiDeviceNbr == -1 ? devNbr : config.midiDeviceNbr;
+
+  return devNbr;
+}
+
+//---- Midi() ----
+
+Midi::Midi()
+{
+  using namespace std;
+
+  monitoring = false;
+  sustainOn  = false;
+  midiPort   = NULL;
+
+  try {
+    midiPort = new RtMidiIn();
+  }
+  catch (RtMidiError &error) {
+    logger.FATAL("Unable to Initialize Midi: %s.", error.what());
+  }
+
+  int devNbr = findDeviceNbr();
+  
+  if (config.interactive) devNbr = selectDevice(devNbr);
+
+  openPort(devNbr);
 
   try {
     midiPort->setCallback(&midiCallBack);
   }
+  
   catch (RtMidiError &error) {
     logger.FATAL("Unable to set Midi CallBack: %s.", error.what());
   }
@@ -315,6 +372,20 @@ void Midi::setSustainOff()
   }
 }
 
+//---- openPort() ----
+
+void Midi::openPort(int devNbr)
+{
+  if (midiPort->isPortOpen()) midiPort->closePort();
+
+  try {
+    midiPort->openPort(devNbr, "Mezzo Midi Port");
+  }
+  catch (RtMidiError &error) {
+    logger.FATAL("Unable to open MIDI Device: %s.", error.what());
+  }  
+}
+
 //---- ~Midi() ----
 
 Midi::~Midi()
@@ -384,68 +455,3 @@ void Midi::transposeAdjust()
   config.midiTranspose = value;
 }
 
-//---- showDevices() ----
-
-void Midi::showDevices(int devCount)
-{
-  using namespace std;
-
-  cout << endl << endl;
-  cout << "MIDI Input Device list:" << endl;
-  cout << "----------------------"  << endl;
-
-  for (int i = 0; i < devCount; i++) {
-    cout << "Device " << i << ": " <<  midiPort->getPortName(i) << endl;
-  }
-  cout << "[End of list]" << endl << endl;
-}
-
-//---- selectDevice() ----
-
-void Midi::selectDevice()
-{
-  using namespace std;
-
-  int devCount;
-  int devNbr = -1;
-
-  devCount = midiPort->getPortCount();
-
-  showDevices(devCount);
-
-  while (true) {
-    string str;
-    int nbr;
-    cout << "Please enter MIDI device number to use > ";
-
-    cin.clear();
-    cin.sync();
-
-    cin >> str;
-    if (str.empty()) break;
-    istringstream iss(str);
-    iss >> nbr;
-
-    if ((nbr < 0) || (nbr >= devCount)) {
-      cout << "!! Invalid device number[" << nbr << "]. Please try again !!" << endl;
-    }
-    else {
-      devNbr = nbr;
-      break;
-    }
-  }
-
-  cin.clear();
-  cin.sync();
-
-  cout << "MIDI Device Selected: " << devNbr << endl << endl;
-
-  if (midiPort->isPortOpen()) midiPort->closePort();
-
-  try {
-    midiPort->openPort(devNbr, "Mezzo Midi Port");
-  }
-  catch (RtMidiError &error) {
-    logger.FATAL("Unable to open MIDI Device: %s.", error.what());
-  }
-}

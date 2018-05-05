@@ -361,26 +361,27 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
     float fipos;
     float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    int16_t ipos = ((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
+    int16_t ipos = (((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
 
-    if (fipos >= (scaleBuffPos + scaleBuffSize)) {
+    // std::cout << scaleBuffPos << "," << fipos << "," << ipos << std::endl;
+
+    if (fipos >= (scaleBuffPos + scaleBuffSize )) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
       if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
     }
 
-    assert(ipos > -4);
-    if (ipos < 0) std::cout << "ipos:[" << ipos << "]" << std::endl <<std::flush;
+    assert(ipos >= -2);
 
-    float * y = &scaleBuff[ipos - 2 + 4];
+    float * y = &scaleBuff[ipos - 1 + 4];
     *buff++ = (y[0] * P1(diff)) +
               (y[1] * P2(diff)) +
               (y[2] * P3(diff)) +
               (y[3] * P4(diff));
 
     sampleRealPos++;
-    pos = sampleRealPos * factor * synth.vibrato(sampleRealPos);
+    pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
     count++;
   }
 

@@ -345,7 +345,6 @@ float Synthesizer::vibrato(uint32_t pos)
   static bool first = true;
   static bool showIt = false;
 
-  return 1.0f;
   if ((vibLfoToPitch  == 0) ||
       (durationVibLFO == 0)) {
     return 1.0f;
@@ -355,9 +354,12 @@ float Synthesizer::vibrato(uint32_t pos)
       return 1.0f;
     }
     else {
-      float half = durationVibLFO / 2;
+      float half = ((float) durationVibLFO) / 2.0f;
       uint32_t loc = (pos - delayVibLFO) % durationVibLFO;
       half = centsToRatio(((half - abs(loc - half))/half) * ((float)vibLfoToPitch));
+      assert(half >= 1.0);
+      //std::cout << half << "," << std::flush;
+      return half;
       if (first) {
         if (loc == 0) {
           showIt = true;
@@ -372,7 +374,7 @@ float Synthesizer::vibrato(uint32_t pos)
         }
       }
       if (showIt) {
-         std::cout << "<" << half << ">" << std::endl << std::flush;
+         std::cout << half << "," << std::flush;
       }
       return half;
     }

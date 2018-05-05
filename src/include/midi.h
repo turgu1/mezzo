@@ -23,7 +23,12 @@ class Midi {
   ~Midi();
   void monitorMessages();
   void transposeAdjust(); ///< Interactive tranpose value gathering
-  void selectDevice();
+  
+  /// Find device number from configuration data
+  int findDeviceNbr();
+  
+  int selectDevice(int defaultNbr);
+  void openPort(int devNbr);
 
  private:
   RtMidiIn * midiPort;  ///< RTMidiIn instance

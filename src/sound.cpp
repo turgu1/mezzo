@@ -10,6 +10,9 @@
 #include "mezzo.h"
 #include "sound.h"
 
+#define CHKPA(stmt, msg) \
+  if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
+
 //---- soundCallback() ----
 
 int soundCallback(const void *                     inputBuffer,
@@ -42,10 +45,70 @@ int soundCallback(const void *                     inputBuffer,
   return paContinue;
 }
 
-//---- Sound() ----
+void Sound::openPort(int devNbr)
+{
+  int err;
 
-#define CHKPA(stmt, msg) \
-  if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
+  PaStreamParameters params;
+  PaStreamFlags      flags;
+
+  params.device       = devNbr;
+  params.channelCount = 2;
+
+  params.sampleFormat = paFloat32;
+  flags = 0;
+
+  params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
+  params.hostApiSpecificStreamInfo = NULL;
+
+  CHKPA(Pa_OpenStream(&stream,
+                      NULL, &params, config.samplingRate,
+                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
+        "Unable to open PortAudio Stream: %s");
+
+  CHKPA(Pa_StartStream(stream),
+        "Unable to start PortAudio Stream: %s");
+}
+
+int Sound::findDeviceNbr()
+{
+  int devCount;
+
+  const PaDeviceInfo *devInfo;
+  int devNbr = config.pcmDeviceNbr;;
+
+  if ((devCount = Pa_GetDeviceCount()) < 0) {
+    logger.FATAL("Unable to get audio device count: %s.", 
+                 Pa_GetErrorText(devCount));
+  }
+
+  if (!config.silent) showDevices(devCount);
+
+  if (config.pcmDeviceName.size() > 0) {
+    for (int i = 0; i < devCount; i++) {
+      devInfo = Pa_GetDeviceInfo(i);
+
+      if ((devNbr == -1) && 
+          (strcasestr(devInfo->name, config.pcmDeviceName.c_str()) != NULL)) {
+        devNbr = i;
+        break;
+      }
+    }
+  }
+
+  if (devNbr == -1) {
+    devNbr =  Pa_GetDefaultOutputDevice();
+    if (devNbr == paNoDevice) devNbr = 0;
+    logger.INFO("Default PCM Device (%d) selected.", devNbr);
+  }
+  else {
+    logger.INFO("PCM Device Selected: %d.", devNbr);
+  }  
+  
+  return devNbr;
+}
+
+//---- Sound() ----
 
 Sound::Sound()
 {
@@ -62,61 +125,11 @@ Sound::Sound()
 
   CHKPA(Pa_Initialize(), "Unable to initialize PortAudio: %s");
 
-  if (config.interactive) {
-    selectDevice();
-  }
-  else {
-    int devCount;
+  int devNbr = findDeviceNbr();
+  
+  if (config.interactive) devNbr = selectDevice(devNbr);
 
-    PaStreamParameters params;
-    PaStreamFlags      flags;
-
-    const PaDeviceInfo *devInfo;
-    int devNbr = config.pcmDeviceNbr;;
-
-    if ((devCount = Pa_GetDeviceCount()) < 0) {
-      logger.FATAL("Unable to get audio device count: %s.", Pa_GetErrorText(devCount));
-    }
-
-    if (!config.silent) showDevices(devCount);
-
-    if (config.pcmDeviceName.size() > 0) {
-      for (int i = 0; i < devCount; i++) {
-        devInfo = Pa_GetDeviceInfo(i);
-
-        if ((devNbr == -1) && (strcasestr(devInfo->name, config.pcmDeviceName.c_str()) != NULL)) {
-          devNbr = i;
-          break;
-        }
-      }
-    }
-
-    if (devNbr == -1) {
-      devNbr =  Pa_GetDefaultOutputDevice();
-      if (devNbr == paNoDevice) devNbr = 0;
-      logger.INFO("Default PCM Device (%d) selected.", devNbr);
-    }
-    else {
-      logger.INFO("PCM Device Selected: %d.", devNbr);
-    }
-
-    params.device       = devNbr;
-    params.channelCount = 2;
-
-    params.sampleFormat = paFloat32;
-    flags = 0;
-
-    params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
-    params.hostApiSpecificStreamInfo = NULL;
-
-    CHKPA(Pa_OpenStream(&stream,
-                        NULL, &params, config.samplingRate,
-                        BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
-          "Unable to open PortAudio Stream: %s");
-
-    CHKPA(Pa_StartStream(stream),
-          "Unable to start PortAudio Stream: %s");
-  }
+  openPort(devNbr);
 
   // Initialize replay buffer
   rbuff = new sample_t[REPLAY_BUFFER_SAMPLE_COUNT];
@@ -173,15 +186,11 @@ void Sound::showDevices(int devCount)
 
 //---- selectDevice() ----
 
-void Sound::selectDevice()
+int Sound::selectDevice(int defaultNbr)
 {
   using namespace std;
 
   int devCount;
-  int err;
-
-  PaStreamParameters params;
-  PaStreamFlags      flags;
 
   int devNbr = -1;
 
@@ -192,13 +201,19 @@ void Sound::selectDevice()
   showDevices(devCount);
 
   while (true) {
-    char userData[6];
+    string userData;
     int userNbr;
 
-    cout << "Please enter PCM device number to use > ";
-    cin >> setw(5) >> userData;
+    cout << "Please enter PCM device number to use [" << defaultNbr << "]> ";
 
-    userNbr = atoi(userData);
+    getline(cin, userData);
+
+    if (userData.length() == 0) {
+      devNbr = defaultNbr;
+      break;
+    }
+    
+    userNbr = atoi(userData.c_str());
 
     if ((userNbr < 0) || (userNbr >= devCount)) {
       cout << "!! Invalid device number[" << userNbr << "]. Please try again !!" << endl;
@@ -208,27 +223,7 @@ void Sound::selectDevice()
       break;
     }
   }
-  cout << "PCM Device Selected: " << devNbr << endl << endl;
-
-  params.device       = devNbr;
-  params.channelCount = 2;
-
-  params.sampleFormat = paFloat32;
-  flags = 0;
-
-  params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
-  params.hostApiSpecificStreamInfo = NULL;
-
-  if (stream != NULL) {
-    Pa_AbortStream(stream);
-    Pa_CloseStream(stream);
-  }
-
-  CHKPA(Pa_OpenStream(&stream,
-                      NULL, &params, config.samplingRate,
-                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
-        "Unable to open PortAudio Stream: %s");
-
-  CHKPA(Pa_StartStream(stream),
-        "Unable to start PortAudio Stream: %s");
+  cout << "PCM Device Selected: " << devNbr << endl;
+  
+  return devNbr;
 }

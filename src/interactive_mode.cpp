@@ -74,8 +74,14 @@ void InteractiveMode::menu()
     case 'b': midi->monitorMessages();         break;
     case 'e': equalizer->interactiveAdjust();  break;
     case 'r': reverb->interactiveAdjust();     break;
-    case 's': sound->selectDevice();           break;
-    case 'm': midi->selectDevice();            break;
+    case 's': {
+      int devNbr = sound->selectDevice(-1);
+      sound->openPort(devNbr); }
+      break;
+    case 'm': {
+      int devNbr = midi->selectDevice(-1);
+      midi->openPort(devNbr); }
+      break;
     case 't': midi->transposeAdjust();         break;
     // case 'l': samples->showNotes();         break;
     case 'v': poly->showState();               break;
