@@ -107,7 +107,7 @@ private:
     return endOfSound;
   }
 
-  inline void  toStereo(buffp dst, buffp src, uint16_t len) {
+  inline void  toStereo(buffp dst, const buffp src, uint16_t len) {
     const float prop  = M_SQRT2 * 0.5;
     const float angle = ((float) pan) * M_PI;
 

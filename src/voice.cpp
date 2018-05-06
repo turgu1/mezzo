@@ -350,10 +350,16 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     scaleBuff[3] = 0.0f;
   }
 
-  // sampleRealPos is the postion where we are at the output as a number
-  // of samples since the start of the note. pos is where we need to
-  // get someting from the sample, taking into account pitch changes of all
-  // kind.
+  // sampleRealPos : postion where we are at the output as a number
+  //                 of samples since the start of the note. 
+  //
+  //           pos : where we need to get someting from the sample, taking
+  //                 into account pitch changes of all
+  //                 kind (resampling is considered a *kind of* pitch change...).
+  //
+  //        factor : cumulative non-changing pitch transformation 
+  //                 to wich we add the dynamic portions of the 
+  //                 changes (vibrato and modulation)
 
   float pos = sampleRealPos * factor * synth.vibrato(sampleRealPos);
 
