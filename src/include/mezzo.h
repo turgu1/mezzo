@@ -10,6 +10,7 @@
 
 #include "sf2.h"
 
+#include "lfo.h"
 #include "sample.h"
 #include "synthesizer.h"
 #include "preset.h"

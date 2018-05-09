@@ -10,9 +10,9 @@
 
 #include "mezzo.h"
 
-PRIVATE const int MIDI_EVENT_COUNT  = 50;
+//PRIVATE const int MIDI_EVENT_COUNT  = 50;
 
-PRIVATE const int MIDI_STATUS_MASK  = 0x80;
+//PRIVATE const int MIDI_STATUS_MASK  = 0x80;
 
 PRIVATE const int MIDI_CHANNEL_MASK = 0x0F;
 PRIVATE const int MIDI_COMMAND_MASK = 0xF0;
@@ -94,7 +94,7 @@ void midiCallBack (double timeStamp,
   (void) userData;
 
   static uint8_t bankNbr = 0;
-  
+
   int count = message->size();
 
   if (count <= 0) return;
@@ -217,7 +217,7 @@ int Midi::selectDevice(int defaultNbr)
       devNbr = defaultNbr;
       break;
     }
-    
+
     userNbr = atoi(userData.c_str());
 
     if ((userNbr < 0) || (userNbr >= devCount)) {
@@ -285,7 +285,7 @@ Midi::Midi()
   }
 
   int devNbr = findDeviceNbr();
-  
+
   if (config.interactive) devNbr = selectDevice(devNbr);
 
   openPort(devNbr);
@@ -293,7 +293,7 @@ Midi::Midi()
   try {
     midiPort->setCallback(&midiCallBack);
   }
-  
+
   catch (RtMidiError &error) {
     logger.FATAL("Unable to set Midi CallBack: %s.", error.what());
   }
@@ -383,7 +383,7 @@ void Midi::openPort(int devNbr)
   }
   catch (RtMidiError &error) {
     logger.FATAL("Unable to open MIDI Device: %s.", error.what());
-  }  
+  }
 }
 
 //---- ~Midi() ----
@@ -454,4 +454,3 @@ void Midi::transposeAdjust()
 
   config.midiTranspose = value;
 }
-

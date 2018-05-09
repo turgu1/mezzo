@@ -11,6 +11,7 @@
 class Synthesizer {
 
 private:
+  Lfo      vibratoLfo;
   uint32_t pos;
   uint32_t start;
   uint32_t end;
@@ -40,8 +41,8 @@ private:
   float    attenuationFactor;
   float    correctionFactor;
   uint32_t delayVibLFO;
-  uint32_t vibLfoToPitch;
-  uint32_t durationVibLFO;
+  float    vibLfoToPitch;
+  float    freqVibLFO;
   int16_t  pan;
   uint8_t  rootKey;
   int8_t   velocity;
@@ -107,7 +108,7 @@ private:
     return endOfSound;
   }
 
-  inline void  toStereo(buffp dst, const buffp src, uint16_t len) {
+  inline void  toStereo(buffp dst, buffp src, uint16_t len) {
     const float prop  = M_SQRT2 * 0.5;
     const float angle = ((float) pan) * M_PI;
 

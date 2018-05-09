@@ -109,17 +109,18 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       // Vibrato
 
       case  sfGenOper_vibLfoToPitch:
-        iVal = gens->genAmount.shAmount;
-        vibLfoToPitch = (type == set) ? iVal : (iVal + vibLfoToPitch);
+        fVal = ((float)gens->genAmount.shAmount) / 200.0f;
+        vibLfoToPitch = (type == set) ? fVal : (fVal + vibLfoToPitch);
         break;
       case  sfGenOper_delayVibLFO:
         iVal = gens->genAmount.shAmount == -32768 ? 0 :
                config.samplingRate * centsToRatio(gens->genAmount.shAmount);
-        delayVibLFO = (type == set) ? iVal : (delayVibLFO + iVal);
+        delayVibLFO = iVal; //(type == set) ? iVal : (delayVibLFO + iVal);
         break;
       case  sfGenOper_freqVibLFO:
-        iVal = centsToDuration(gens->genAmount.shAmount);
-        durationVibLFO = (type == set) ? iVal : (iVal + durationVibLFO);
+        iVal = gens->genAmount.shAmount;
+        freqVibLFO = centsToFreq(iVal); //(type == set) ? centsToFreq(iVal) :
+                                    //(centsToRatio(iVal) * freqVibLFO);
         break;
 
       case  sfGenOper_modLfoToPitch:
@@ -198,7 +199,7 @@ void Synthesizer::setDefaults(Sample * sample)
   initialFilterQ          =  1.0f;  // DB
   vibLfoToPitch           =     0;
   delayVibLFO             =     0;
-  durationVibLFO          =     0;
+  freqVibLFO              =  1.0f;
 }
 
 void Synthesizer::completeParams()
@@ -223,9 +224,14 @@ void Synthesizer::completeParams()
   decayVolEnvRate   = decayVolEnv   == 0 ? attenuationFactor : ((attenuationFactor - sustainVolEnv) / (float) decayVolEnv);
   releaseVolEnvRate = releaseVolEnv == 0 ? attenuationFactor : (sustainVolEnv / (float) releaseVolEnv);
 
+  vibratoLfo = Lfo(freqVibLFO, 3.0f * M_PI / 2.0f, config.samplingRate);
+
   biQuadSetup();
+
   std::cout << "completeParams" << std::endl;
+
   showParams();
+
   // cout
   // << "VolEnv:[D:" << delayVolEnv
   // << ",A:" << attackVolEnv  << "@" << attackVolEnvRate << "/" << attackVolEnvStart
@@ -270,7 +276,7 @@ void Synthesizer::showParams()
        << "         "
        <<"Vib:[D:" << delayVibLFO
        << ",P:" << vibLfoToPitch
-       << ",D:" << durationVibLFO
+       << ",F:" << freqVibLFO
        << "]"   << endl;
 }
 
@@ -342,11 +348,8 @@ bool Synthesizer::transform(buffp dst, buffp src, uint16_t len)
 
 float Synthesizer::vibrato(uint32_t pos)
 {
-  static bool first = true;
-  static bool showIt = false;
-
   if ((vibLfoToPitch  == 0) ||
-      (durationVibLFO == 0)) {
+      (freqVibLFO == 0)) {
     return 1.0f;
   }
   else {
@@ -354,29 +357,10 @@ float Synthesizer::vibrato(uint32_t pos)
       return 1.0f;
     }
     else {
-      float half = ((float) durationVibLFO) / 2.0f;
-      uint32_t loc = (pos - delayVibLFO) % durationVibLFO;
-      half = centsToRatio(((half - abs(loc - half))/half) * ((float)vibLfoToPitch));
-      assert(half >= 1.0);
-      //std::cout << half << "," << std::flush;
-      return half;
-      if (first) {
-        if (loc == 0) {
-          showIt = true;
-        }
-        else {
-          first = false;
-        }
-      }
-      else {
-        if (loc == 0) {
-          showIt = false;
-        }
-      }
-      if (showIt) {
-         std::cout << half << "," << std::flush;
-      }
-      return half;
+      float result = pow(2, (vibLfoToPitch + (vibratoLfo.nextValue() * (vibLfoToPitch))) / 12);
+      // assert(result >= 1.0);
+      // std::cout << result << "," << std::flush;
+      return result;
     }
   }
 }

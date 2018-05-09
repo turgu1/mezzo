@@ -185,6 +185,119 @@ int Voice::getNormalSamples(buffp buff)
 }
 
 
+#if 1
+
+/// Lagrange 4th order interpolation polynomes.
+///
+/// We used four consecutive locations (named x1 to x4) and compute
+/// the following equations using x1 = -1, x2 = 0, x3 = 1, x4 = 2:
+///
+///      (x  - x2)(x  - x3)(x  - x4)
+/// P1 = --------------------------- = x³ - 3x² + 2x / -6 = x ((3 - x) x - 2) / 6
+///      (x1 - x2)(x1 - x3)(x1 - x4)
+///
+///      (x  - x1)(x  - x3)(x  - x4)
+/// P2 = --------------------------- = x³ - 2x² - x + 2 / 2 = x ((x - 2) x - 1) + 2 / 2
+///      (x2 - x1)(x2 - x3)(x2 - x4)
+///
+///
+///      (x  - x1)(x  - x2)(x  - x4)
+/// P3 = --------------------------- = x³ - x² - 2x / -2 = x ((1 - x) x + 2) / 2
+///      (x3 - x1)(x3 - x2)(x3 - x4)
+///
+///      (x  - x1)(x  - x2)(x  - x3)
+/// P4 = --------------------------- = x³ - x / 6 = x (x² - 1) / 6
+///      (x4 - x1)(x4 - x3)(x4 - x3)
+///
+/// (the last equation on the right are Horner's forms that optimize
+///  the number of arithmetic operations)
+///
+/// These equations are used in a "sliding window" for wich we only
+/// compute interpolation located between x2 and x3.
+
+#define P1(x) ((x * ((3.0f - x) * x - 2.0f)) / 6.0f)
+#define P2(x) ((x * ((x - 2.0f) * x - 1.0f) + 2.0f) / 2.0f)
+#define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
+#define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
+
+using namespace std;
+#include <iomanip>
+
+int Voice::getScaledSamples(buffp buff, int sampleCount)
+{
+  int count = 0;
+
+  //assert((note - sample->getPitch()) >= 0);
+
+  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
+
+  // std::cout << factor << ", " << std::flush;
+
+  if (sample->getSampleRate() != config.samplingRate) {
+    // resampling is required
+    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
+  }
+
+  assert(scaleBuff != NULL);
+  assert(buff != NULL);
+  assert(sampleCount > 0);
+
+  if (scaleBuffPos == -1) {
+    // We are at the beginning of the voice rendition.
+    // Get first bucket of samples to start the process.
+    if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) return 0;
+    scaleBuffPos = 0;
+    scaleBuff[0] =
+    scaleBuff[1] =
+    scaleBuff[2] =
+    scaleBuff[3] = 0.0f;
+  }
+
+  // sampleRealPos is the postion where we are at the output as a number
+  // of samples since the start of the note. pos is where we need to
+  // get someting from the sample, taking into account pitch changes of all
+  // kind.
+
+  float pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
+
+  while (sampleCount--) {
+
+    float fipos;
+    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
+    int16_t ipos = (((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
+
+    // std::cout << scaleBuffPos << "," << fipos << "," << ipos << std::endl;
+
+    if (fipos >= (scaleBuffPos + scaleBuffSize )) {
+      scaleBuffPos += scaleBuffSize;
+      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
+      if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
+    }
+
+    assert(ipos >= -2);
+
+    float * y = &scaleBuff[ipos - 1 + 4];
+    *buff++ = (y[0] * P1(diff)) +
+              (y[1] * P2(diff)) +
+              (y[2] * P3(diff)) +
+              (y[3] * P4(diff));
+
+    sampleRealPos++;
+    pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
+    count++;
+  }
+
+  return count;
+}
+
+#undef P1
+#undef P2
+#undef P3
+#undef P4
+
+#endif
+
 #if 0
 
 /// Lagrange 7th order interpolation polynomes.
@@ -250,13 +363,15 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
     float fipos;
     float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    uint16_t ipos = ((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT;
+    uint16_t ipos = (((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 3;
 
     if (fipos >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 7 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[7])) == 0) break;
     }
+
+    assert(ipos >= -3);
 
     float * y = &scaleBuff[ipos - 4 + 7];
     *buff++ = (y[0] * P1(diff)) +
@@ -266,125 +381,6 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
               (y[4] * P5(diff)) +
               (y[5] * P6(diff)) +
               (y[6] * P7(diff));
-
-    pos += factor;
-    count++;
-  }
-
-  sampleRealPos += count;
-  return count;
-}
-
-#undef P1
-#undef P2
-#undef P3
-#undef P4
-#undef P5
-#undef P6
-#undef P7
-
-#endif
-
-#if 1
-
-/// Lagrange 4th order interpolation polynomes.
-///
-/// We used four consecutive locations (named x1 to x4) and compute
-/// the following equations using x1 = -1, x2 = 0, x3 = 1, x4 = 2:
-///
-///      (x  - x2)(x  - x3)(x  - x4)
-/// P1 = --------------------------- = x³ - 3x² + 2x / -6 = x ((3 - x) x - 2) / 6
-///      (x1 - x2)(x1 - x3)(x1 - x4)
-///
-///      (x  - x1)(x  - x3)(x  - x4)
-/// P2 = --------------------------- = x³ - 2x² - x + 2 / 2 = x ((x - 2) x - 1) + 2 / 2
-///      (x2 - x1)(x2 - x3)(x2 - x4)
-///
-///
-///      (x  - x1)(x  - x2)(x  - x4)
-/// P3 = --------------------------- = x³ - x² - 2x / -2 = x ((1 - x) x + 2) / 2
-///      (x3 - x1)(x3 - x2)(x3 - x4)
-///
-///      (x  - x1)(x  - x2)(x  - x3)
-/// P4 = --------------------------- = x³ - x / 6 = x (x² - 1) / 6
-///      (x4 - x1)(x4 - x3)(x4 - x3)
-///
-/// (the last equation on the right are Horner's forms)
-///
-/// These equations are used in a "sliding window" for wich we only
-/// compute interpolation located between x2 and x3.
-
-#define P1(x) ((x * ((3.0f - x) * x - 2.0f)) / 6.0f)
-#define P2(x) ((x * ((x - 2.0f) * x - 1.0f) + 2.0f) / 2.0f)
-#define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
-#define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
-
-using namespace std;
-#include <iomanip>
-
-int Voice::getScaledSamples(buffp buff, int sampleCount)
-{
-  int count = 0;
-
-  //assert((note - sample->getPitch()) >= 0);
-
-  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-
-  if (sample->getSampleRate() != config.samplingRate) {
-    // resampling is required
-    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
-  }
-
-  assert(scaleBuff != NULL);
-  assert(buff != NULL);
-  assert(sampleCount > 0);
-
-  if (scaleBuffPos == -1) {
-    // We are at the beginning of the voice rendition.
-    // Get first bucket of samples to start the process.
-    if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) return 0;
-    scaleBuffPos = 0;
-    scaleBuff[0] =
-    scaleBuff[1] =
-    scaleBuff[2] =
-    scaleBuff[3] = 0.0f;
-  }
-
-  // sampleRealPos : postion where we are at the output as a number
-  //                 of samples since the start of the note. 
-  //
-  //           pos : where we need to get someting from the sample, taking
-  //                 into account pitch changes of all
-  //                 kind (resampling is considered a *kind of* pitch change...).
-  //
-  //        factor : cumulative non-changing pitch transformation 
-  //                 to wich we add the dynamic portions of the 
-  //                 changes (vibrato and modulation)
-
-  float pos = sampleRealPos * factor * synth.vibrato(sampleRealPos);
-
-  while (sampleCount--) {
-
-    float fipos;
-    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    int16_t ipos = (((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
-
-    // std::cout << scaleBuffPos << "," << fipos << "," << ipos << std::endl;
-
-    if (fipos >= (scaleBuffPos + scaleBuffSize )) {
-      scaleBuffPos += scaleBuffSize;
-      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
-      if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
-      if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
-    }
-
-    assert(ipos >= -2);
-
-    float * y = &scaleBuff[ipos - 1 + 4];
-    *buff++ = (y[0] * P1(diff)) +
-              (y[1] * P2(diff)) +
-              (y[2] * P3(diff)) +
-              (y[3] * P4(diff));
 
     sampleRealPos++;
     pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
@@ -398,6 +394,9 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 #undef P2
 #undef P3
 #undef P4
+#undef P5
+#undef P6
+#undef P7
 
 #endif
 
