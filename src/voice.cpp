@@ -178,9 +178,9 @@ void Voice::setup(samplep      _sample,
   END();
 }
 
-//---- getNormalSamples() ----
+//---- retrieveFifoSamples() ----
 
-int Voice::getNormalSamples(buffp buff)
+int Voice::retrieveFifoSamples(buffp buff)
 {
   int readSampleCount;
 
@@ -258,7 +258,7 @@ int Voice::getSamples(buffp buff, int length)
     if (((uint32_t) integralPart) >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
-      if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
+      if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
       if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
     }
 

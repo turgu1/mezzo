@@ -148,13 +148,13 @@ class Voice : public NewHandlerSupport<Voice> {
              uint16_t      presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
-  /// mixer. Normal means that the note to be played is the same as
-  /// the main frequency of the sample note.
-  int getNormalSamples(buffp buff);
+  /// mixer. The will be found in the associated fifo (first in, first out)
+  /// buffer pre-loaded by the second thread.
+  int retrieveFifoSamples(buffp buff);
 
   /// This method returns the next scaled bundle of samples required by
-  /// the mixer. The data is scaled as the note from the sample is not
-  /// the same as the note data to be supplied by the voice. 
+  /// the mixer. The data is resample in accordance with the shifted pitch (if requires)
+  /// the Sample rate (in regard of the audio-out targetted sampling rate) and modulations. 
   int getSamples(buffp buff, int length);
 
   inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); } ///< Lock a multithreading resource that needs to be modified
@@ -183,6 +183,8 @@ class Voice : public NewHandlerSupport<Voice> {
   /// from the sample and put it in the next avail slot in the
   /// fifo buffer, if there is some room available.
   void feedFifo();
+
+  /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
 
   inline void clearFifo()       { fifo->clear();        }

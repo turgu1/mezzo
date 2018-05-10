@@ -1,6 +1,6 @@
 # Mezzo: Sound Font V2 Sampling Based Synthesizer
 
-Important: Not in a state of usability. Won't be ready before june 2018.
+Important: Not at a state of usability. Won't be ready before june 2018.
 
 Note: The documentation is still work in progress...
 
@@ -12,7 +12,7 @@ Mezzo has the following characteristics:
 * Very low latency (lower than 11.6ms)
 * Algebraic Reverb filter, based on the FreeVerb algorithm
 * 7 band digital output equalizer
-* High optimization using ARM NEON DSP intrinsic instructions
+* High optimization using ARM NEON or Intel SSE DSP intrinsic instructions
 * Multithreaded application, to allow for very large sampling libraries that goes beyond RAM memory limitations.
 * Console based, no graphics, fire and forget application
 * Minimal interactive mode for initial setup and debugging purposes
@@ -26,11 +26,17 @@ I was used to play piano (for myself as an amateur) on a Roland A-88 MIDI contro
 
 I was ready to buy a dedicated sampling computer or better, build my own. When the Raspberry Pi was first introduced, I thought it would be a good start at building my own music computer, but it was lacking some important features: enough USB ports (at least 3: MIDI controller access, external DAC, WIFI dongle), memory and processing power to permit a reasonable amount of good quality samples and polyphonic voices to be played. The first music related projects that started to emerge shown the device limitation and simply pushed to the right my intent.
 
-With the arrival of the Raspberry Pi 2, the new capability of the device (faster multi-core processor, more memory) triggered again my interest in this project and I started to build something useful and here it is. It was fun to built and it is fun to play piano with my own stuff.
+With the arrival of the Raspberry Pi 2, the new capability of the device (faster multi-core processor, more memory) triggered again my interest in this project and I started to build something useful, it was named PIano (On Github: [https://github.com/turgu1/Piano]. It was fun to built and it is fun to play piano with my own stuff. But it was lacking of better support of standardized open audio samples formatting (namely SoundFont) and many features that you would find in a modern synth (namely envelope, filtering, modulation controls).
 
-This is certainly not the best sampling application available. My intent is to bridge the gap with other more sophisticated alternatives than will eventually be able to be run on a future more powerful Raspberry PI. Some decisions taken also reflect the "good enough selection" I made, considering some arbitrary level of satisfaction of my own or unavailability of time for me to address more closely some of the shortcomings encountered.
+With the arrival of the Raspberry Pi 3B+, I expected to get enough processing power to build a new version of PIano. This
+one is named Mezzo.
+
+This is certainly not the best sampling application available. My intent is to bridge the gap with other more sophisticated alternatives. Some decisions taken also reflect the "good enough selection" I made, considering some arbitrary level of satisfaction of my own or unavailability of time for me to address more closely some of the shortcomings encountered.
 
 All along the development of Mezzo, I've been using it extensively to ensure it won't show misbehaving states on a dedicated Raspberry PI that is run in console mode. As it's still work in progress, I expect some issues yet to be find and will fix them as soon as possible once discovered.
+
+The Raspberry Pi 3B+ is the target. But it can be compiled on any other Linuxish platform (even on MaxOS). Mileage may
+vay depending on the platform performances (CPU, memory, I/O bandwidth).
 
 ## External Devices
 
