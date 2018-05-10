@@ -9,8 +9,6 @@
   #include <arm_neon.h>
 #endif
 
-static Lfo lfo(440, 3.0f * M_PI / 2.0f, 48000);
-
 // In midi, there is a potential of 128 note values
 // The vector will get scale factors for offsets between two notes
 // ranging  from -127 to +127
@@ -82,21 +80,19 @@ Voice::Voice()
   state         = DORMANT;
   stateLock     = 0;
   sample        = NULL;
-  samplePos     = 0;
-  outputPos = 0;
   noteIsOn      = false;
-  gain          = 1.0f;
   fifo          = new Fifo;
   next          = NULL;
 
-  scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT+7];
-
-  scaleBuffPos = -1;
+  // The 4 additional float in the buffer will allow for the continuity of 
+  // interpolation between buffer retrieval action from the fifo. The last 4 samples
+  // of the last retrieved record will be put back as the 4 first samples in the buffer.
+  scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT + 4];
 
   if (!scaleFactorsInitialized) {
     scaleFactorsInitialized = true;
 
-    // As per "Twelve-tone equal temperament" described on the internet:
+    // As per "Twelve-tone equal temperament" described at this urlt:
     //   https://en.wikipedia.org/wiki/Equal_temperament
 
     for (int i = 0; i < SCALE_FACTOR_COUNT; i++) {
@@ -121,44 +117,49 @@ void Voice::outOfMemory()
 }
 
 //---- setup() ----
-
-void Voice::setup(samplep      sample,
-                  char         note,
-                  float        gain,
-                  Synthesizer  synth,
-                  Preset     & preset,
-                  uint16_t     presetZoneIdx)
+//
+// This method will connect the voice object with the sample and the preset.
+// It will then initialize the voice, load the fifo, prepare the synthesizer 
+// and get ready to sound the sample. It is called when the user had struck
+// a key and then require a sound to be played.
+void Voice::setup(samplep      _sample,
+                  char         _note,
+                  float        _gain,
+                  Synthesizer  _synth,
+                  Preset     & _preset,
+                  uint16_t     _presetZoneIdx)
 {
   // Connect the sample with the voice
-  this->sample   = sample;
-  this->note     = note;
-  this->synth    = synth;
-  this->gain     = gain * synth.getAttenuation();
+  sample   = _sample;
+  note     = _note;
+  synth    = _synth;
 
-  samplePos      =  0;
   outputPos      =  0;
-  scaleBuffPos   = -1;
+  scaleBuffPos   =  0;
   scaleBuffSize  =  0;
 
   noteIsOn       = true;
   active         = false;
   fifoLoadPos    = 0;
 
+  // Feed something in the Fifo ring buffer before activation
   prepareFifo();
 
-  this->synth.addGens(preset.getGlobalGens(),            preset.getGlobalGenCount());
-  this->synth.addGens(preset.getZoneGens(presetZoneIdx), preset.getZoneGenCount(presetZoneIdx));
+  synth.addGens(_preset.getGlobalGens(),            _preset.getGlobalGenCount());
+  synth.addGens(_preset.getZoneGens(_presetZoneIdx), _preset.getZoneGenCount(_presetZoneIdx));
 
   //std::cout << sample->getName() << "..." << std::endl << std::flush;
-  this->synth.completeParams();
+  synth.completeParams();
 
-  factor = scaleFactors[(note - this->synth.getRootKey()) + 127] * this->synth.getCorrection();
+  gain = _gain;
+
+  factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
 
   // std::cout << factor << ", " << std::flush;
 
   if (sample->getSampleRate() != config.samplingRate) {
     // resampling is required
-    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
+    factor *= (((float)sample->getSampleRate()) / ((float)config.samplingRate));
   }
 
   scaleBuffSize = 0;
@@ -167,10 +168,10 @@ void Voice::setup(samplep      sample,
   // This initialization is required as the first loop in getSamples will retrieve the last
   // 4 positions in the buffer and put them at the beginning to simplify the algorithm
 
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT  ] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+1] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+2] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+3] = 0.0f;
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT    ] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 1] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 2] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 3] = 0.0f;
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -181,20 +182,11 @@ void Voice::setup(samplep      sample,
 
 int Voice::getNormalSamples(buffp buff)
 {
-  // for (int i = 0; i < SAMPLE_BUFFER_SAMPLE_COUNT; i++) {
-  //   *buff++ = lfo.nextValue();
-  // }
-  // samplePos += SAMPLE_BUFFER_SAMPLE_COUNT;
-  // return SAMPLE_BUFFER_SAMPLE_COUNT;
-
   int readSampleCount;
 
   if (fifo->isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
     readSampleCount = 0;
-    // logger.DEBUG("Underrun!!!");
-    // fifo->showState();
-    // logger.FATAL("Stop!");
   }
   else {
     memcpy(buff,
@@ -203,7 +195,6 @@ int Voice::getNormalSamples(buffp buff)
     fifo->pop();
   }
 
-  samplePos += readSampleCount;
   return readSampleCount;
 }
 
@@ -243,22 +234,20 @@ int Voice::getNormalSamples(buffp buff)
 #define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
 #define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
 
-int Voice::getSamples(buffp buff, int sampleCount)
+int Voice::getSamples(buffp buff, int length)
 {
   int count = 0;
 
-  //assert((note - sample->getPitch()) >= 0);
-
   assert(scaleBuff != NULL);
   assert(buff != NULL);
-  assert(sampleCount > 0);
+  assert(length > 0);
 
   // outputPos is the postion where we are in the output as a number
   // of samples since the start of the note. pos is where we need to
   // get someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind.
 
-  while (sampleCount--) {
+  while (length--) {
 
     float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
 
@@ -283,7 +272,6 @@ int Voice::getSamples(buffp buff, int sampleCount)
               (y[3] * P4(fractionalPart));
 
     outputPos++;
-
     count++;
   }
 

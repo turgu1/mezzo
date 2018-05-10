@@ -55,9 +55,6 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 #define FRAME_BUFFER_SAMPLE_COUNT  (BUFFER_FRAME_COUNT * 2)          ///< Number of samples in a buffer
 #define SAMPLE_BUFFER_SAMPLE_COUNT (BUFFER_FRAME_COUNT)              ///< Number of samples in a buffer
 
-#define MIN(x,y) (x) < (y) ? (x) : (y)
-#define MAX(x,y) (x) > (y) ? (x) : (y)
-
 PUBLIC volatile bool keepRunning;
 
 // Statistics

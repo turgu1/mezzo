@@ -120,7 +120,6 @@ class Voice : public NewHandlerSupport<Voice> {
   int8_t      note;          ///< Targeted note, can be different than the one from sample
   bool        noteIsOn;      ///< The note is played
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
-  int         samplePos;     ///< Position in the sample stream of frames
   uint32_t    outputPos;     ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
   buffp       scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
@@ -141,12 +140,12 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep sample,
-             char note,
-             float gain,
-             Synthesizer synth,
+  void setup(samplep       sample,
+             char          note,
+             float         gain,
+             Synthesizer   synth,
              Preset      & preset,
-             uint16_t presetZoneIdx);
+             uint16_t      presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. Normal means that the note to be played is the same as
@@ -156,7 +155,7 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This method returns the next scaled bundle of samples required by
   /// the mixer. The data is scaled as the note from the sample is not
   /// the same as the note data to be supplied by the voice. 
-  int getSamples(buffp buff, int sampleCount);
+  int getSamples(buffp buff, int length);
 
   inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); } ///< Lock a multithreading resource that needs to be modified
   inline void END()   { __sync_lock_release(&stateLock); } ///< Unlock a multithreading resource that has been modified
@@ -190,8 +189,8 @@ class Voice : public NewHandlerSupport<Voice> {
   inline void noteOff()         { noteIsOn = false; synth.keyHasBeenReleased(); }
   inline bool isNoteOn()        { return noteIsOn;      }
 
-  inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t len) {
-    return synth.transform(tmpBuff, voiceBuff, len); }
+  inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t length) {
+    return synth.transform(tmpBuff, voiceBuff, length); }
 };
 
 #endif
