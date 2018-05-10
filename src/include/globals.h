@@ -4,6 +4,8 @@
 #include <string>
 #include <cassert>
 #include "copyright.h"
+#include <iostream>
+#include <fstream>
 
 #include <cstddef>
 #include <new>
@@ -75,6 +77,8 @@ PUBLIC Poly       * poly;
 PUBLIC Midi       * midi;
 
 PUBLIC Log logger;
+
+PUBLIC std::ofstream binFile;
 
 #undef PUBLIC
 #endif

@@ -9,6 +9,8 @@
   #include <arm_neon.h>
 #endif
 
+static Lfo lfo(440, 3.0f * M_PI / 2.0f, 48000);
+
 // In midi, there is a potential of 128 note values
 // The vector will get scale factors for offsets between two notes
 // ranging  from -127 to +127
@@ -81,7 +83,7 @@ Voice::Voice()
   stateLock     = 0;
   sample        = NULL;
   samplePos     = 0;
-  sampleRealPos = 0;
+  outputPos = 0;
   noteIsOn      = false;
   gain          = 1.0f;
   fifo          = new Fifo;
@@ -134,7 +136,7 @@ void Voice::setup(samplep      sample,
   this->gain     = gain * synth.getAttenuation();
 
   samplePos      =  0;
-  sampleRealPos  =  0;
+  outputPos      =  0;
   scaleBuffPos   = -1;
   scaleBuffSize  =  0;
 
@@ -150,6 +152,26 @@ void Voice::setup(samplep      sample,
   //std::cout << sample->getName() << "..." << std::endl << std::flush;
   this->synth.completeParams();
 
+  factor = scaleFactors[(note - this->synth.getRootKey()) + 127] * this->synth.getCorrection();
+
+  // std::cout << factor << ", " << std::flush;
+
+  if (sample->getSampleRate() != config.samplingRate) {
+    // resampling is required
+    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
+  }
+
+  scaleBuffSize = 0;
+  scaleBuffPos  = 0;
+  
+  // This initialization is required as the first loop in getSamples will retrieve the last
+  // 4 positions in the buffer and put them at the beginning to simplify the algorithm
+
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT  ] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+1] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+2] =
+  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT+3] = 0.0f;
+
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
@@ -159,12 +181,13 @@ void Voice::setup(samplep      sample,
 
 int Voice::getNormalSamples(buffp buff)
 {
-  int readSampleCount;
+  // for (int i = 0; i < SAMPLE_BUFFER_SAMPLE_COUNT; i++) {
+  //   *buff++ = lfo.nextValue();
+  // }
+  // samplePos += SAMPLE_BUFFER_SAMPLE_COUNT;
+  // return SAMPLE_BUFFER_SAMPLE_COUNT;
 
-  if (isInactive()) {
-    logger.DEBUG("Voice inactive in getSamples()!");
-    return 0;
-  }
+  int readSampleCount;
 
   if (fifo->isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
@@ -220,71 +243,47 @@ int Voice::getNormalSamples(buffp buff)
 #define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
 #define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
 
-using namespace std;
-#include <iomanip>
-
-int Voice::getScaledSamples(buffp buff, int sampleCount)
+int Voice::getSamples(buffp buff, int sampleCount)
 {
   int count = 0;
 
   //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-
-  // std::cout << factor << ", " << std::flush;
-
-  if (sample->getSampleRate() != config.samplingRate) {
-    // resampling is required
-    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
-  }
-
   assert(scaleBuff != NULL);
   assert(buff != NULL);
   assert(sampleCount > 0);
 
-  if (scaleBuffPos == -1) {
-    // We are at the beginning of the voice rendition.
-    // Get first bucket of samples to start the process.
-    if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) return 0;
-    scaleBuffPos = 0;
-    scaleBuff[0] =
-    scaleBuff[1] =
-    scaleBuff[2] =
-    scaleBuff[3] = 0.0f;
-  }
-
-  // sampleRealPos is the postion where we are at the output as a number
+  // outputPos is the postion where we are in the output as a number
   // of samples since the start of the note. pos is where we need to
-  // get someting from the sample, taking into account pitch changes of all
-  // kind.
-
-  float pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
+  // get someting from the sample, taking into account pitch changes, resampling
+  // and modulation of all kind.
 
   while (sampleCount--) {
 
-    float fipos;
-    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    int16_t ipos = (((uint32_t)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
+    float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
 
-    // std::cout << scaleBuffPos << "," << fipos << "," << ipos << std::endl;
+    float integralPart;
+    float fractionalPart = modff(scaledPos, &integralPart);
+    int16_t buffIndex = (((uint32_t) integralPart) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
 
-    if (fipos >= (scaleBuffPos + scaleBuffSize )) {
+    if (((uint32_t) integralPart) >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = getNormalSamples(&scaleBuff[4])) == 0) break;
       if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
     }
 
-    assert(ipos >= -2);
+    assert(buffIndex >= -2); 
 
-    float * y = &scaleBuff[ipos - 1 + 4];
-    *buff++ = (y[0] * P1(diff)) +
-              (y[1] * P2(diff)) +
-              (y[2] * P3(diff)) +
-              (y[3] * P4(diff));
+    float * y = &scaleBuff[buffIndex - 1 + 4];
 
-    sampleRealPos++;
-    pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
+    *buff++ = (y[0] * P1(fractionalPart)) +
+              (y[1] * P2(fractionalPart)) +
+              (y[2] * P3(fractionalPart)) +
+              (y[3] * P4(fractionalPart));
+
+    outputPos++;
+
     count++;
   }
 
@@ -357,7 +356,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     scaleBuff[6] = 0.0f;
   }
 
-  float pos = sampleRealPos * factor;
+  float pos = outputPos * factor;
 
   while (sampleCount--) {
 
@@ -382,8 +381,8 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
               (y[5] * P6(diff)) +
               (y[6] * P7(diff));
 
-    sampleRealPos++;
-    pos = sampleRealPos * (factor * synth.vibrato(sampleRealPos));
+    outputPos++;
+    pos = outputPos * (factor * synth.vibrato(outputPos));
     count++;
   }
 
@@ -423,7 +422,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     scaleBuffPos = 0;
   }
 
-  float pos = sampleRealPos * factor;
+  float pos = outputPos * factor;
 
   #if USE_NEON_INTRINSICS
     float aa[4], bb[4], cc[4];
@@ -527,7 +526,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
  endLoop:
 
-  sampleRealPos += count;
+  outputPos += count;
   return count;
 }
 #endif
@@ -540,7 +539,7 @@ void Voice::showState()
 
   cout << "> act:"   << (active ? "true" : "false")             << " "
        << "state:"   << (stateStr[state])                       << " "
-       << "pos:"     << (sampleRealPos)                         << " "
+       << "pos:"     << (outputPos)                             << " "
        << "sample:"  << (sample == NULL ? "none" : "see below") << endl;
 
   cout << "   note:" << (note)                                  << " "

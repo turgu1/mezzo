@@ -228,9 +228,9 @@ void Synthesizer::completeParams()
 
   biQuadSetup();
 
-  std::cout << "completeParams" << std::endl;
+  //std::cout << "completeParams" << std::endl;
 
-  showParams();
+  //showParams();
 
   // cout
   // << "VolEnv:[D:" << delayVolEnv
@@ -357,10 +357,7 @@ float Synthesizer::vibrato(uint32_t pos)
       return 1.0f;
     }
     else {
-      float result = pow(2, (vibLfoToPitch + (vibratoLfo.nextValue() * (vibLfoToPitch))) / 12);
-      // assert(result >= 1.0);
-      // std::cout << result << "," << std::flush;
-      return result;
+      return pow(2, (vibLfoToPitch + (vibratoLfo.nextValue() * (vibLfoToPitch))) / 12);
     }
   }
 }

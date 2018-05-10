@@ -121,12 +121,14 @@ class Voice : public NewHandlerSupport<Voice> {
   bool        noteIsOn;      ///< The note is played
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
   int         samplePos;     ///< Position in the sample stream of frames
-  uint32_t    sampleRealPos; ///< Position in the scaled (or not) processed stream of samples
+  uint32_t    outputPos;     ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
   buffp       scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
-  int         scaleBuffPos;
+  uint32_t    scaleBuffPos;
   uint16_t    scaleBuffSize;
   uint32_t    fifoLoadPos;
+  float       factor;
+  
   Synthesizer synth;
 
   static void outOfMemory(); ///< New operation handler when out of memory occurs
@@ -153,23 +155,8 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// This method returns the next scaled bundle of samples required by
   /// the mixer. The data is scaled as the note from the sample is not
-  /// the same as the note data to be supplied by the voice. The
-  /// scaling algorithm has been optimized with ARM NEON Intrinsic
-  /// instructions.
-  int getScaledSamples(buffp buff, int sampleCount);
-
-  /// This inline method selects the right method to use depending on
-  /// the note being played by the voice to supply scaled or
-  /// non-scaled samples.
-  inline int getSamples(buffp buff, int sampleCount) {
-    if ((note == sample->getPitch()) &&
-        (sample->getSampleRate() == config.samplingRate)) {
-      return getNormalSamples(buff);
-    }
-    else {
-      return getScaledSamples(buff, sampleCount);
-    }
-  }
+  /// the same as the note data to be supplied by the voice. 
+  int getSamples(buffp buff, int sampleCount);
 
   inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); } ///< Lock a multithreading resource that needs to be modified
   inline void END()   { __sync_lock_release(&stateLock); } ///< Unlock a multithreading resource that has been modified

@@ -1,4 +1,6 @@
 #include "copyright.h"
+#include <iostream>
+#include <fstream>
 
 #include "mezzo.h"
 
@@ -21,11 +23,14 @@ Mezzo::Mezzo()
 
   sound->conti();
 
+  // binFile.open("data.bin", std::ios::out | std::ios::binary);
   logger.INFO("Ready!");
 }
 
 Mezzo::~Mezzo()
 {
+  // binFile.close();
+  
   if (soundFont) delete soundFont;
 
   delete midi;
