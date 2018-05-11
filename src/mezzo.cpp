@@ -23,13 +23,13 @@ Mezzo::Mezzo()
 
   sound->conti();
 
-  // binFile.open("data.bin", std::ios::out | std::ios::binary);
+  binFile.open("data.bin", std::ios::out | std::ios::binary);
   logger.INFO("Ready!");
 }
 
 Mezzo::~Mezzo()
 {
-  // binFile.close();
+  binFile.close();
   
   if (soundFont) delete soundFont;
 

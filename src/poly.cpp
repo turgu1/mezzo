@@ -266,7 +266,7 @@ int Poly::mixer(buffp buff, int frameCount)
   int mixedCount = 0;    // Running counter on how many voices have beed
                          //   mixed so far in the loop
 
-  memset(buff, 0, frameCount << LOG_FRAME_SIZE);
+  std::fill(buff, buff + frameCount + frameCount, 0.0f);
 
   Duration *duration = new Duration();
 
@@ -275,6 +275,8 @@ int Poly::mixer(buffp buff, int frameCount)
   while (voice != NULL) {
 
     int count = voice->getSamples(voiceBuff, frameCount);
+
+    //binFile.write((char *) voiceBuff, 4 * count);
 
     if (count > 0) {
 
@@ -320,16 +322,14 @@ int Poly::mixer(buffp buff, int frameCount)
         sample_t  a, b;
 
         while (i--) {
-          float v;
           
           a = *buffOut;
           b = *buffIn++ * voiceGain;
-          *buffOut++ = v = MIX(a, b);
+          *buffOut++ = MIX(a, b);
 
-          if (v > 1.0f) std::cout << "!" << std::flush;
           a = *buffOut;
           b = *buffIn++ * voiceGain;
-          *buffOut++ = v = MIX(a, b);
+          *buffOut++ = MIX(a, b);
         }
 
       #endif
@@ -367,6 +367,7 @@ int Poly::mixer(buffp buff, int frameCount)
   mixerDuration = MAX(mixerDuration, dur);
   delete duration;
 
+  //binFile.write((char*) buff, maxFrameCount << LOG_FRAME_SIZE);
   return maxFrameCount;
 }
 

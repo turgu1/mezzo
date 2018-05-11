@@ -24,7 +24,7 @@ public:
                                         setup(); }
 
   inline void setFrequency(float f) { frequency = f; }
-  inline void setPhase(float  p)    { phase     = p; }
+  inline void setPhase    (float p) { phase     = p; }
 
   float nextValue()
   {
@@ -36,6 +36,19 @@ public:
 
     assert((value >= -1.0f) && (value <= 1.0f));
     return value;
+  }
+
+  void showStatus()
+  {
+    using namespace std;
+
+    cout
+      << "Lfo:["
+      << " F:" << frequency
+      << " P:" << phase
+      << " C:" << currentPhase
+      << " I:" << increment
+      << "]" << endl;
   }
 };
 

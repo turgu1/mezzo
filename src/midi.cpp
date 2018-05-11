@@ -390,8 +390,6 @@ void Midi::openPort(int devNbr)
 
 Midi::~Midi()
 {
-  //DEBUG("midi_close() ...\n");
-
   if (midiPort->isPortOpen()) midiPort->closePort();
   if (midiPort != NULL) delete midiPort;
 }

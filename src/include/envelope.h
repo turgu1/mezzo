@@ -36,7 +36,8 @@ public:
 
   Envelope() 
   { 
-    delay = attack = hold = decay = release = 0; 
+    delay = attack = hold = decay = 0;
+    release = centsToSampleCount(-3600); 
     amplitude = sustain = attenuation = 1.0f;
     setup();
   }
@@ -62,10 +63,10 @@ public:
   inline void setSustain(uint32_t s) 
   { 
     if (s >= 1000) {
-      sustain = 1.0f;
+      sustain = 0.0f;
     }
     else if (s <= 0) {
-      sustain = 0.0f;
+      sustain = 1.0f;
     }
     else {
       sustain = centibelToRatio(- s);
@@ -102,6 +103,8 @@ public:
     releaseRate   = release == 0 ? attenuation : 
                                    (sustain / (float) release);
   }
+
+  inline bool keyIsReleased() { return keyReleased; }
 
   inline void keyHasBeenReleased(uint32_t pos) 
   {

@@ -13,8 +13,6 @@
 #define CHKPA(stmt, msg) \
   if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
 
-//---- soundCallback() ----
-
 int soundCallback(const void *                     inputBuffer,
                   void *                           outputBuffer,
                   unsigned long                    framesPerBuffer,
@@ -82,7 +80,7 @@ int Sound::findDeviceNbr()
                  Pa_GetErrorText(devCount));
   }
 
-  if (!config.silent) showDevices(devCount);
+  if (!config.silent && !config.interactive) showDevices(devCount);
 
   if (config.pcmDeviceName.size() > 0) {
     for (int i = 0; i < devCount; i++) {
@@ -107,8 +105,6 @@ int Sound::findDeviceNbr()
   
   return devNbr;
 }
-
-//---- Sound() ----
 
 Sound::Sound()
 {
@@ -140,8 +136,6 @@ Sound::Sound()
   rend  = &rbuff[REPLAY_BUFFER_SAMPLE_COUNT];
 }
 
-//---- ~Sound() ----
-
 Sound::~Sound()
 {
   if (stream) {
@@ -154,14 +148,10 @@ Sound::~Sound()
   Pa_Terminate();
 }
 
-//----- outOfMemory() ----
-
 void Sound::outOfMemory()
 {
   logger.FATAL("Sound: Unable to allocate memory.");
 }
-
-//---- showDevices() ----
 
 void Sound::showDevices(int devCount)
 {
@@ -178,13 +168,13 @@ void Sound::showDevices(int devCount)
 
     assert(devInfo != NULL);
 
-    cout << "Device " << i << ": " << devInfo->name << endl;
+    cout << "Device " << i << ": " << devInfo->name
+         << ((devInfo->maxOutputChannels > 0) ? " (out)" : " (in)")
+         << endl;
   }
 
   cout << "[End of list]" << endl << endl;
 }
-
-//---- selectDevice() ----
 
 int Sound::selectDevice(int defaultNbr)
 {

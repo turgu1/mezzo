@@ -145,7 +145,7 @@ void Voice::setup(samplep      _sample,
   // Feed something in the Fifo ring buffer before activation
   prepareFifo();
 
-  synth.addGens(_preset.getGlobalGens(),            _preset.getGlobalGenCount());
+  synth.addGens(_preset.getGlobalGens(), _preset.getGlobalGenCount());
   synth.addGens(_preset.getZoneGens(_presetZoneIdx), _preset.getZoneGenCount(_presetZoneIdx));
 
   //std::cout << sample->getName() << "..." << std::endl << std::flush;
@@ -243,7 +243,7 @@ int Voice::getSamples(buffp buff, int length)
   assert(length > 0);
 
   // outputPos is the postion where we are in the output as a number
-  // of samples since the start of the note. pos is where we need to
+  // of samples since the start of the note. scaledPos is where we need to
   // get someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind.
 
@@ -253,13 +253,14 @@ int Voice::getSamples(buffp buff, int length)
 
     float integralPart;
     float fractionalPart = modff(scaledPos, &integralPart);
+
     int16_t buffIndex = (((uint32_t) integralPart) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
 
     if (((uint32_t) integralPart) >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
-      if (synth.isLooping()) assert(scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT);
+      assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
     }
 
     assert(buffIndex >= -2); 
@@ -271,6 +272,8 @@ int Voice::getSamples(buffp buff, int length)
               (y[2] * P3(fractionalPart)) +
               (y[3] * P4(fractionalPart));
 
+    //binFile.write((char *) &v, 4);
+    
     outputPos++;
     count++;
   }
@@ -283,9 +286,7 @@ int Voice::getSamples(buffp buff, int length)
 #undef P3
 #undef P4
 
-#endif
-
-#if 0
+#else
 
 /// Lagrange 7th order interpolation polynomes.
 ///
@@ -308,69 +309,50 @@ int Voice::getSamples(buffp buff, int length)
 #define P1(x) ((x * (x * (x * (x * ((x - 3.0f) * x - 5.0f) + 15.0f) + 4.0f) - 12.0f)) / 720.0f)
 #define P2(x) ((x * (x * (x * (x * ((2.0f - x) * x + 10.0f) - 20.0f) - 9.0f) + 18.0f)) / 120.0f)
 #define P3(x) ((x * (x * (x * (x * ((x - 1.0f) * x - 13.0f) + 13.0f) + 36.0f) - 36.0f)) / 48.0f)
-#define P4(x) ((x * x * (x * x * (14.0f - x * x) - 49.0f) + 36.0f) / 36.0f)
+#define P4(x) (((x * x) * ((x * x) * (14.0f - (x * x)) - 49.0f) + 36.0f) / 36.0f)
 #define P5(x) ((x * (x * (x * (x * (x * (x + 1.0f) - 13.0f) - 13.0f) + 36.0f) + 36.0f)) / 48.0f)
 #define P6(x) ((x * (x * (x * (x * ((- x - 2.0f) * x + 10.0f) + 20.0f) - 9.0f) - 18.0f)) / 120.0f)
 #define P7(x) ((x * (x * (x * (x * (x * (x + 3.0f) - 5.0f) - 15.0f) + 4.0f) + 12.0f)) / 720.0f)
 
-using namespace std;
-#include <iomanip>
-
-int Voice::getScaledSamples(buffp buff, int sampleCount)
+int Voice::getSamples(buffp buff, int length)
 {
   int count = 0;
 
   //assert((note - sample->getPitch()) >= 0);
 
-  float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-
-  if (sample->getSampleRate() != config.samplingRate) {
-    factor *= ((float)sample->getSampleRate() / (float)config.samplingRate);
-  }
-
   assert(scaleBuff != NULL);
   assert(buff != NULL);
-  assert(sampleCount > 0);
+  assert(length > 0);
 
-  if (scaleBuffPos == -1) {
-    if ((scaleBuffSize = getNormalSamples(&scaleBuff[7])) == 0) return 0;
-    scaleBuffPos = 0;
-    scaleBuff[0] =
-    scaleBuff[1] =
-    scaleBuff[2] =
-    scaleBuff[3] =
-    scaleBuff[4] =
-    scaleBuff[5] =
-    scaleBuff[6] = 0.0f;
-  }
+  while (length--) {
 
-  float pos = outputPos * factor;
+    float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
 
-  while (sampleCount--) {
+    float integralPart;
+    float fractionalPart = modff(scaledPos, &integralPart);
+    
+    int16_t buffIndex = (((int)integralPart) % SAMPLE_BUFFER_SAMPLE_COUNT) - 3;
 
-    float fipos;
-    float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-    uint16_t ipos = (((int)fipos) % SAMPLE_BUFFER_SAMPLE_COUNT) - 3;
-
-    if (fipos >= (scaleBuffPos + scaleBuffSize)) {
+    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 7 << LOG_SAMPLE_SIZE);
-      if ((scaleBuffSize = getNormalSamples(&scaleBuff[7])) == 0) break;
+      if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[7])) == 0) break;
+      assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
     }
 
-    assert(ipos >= -3);
+    assert(buffIndex >= -3);
 
-    float * y = &scaleBuff[ipos - 4 + 7];
-    *buff++ = (y[0] * P1(diff)) +
-              (y[1] * P2(diff)) +
-              (y[2] * P3(diff)) +
-              (y[3] * P4(diff)) +
-              (y[4] * P5(diff)) +
-              (y[5] * P6(diff)) +
-              (y[6] * P7(diff));
+    float * y = &scaleBuff[buffIndex - 4 + 7];
+
+    *buff++ = (y[0] * P1(fractionalPart)) +
+              (y[1] * P2(fractionalPart)) +
+              (y[2] * P3(fractionalPart)) +
+              (y[3] * P4(fractionalPart)) +
+              (y[4] * P5(fractionalPart)) +
+              (y[5] * P6(fractionalPart)) +
+              (y[6] * P7(fractionalPart));
 
     outputPos++;
-    pos = outputPos * (factor * synth.vibrato(outputPos));
     count++;
   }
 
@@ -393,7 +375,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 //
 // This is called when the required samples must be reconstructed from
 // another note data that is of a different pitch than the required one.
-int Voice::getScaledSamples(buffp buff, int sampleCount)
+int Voice::getScaledSamples(buffp buff, int length)
 {
   int   count = 0;
 
@@ -403,7 +385,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
   assert(scaleBuff != NULL);
   assert(buff != NULL);
-  assert(sampleCount > 0);
+  assert(length > 0);
 
   if (scaleBuffPos == -1) {
     if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) return 0;
@@ -420,7 +402,7 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
     float  * c = cc;
     float old = 0;
 
-    while (sampleCount--) {
+    while (length--) {
 
       float fipos;
 
@@ -477,8 +459,8 @@ int Voice::getScaledSamples(buffp buff, int sampleCount)
 
     old = 0.0;
 
-    while (sampleCount--) {
-      float fipos;
+    while (length--) {
+      float fiposlength;
       float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
       int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
 
