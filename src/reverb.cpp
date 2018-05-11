@@ -26,11 +26,10 @@ Reverb::Reverb()
   for (int i = 0; i < REVERB_COMB_COUNT; i++) {
 
     int  frameCount = comb_m[i];
-    int sizeInBytes = (frameCount + PADDING) * sizeof(sample_t);
 
     // left combs
     leftCombs[i].buff = new sample_t[frameCount + PADDING];
-    memset(leftCombs[i].buff, 0, sizeInBytes);
+    std::fill(leftCombs[i].buff, leftCombs[i].buff + frameCount + PADDING,  0.0f);
 
     leftCombs[i].end  = leftCombs[i].buff + frameCount;
     leftCombs[i].head = leftCombs[i].tail = leftCombs[i].buff;
@@ -38,10 +37,9 @@ Reverb::Reverb()
 
     // right combs
     frameCount += 23;
-    sizeInBytes = (frameCount + PADDING) * sizeof(sample_t);
 
     rightCombs[i].buff = new sample_t[frameCount + PADDING];
-    memset(rightCombs[i].buff, 0, sizeInBytes);
+    std::fill(rightCombs[i].buff, rightCombs[i].buff + frameCount + PADDING,  0.0f);
 
     rightCombs[i].end  = rightCombs[i].buff + frameCount;
     rightCombs[i].head = rightCombs[i].tail = rightCombs[i].buff;
@@ -51,18 +49,17 @@ Reverb::Reverb()
   for (int i = 0; i < REVERB_AP_COUNT; i++) {
 
     int  frameCount = ap_m[i];
-    int sizeInBytes = (frameCount + PADDING) * sizeof(sample_t);
 
     // left all pass filters
     leftAp[i].buff = new sample_t[frameCount + PADDING];
-    memset(leftAp[i].buff, 0, sizeInBytes);
+    std::fill(leftAp[i].buff, leftAp[i].buff + frameCount + PADDING,  0.0f);
 
     leftAp[i].end  = leftAp[i].buff + frameCount;
     leftAp[i].head = leftAp[i].tail = leftAp[i].buff;
 
     // right all pass filters
     rightAp[i].buff = new sample_t[frameCount + PADDING];
-    memset(rightAp[i].buff, 0, sizeInBytes);
+    std::fill(rightAp[i].buff, rightAp[i].buff + frameCount + PADDING,  0.0f);
 
     rightAp[i].end  = rightAp[i].buff + frameCount;
     rightAp[i].head = rightAp[i].tail = rightAp[i].buff;
@@ -154,8 +151,8 @@ void Reverb::process(buffp buff, int frame_count)
   buffp buffIn, b;
   int fr;
 
-  memset(outl, 0, BUFFER_FRAME_COUNT * sizeof(float));
-  memset(outr, 0, BUFFER_FRAME_COUNT * sizeof(float));
+  std::fill(outl, outl + BUFFER_FRAME_COUNT,  0.0f);
+  std::fill(outr, outr + BUFFER_FRAME_COUNT,  0.0f);
 
   for (fr = 0, o_l = outl, o_r = outr;
        fr < frame_count;

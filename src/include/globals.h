@@ -41,6 +41,8 @@ typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer
 
 #define KEY_NOT_USED 59999u
 
+#define MAX_VOICES 512  ///< Maximum number of voices at any time
+
 #define PRIVATE             static
 
 #define FRAME_SIZE          (2 * sizeof(sample_t))            ///< A frame contains left and righ samples

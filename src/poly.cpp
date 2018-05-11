@@ -19,9 +19,7 @@
 //---- samplesFeeder() ----
 //
 // This function represent a thread responsible of reading
-// samples from files to push into the voices structure in real-time,
-// in support of the streaming of data to ALSA through the voice mixer()
-// function.
+// samples from the SoundFont to push into the voices structure in real-time.
 
 void * samplesFeeder(void * args)
 {
@@ -43,8 +41,6 @@ void * samplesFeeder(void * args)
   pthread_exit(NULL);
 }
 
-//---- showState() ----
-
 void Poly::showState()
 {
   voicep voice = voices;
@@ -65,7 +61,8 @@ void Poly::showState()
 
 //---- Poly() ----
 //
-// TODO: Sequencing of required initializations after a new library is loaded...
+// TODO: Sequencing of required initializations after a new library is loaded, if
+//       we ever wants to allow for library change without restarting Mezzo
 
 Poly::Poly()
 {
@@ -90,8 +87,8 @@ Poly::Poly()
   tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
   voiceBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
-  memset(tmpBuff,   0, FRAME_BUFFER_SIZE );
-  memset(voiceBuff, 0, SAMPLE_BUFFER_SIZE);
+  std::fill(tmpBuff,   tmpBuff   + FRAME_BUFFER_SAMPLE_COUNT,  0.0f);
+  std::fill(voiceBuff, voiceBuff + SAMPLE_BUFFER_SAMPLE_COUNT, 0.0f);
 }
 
 //---- ~Poly() ----
@@ -276,11 +273,18 @@ int Poly::mixer(buffp buff, int frameCount)
 
     int count = voice->getSamples(voiceBuff, frameCount);
 
-    //binFile.write((char *) voiceBuff, 4 * count);
+    // float n = 0.0f;
+    // binFile.write((char *) &n, 4);
+    // binFile.write((char *) &n, 4);
+    // binFile.write((char *) &n, 4);
+    // binFile.write((char *) &n, 4);
+    // binFile.write((char *) voiceBuff, 4 * count);
 
     if (count > 0) {
 
       bool endOfSound = voice->transform(tmpBuff, voiceBuff, count);
+
+      // binFile.write((char*) tmpBuff, count << LOG_FRAME_SIZE);
 
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;

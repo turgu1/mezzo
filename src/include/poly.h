@@ -5,8 +5,6 @@
 
 #include "mezzo.h"
 
-#define MAX_VOICES 256  ///< Maximum number of voices at any time
-
 class Poly : public NewHandlerSupport<Poly> {
 
  private:

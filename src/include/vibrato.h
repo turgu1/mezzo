@@ -18,9 +18,10 @@ public:
   Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = 0; }
 
   inline void setup(uint8_t note) {
+    // The chosen phase is to get a smooth transition at the beginning of the vibrato integration.
     lfo = Lfo(frequency, 3.0f * M_PI / 2.0f);
     pitchSamples = log2(noteFrequency(note) * pitch / 100.0f);
-    showStatus();
+    // showStatus();
   }
 
   inline void setPitch(int16_t p)     { pitch      = ((float) p); }
@@ -35,7 +36,7 @@ public:
   inline float nextValue(uint32_t pos)
   {
     if ((pitch  == 0.0f) || (frequency == 0.0f)) {
-      return 1.0f;
+      return 0.0f;
     }
     else {
       return (pos < delay) ? 0.0f : (pitchSamples + (lfo.nextValue() * pitchSamples));

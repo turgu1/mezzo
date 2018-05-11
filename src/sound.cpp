@@ -31,13 +31,13 @@ int soundCallback(const void *                     inputBuffer,
     sound->get(buff);
   }
   else if (sound->holding()) {
-    memset(buff, 0, framesPerBuffer << LOG_FRAME_SIZE);
+    std::fill(buff, buff + framesPerBuffer + framesPerBuffer, 0.0f);
   }
   else {
     poly->mixer(buff, framesPerBuffer);
-    //reverb->process(buff, framesPerBuffer);
-    //equalizer->process(buff, framesPerBuffer);
-    //if (config.replayEnabled) sound->push(buff);
+    reverb->process(buff, framesPerBuffer);
+    equalizer->process(buff, framesPerBuffer);
+    if (config.replayEnabled) sound->push(buff);
   }
 
   return paContinue;
@@ -130,7 +130,7 @@ Sound::Sound()
   // Initialize replay buffer
   rbuff = new sample_t[REPLAY_BUFFER_SAMPLE_COUNT];
 
-  memset(rbuff, 0, REPLAY_BUFFER_SIZE);
+  std::fill(rbuff, rbuff + REPLAY_BUFFER_SAMPLE_COUNT, 0.0f);
 
   rhead = rtail = rbuff;
   rend  = &rbuff[REPLAY_BUFFER_SAMPLE_COUNT];

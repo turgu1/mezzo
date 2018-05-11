@@ -245,20 +245,32 @@ int Voice::getSamples(buffp buff, int length)
   // outputPos is the postion where we are in the output as a number
   // of samples since the start of the note. scaledPos is where we need to
   // get someting from the sample, taking into account pitch changes, resampling
-  // and modulation of all kind.
+  // and modulation of all kind. buffIndex is the specific index in the
+  // retrieved buffer.
 
   while (length--) {
 
     float scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
 
-    float integralPart;
-    float fractionalPart = modff(scaledPos, &integralPart);
+    // The following is working as scaledPos is a positive number...
 
-    int16_t buffIndex = (((uint32_t) integralPart) % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
+    uint32_t integralPart   = scaledPos;
+    float    fractionalPart = scaledPos - integralPart;
 
-    if (((uint32_t) integralPart) >= (scaleBuffPos + scaleBuffSize)) {
+    int16_t buffIndex = (integralPart % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
+
+    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
+
+      // Retrieve the last 4 samples from the end of the buffer and put them at
+      // the beginning to ensure proper interpolation at the beginning of next
+      // buffer.
+      //
+      // For the first samples retrieval at the beginning of a note to be played,
+      // the last 4 samples have been initialized to zero (0.0f) by the setup()
+      // method.
       memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      
       if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
       assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
     }

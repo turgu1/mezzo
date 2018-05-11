@@ -21,9 +21,9 @@ private:
   uint32_t decayStart;
   uint32_t sustainStart;
 
-  uint32_t attackRate;
-  uint32_t decayRate;
-  uint32_t releaseRate;
+  float attackRate;
+  float decayRate;
+  float releaseRate;
 
   float amplitude;
   float sustain;
@@ -102,6 +102,8 @@ public:
 
     releaseRate   = release == 0 ? attenuation : 
                                    (sustain / (float) release);
+
+    showStatus();
   }
 
   inline bool keyIsReleased() { return keyReleased; }
