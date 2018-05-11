@@ -113,7 +113,7 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
                           ((pos - maxSampleSize) % synth.getSizeLoop());
         sizeToGet = MIN(qty, maxSampleSize - thePos);
 
-        // If we are still in the chached block, get some data from it
+        // If we are still in the cached block, get some data from it
         if (thePos < sizeFirstBlock) {
           sizeToGet = MIN(sizeToGet, sizeFirstBlock - thePos);
           Utils::shortToFloatNormalize(buff, &firstBlock[offset + thePos], sizeToGet);

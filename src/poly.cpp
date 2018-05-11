@@ -235,7 +235,12 @@ void Poly::noteOff(char note, bool pedalOn)
   voicep voice = voices;
   while (voice) {
     if (voice->isActive() && (voice->getNote() == note)) {
-      if (!pedalOn) voice->noteOff();
+      if (pedalOn) {
+        voice->keyOff();   // Just to keep the key state
+      }
+      else {
+        voice->noteOff();  // This will turn off both key and note
+      }
     }
     voice = voice->getNext();
   }
@@ -247,7 +252,7 @@ void Poly::voicesSustainOff()
   while (voice) {
     // When we receive the signal that the sustain pedal is off, we
     // don't want to stop notes that are still strucked by the player
-    if (voice->isActive() && !voice->isNoteOn()) voice->noteOff();
+    if (voice->isActive() && !voice->isKeyOn()) voice->noteOff();
     voice = voice->getNext();
   }
 }

@@ -119,6 +119,7 @@ class Voice : public NewHandlerSupport<Voice> {
   samplep     sample;        ///< Pointer on the sample
   int8_t      note;          ///< Targeted note, can be different than the one from sample
   bool        noteIsOn;      ///< The note is played
+  bool        keyIsOn;       ///< The *keyboard* midi key is on
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
   uint32_t    outputPos;     ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
@@ -175,7 +176,7 @@ class Voice : public NewHandlerSupport<Voice> {
   inline voicep  getNext() { return next; }
   inline int8_t  getNote() { return note; }
   inline float   getGain() { return gain; }
-  inline int16_t  getPan() { return synth.getPan();  }
+  inline int16_t  getPan() { return synth.getPan(); }
 
   static float getScaleFactor(int16_t diff);
 
@@ -188,8 +189,10 @@ class Voice : public NewHandlerSupport<Voice> {
   void prepareFifo();
 
   inline void clearFifo()       { fifo->clear();        }
-  inline void noteOff()         { noteIsOn = false; synth.keyHasBeenReleased(); }
+  inline void noteOff()         { keyIsOn = noteIsOn = false; synth.keyHasBeenReleased(); }
+  inline void keyOff()          { keyIsOn = false;      }  
   inline bool isNoteOn()        { return noteIsOn;      }
+  inline bool isKeyOn()         { return keyIsOn;       }
 
   inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t length) {
     return synth.transform(tmpBuff, voiceBuff, length); }

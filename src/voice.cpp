@@ -81,6 +81,7 @@ Voice::Voice()
   stateLock     = 0;
   sample        = NULL;
   noteIsOn      = false;
+  keyIsOn       = false;
   fifo          = new Fifo;
   next          = NULL;
 
@@ -133,12 +134,14 @@ void Voice::setup(samplep      _sample,
   sample   = _sample;
   note     = _note;
   synth    = _synth;
+  gain     = _gain;
 
   outputPos      =  0;
   scaleBuffPos   =  0;
   scaleBuffSize  =  0;
 
   noteIsOn       = true;
+  keyIsOn        = true;
   active         = false;
   fifoLoadPos    = 0;
 
@@ -148,14 +151,9 @@ void Voice::setup(samplep      _sample,
   synth.addGens(_preset.getGlobalGens(), _preset.getGlobalGenCount());
   synth.addGens(_preset.getZoneGens(_presetZoneIdx), _preset.getZoneGenCount(_presetZoneIdx));
 
-  //std::cout << sample->getName() << "..." << std::endl << std::flush;
   synth.completeParams(note);
 
-  gain = _gain;
-
   factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
-
-  // std::cout << factor << ", " << std::flush;
 
   if (sample->getSampleRate() != config.samplingRate) {
     // resampling is required
@@ -177,8 +175,6 @@ void Voice::setup(samplep      _sample,
     activate();     // Must be the last flag set. The threads are watching it...
   END();
 }
-
-//---- retrieveFifoSamples() ----
 
 int Voice::retrieveFifoSamples(buffp buff)
 {
@@ -340,10 +336,10 @@ int Voice::getSamples(buffp buff, int length)
 
     float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
 
-    float integralPart;
-    float fractionalPart = modff(scaledPos, &integralPart);
-    
-    int16_t buffIndex = (((int)integralPart) % SAMPLE_BUFFER_SAMPLE_COUNT) - 3;
+    uint32_t integralPart   = scaledPos;
+    float    fractionalPart = scaledPos - integralPart;
+
+    int16_t buffIndex = (integralPart % SAMPLE_BUFFER_SAMPLE_COUNT) - 3;
 
     if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
       scaleBuffPos += scaleBuffSize;
