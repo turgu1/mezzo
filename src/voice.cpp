@@ -123,7 +123,7 @@ void Voice::outOfMemory()
 // and get ready to sound the sample. It is called when the user had struck
 // a key and then require a sound to be played.
 void Voice::setup(samplep      _sample,
-                  char         _note,
+                  uint8_t      _note,
                   float        _gain,
                   Synthesizer  _synth,
                   Preset     & _preset,
@@ -149,7 +149,7 @@ void Voice::setup(samplep      _sample,
   synth.addGens(_preset.getZoneGens(_presetZoneIdx), _preset.getZoneGenCount(_presetZoneIdx));
 
   //std::cout << sample->getName() << "..." << std::endl << std::flush;
-  synth.completeParams();
+  synth.completeParams(note);
 
   gain = _gain;
 
@@ -249,7 +249,7 @@ int Voice::getSamples(buffp buff, int length)
 
   while (length--) {
 
-    float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
+    float scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
 
     float integralPart;
     float fractionalPart = modff(scaledPos, &integralPart);

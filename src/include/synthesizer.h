@@ -72,7 +72,7 @@ public:
   void process(buffp buff);
 
   void showParams();
-  void completeParams();
+  void completeParams(uint8_t note);
 
   inline uint32_t getStart()       { return start;             }
   inline uint32_t getEnd()         { return end;               }

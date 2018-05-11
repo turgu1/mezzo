@@ -255,7 +255,7 @@ bool Instrument::load(sfBag      * bags,
         zones[zIdx].synth.setDefaults(soundFont->samples[zones[zIdx].sampleIndex]);
         zones[zIdx].synth.setGens(globalZone.generators, globalZone.genCount);
         zones[zIdx].synth.setGens(zones[zIdx].generators,   zones[zIdx].genCount);
-        zones[zIdx].synth.completeParams();
+        zones[zIdx].synth.completeParams(60);
       }
       else {
         logger.DEBUG("Unable to load sample for zones[%d] sampleIndex %d (zoneCount: %d)", zIdx, zones[zIdx].sampleIndex, zoneCount);

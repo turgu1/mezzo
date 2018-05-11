@@ -12,20 +12,22 @@ private:
   float    pitch;
   float    frequency;
   uint32_t delay;
+  float    pitchSamples;
 
 public:
-  Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = 0; setup(); }
+  Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = 0; }
 
-  inline void setup() {
-    lfo = Lfo(frequency, 0);//3.0f * M_PI / 2.0f);
+  inline void setup(uint8_t note) {
+    lfo = Lfo(frequency, 3.0f * M_PI / 2.0f);
+    pitchSamples = log2(noteFrequency(note) * pitch / 100.0f);
     showStatus();
   }
 
-  inline void setPitch(int16_t p)     { pitch      = ((float) p) / 2.0f; }
-  inline void addToPitch(int16_t p)   { pitch     += ((float) p) / 2.0f; }
+  inline void setPitch(int16_t p)     { pitch      = ((float) p); }
+  inline void addToPitch(int16_t p)   { pitch     += ((float) p); }
 
   inline void setDelay(int16_t d)     { delay      = (d == -32768) ? 0 : centsToSampleCount(d); }
-  inline void addToDelay(int16_t d)   { delay     += (d == -32768) ? 0 : centsToSampleCount(d); }
+  inline void addToDelay(int16_t d)   { delay      = (d == -32768) ? 0 : centsToSampleCount(d); }
 
   inline void setFrequency(float f)   { frequency  = centsToFreq(f); }
   inline void addToFrequency(float f) { frequency += centsToFreq(f); }
@@ -36,7 +38,7 @@ public:
       return 1.0f;
     }
     else {
-      return (pos < delay) ? 1.0f : centsToRatio(lfo.nextValue() * pitch);
+      return (pos < delay) ? 0.0f : (pitchSamples + (lfo.nextValue() * pitchSamples));
     }
   }
 

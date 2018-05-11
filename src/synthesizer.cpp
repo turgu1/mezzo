@@ -138,7 +138,7 @@ void Synthesizer::setDefaults(Sample * sample)
   velocity         =    -1;
 }
 
-void Synthesizer::completeParams()
+void Synthesizer::completeParams(uint8_t note)
 {
   using namespace std;
 
@@ -152,7 +152,7 @@ void Synthesizer::completeParams()
   sizeLoop  = endLoop - startLoop;
 
   volEnvelope.setup();
-  vib.setup();
+  vib.setup(note);
   biQuad.setup();
 
   //std::cout << "completeParams" << std::endl;

@@ -140,12 +140,12 @@ class Voice : public NewHandlerSupport<Voice> {
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
-  void setup(samplep       sample,
-             char          note,
-             float         gain,
-             Synthesizer   synth,
-             Preset      & preset,
-             uint16_t      presetZoneIdx);
+  void setup(samplep       _sample,
+             uint8_t       _note,
+             float         _gain,
+             Synthesizer   _synth,
+             Preset      & _preset,
+             uint16_t      _presetZoneIdx);
 
   /// This method returns the next bundle of samples required by the
   /// mixer. The will be found in the associated fifo (first in, first out)
