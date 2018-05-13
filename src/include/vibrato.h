@@ -1,6 +1,8 @@
 #ifndef _VIBRATO_
 #define _VIBRATO_
 
+#include <iomanip>
+
 #include "mezzo.h"
 #include "lfo.h"
 #include "utils.h"
@@ -8,6 +10,8 @@
 class Vibrato
 {
 private:
+  static bool allActive;
+
   Lfo      lfo;
   float    pitch;
   float    frequency;
@@ -15,7 +19,7 @@ private:
   float    pitchSamples;
 
 public:
-  Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = 0; }
+  Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = centsToSampleCount(-12000); }
 
   inline void setup(uint8_t note) {
     // The chosen phase is to get a smooth transition at the beginning of the vibrato integration.
@@ -24,35 +28,40 @@ public:
     // showStatus();
   }
 
+  static bool toggleAllActive() { return allActive = !allActive; }
+  static bool areAllActive()    { return allActive;              }
+
   inline void setPitch(int16_t p)     { pitch      = ((float) p); }
   inline void addToPitch(int16_t p)   { pitch     += ((float) p); }
 
   inline void setDelay(int16_t d)     { delay      = (d == -32768) ? 0 : centsToSampleCount(d); }
-  inline void addToDelay(int16_t d)   { delay      = (d == -32768) ? 0 : centsToSampleCount(d); }
+  inline void addToDelay(int16_t d)   { delay     += (d == -32768) ? 0 : centsToSampleCount(d); }
 
   inline void setFrequency(float f)   { frequency  = centsToFreq(f); }
   inline void addToFrequency(float f) { frequency += centsToFreq(f); }
 
   inline float nextValue(uint32_t pos)
   {
-    if ((pitch  == 0.0f) || (frequency == 0.0f)) {
-      return 0.0f;
+    if (allActive && (pitch  != 0.0f) && (frequency != 0.0f)) {
+      return (pos < delay) ? 0.0f : (pitchSamples + (lfo.nextValue() * pitchSamples));
     }
     else {
-      return (pos < delay) ? 0.0f : (pitchSamples + (lfo.nextValue() * pitchSamples));
+      return 0.0f;
     }
   }
 
-  void showStatus()
+  void showStatus(int spaces)
   {
     using namespace std;
 
-    cout <<"Vib:[D:" << delay
-         << " P:"    << pitch
-         << " F:"    << frequency
+    cout << setw(spaces) << ' '
+         <<"Vibrato: " << ((allActive && (pitch  != 0.0f) && (frequency != 0.0f)) ? "Active" : "Inactive")
+         << " [Delay:" << delay
+         << " Pitch:"  << pitch
+         << " Freq:"   << frequency
          << "] ";
 
-    lfo.showStatus();
+    lfo.showStatus(2);
   }
 
 };

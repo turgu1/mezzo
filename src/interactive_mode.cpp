@@ -21,19 +21,21 @@ char InteractiveMode::showMenuGetSelection()
   using namespace std;
   char answer[6];
 
-  cout << endl;
-  cout << "Menu:" << endl << "----" << endl;
-
-  cout << "a : Monitor active voice count   P : Select Preset"          << endl
-       << "b : Monitor midi messages        p : Show Preset Zones"      << endl
-       << "e : Equalizer adjusments         i : Show Instruments Zones" << endl
-       << "r : Reverb adjusments            + : Next Preset"            << endl
-       << "s : Sound device selection       - : Previous Preset"        << endl
-       << "m : Midi device selection        V : dump Voices state"      << endl
-       << "t : Transpose                    f : toggle low-pass filter" << endl
+  cout <<            endl
+       << "Menu:" << endl 
+       << "----"  << endl
+       << "P : Select Preset            A : Monitor active voice count"      << endl
+       << "+ : Next Preset              B : Monitor midi messages"           << endl
+       << "- : Previous Preset          E : Equalizer adjusments "           << endl
+       << "T : Transpose                R : Reverb adjusments"               << endl
+       << "S : Sound device selection   V : Show Voices state while playing" << endl
+       << "M : Midi device selection    p : Show Preset Zones"               << endl
+       << "f : toggle low-pass filter   i : Show Instruments Zones"          << endl
+       << "e : toggle envelope" << endl
+       << "v : toggle vibrato"  << endl
        // << "l - dump sample Library"        << endl
        // << "c - show Config read from file" << endl
-       << "x : eXit"                                         << endl << endl;
+       << "x : eXit                     ? : Show this menu"                  << endl << endl;
 
   cout << "Your choice > ";
   cin >> setw(5) >> answer;
@@ -70,21 +72,26 @@ void InteractiveMode::menu()
 
     switch (ch) {
     case 'x': return;
-    case 'a': poly->monitorCount();            break;
-    case 'b': midi->monitorMessages();         break;
-    case 'e': equalizer->interactiveAdjust();  break;
-    case 'r': reverb->interactiveAdjust();     break;
-    case 's': {
+    case 'A': poly->monitorCount();            break;
+    case 'B': midi->monitorMessages();         break;
+    case 'E': equalizer->interactiveAdjust();  break;
+    case 'R': reverb->interactiveAdjust();     break;
+    case 'S': {
       int devNbr = sound->selectDevice(-1);
       sound->openPort(devNbr); }
       break;
-    case 'm': {
+    case 'M': {
       int devNbr = midi->selectDevice(-1);
       midi->openPort(devNbr); }
       break;
-    case 't': midi->transposeAdjust();         break;
+    case 'T': midi->transposeAdjust();         break;
     // case 'l': samples->showNotes();         break;
-    case 'v': poly->showState();               break;
+    case 'V': 
+      poly->showVoicePlayingState();   
+      cout << "Voice State while playing is now "
+           << (Voice::isPlayingStateActive() ? "Active" : "Inactive")
+           << endl;
+      break;
     // case 'c': config->showState();          break;
     
     case '+': 
@@ -131,12 +138,30 @@ void InteractiveMode::menu()
 
     case 'f':
       Synthesizer::toggleFilter();
-      cout << "Low-Pass Filter is now "
-           << (Synthesizer::isFilterEnabled() ? "Enable" : "Disable") << endl;
+      cout << "Low-Pass Filters are now "
+           << (Synthesizer::areAllFilterActive() ? "Active" : "Inactive") 
+           << endl;
       break;
       
+    case 'e':
+      Synthesizer::toggleEnvelope();
+      cout << "Envelopes are now "
+           << (Synthesizer::areAllEnvelopeActive() ? "Active" : "Inactive") 
+           << endl;
+      break;
+
+    case 'v':
+      Synthesizer::toggleVibrato();
+      cout << "Vibratos are now "
+           << (Synthesizer::areAllVibratoActive() ? "Active" : "Inactive") 
+           << endl;
+      break;
+
+    case '?': break;
+
     default:
-      cout << "Bad entry!" << endl;
+      cout << "Bad entry!" 
+           << endl;
       break;
     }
   }

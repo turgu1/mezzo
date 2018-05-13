@@ -10,6 +10,8 @@
 class Envelope
 {
 private:
+  static bool allActive;
+
   uint32_t delay;
   uint32_t attack;
   uint32_t hold;
@@ -20,6 +22,9 @@ private:
   uint32_t holdStart;
   uint32_t decayStart;
   uint32_t sustainStart;
+
+  int16_t  keynumToHold;
+  int16_t  keynumToDecay;
 
   float attackRate;
   float decayRate;
@@ -37,10 +42,14 @@ public:
   Envelope() 
   { 
     delay = attack = hold = decay = 0;
-    release = centsToSampleCount(-3600); 
+    keynumToHold = keynumToDecay = 0;
     amplitude = sustain = attenuation = 1.0f;
+    release = centsToSampleCount(-3600); 
     setup();
   }
+
+  static bool toggleAllActive() { return allActive = !allActive; }
+  static bool areAllActive() { return allActive; }
 
   inline void setDelay    (int16_t d) { delay    = (d == -32768) ? 0 : centsToSampleCount(d); }
   inline void addToDelay  (int16_t d) { delay   += (d == -32768) ? 0 : centsToSampleCount(d); }
@@ -56,6 +65,12 @@ public:
 
   inline void setRelease  (int16_t r) { release  = (r == -32768) ? 0 : centsToSampleCount(r); }
   inline void addToRelease(int16_t r) { release += (r == -32768) ? 0 : centsToSampleCount(r); }
+
+  inline void setKeynumToHold  (int16_t k) { keynumToHold  = k; }
+  inline void addToKeynumToHold(int16_t k) { keynumToHold += k; }
+
+  inline void setKeynumToDecay  (int16_t k) { keynumToDecay  = k; }
+  inline void addToKeynumToDecay(int16_t k) { keynumToDecay += k; }
 
   inline void setAttenuation  (int16_t a) { attenuation  = centibelToRatio(- a); }
   inline void addToAttenuation(int16_t a) { attenuation *= centibelToRatio(- a); }
@@ -103,22 +118,29 @@ public:
     releaseRate   = release == 0 ? attenuation : 
                                    (sustain / (float) release);
 
-    showStatus();
+    // showStatus();
   }
 
   inline bool keyIsReleased() { return keyReleased; }
 
-  inline void keyHasBeenReleased(uint32_t pos) 
+  /// When the key has been released by the player, prepare for the
+  /// release portion of the envelope.
+  inline bool keyHasBeenReleased(uint32_t pos) 
   {
+    if (!allActive) return true; // This will fake the end of the sound
+
     keyReleased    = true;
     keyReleasedPos = pos;
     releaseRate    = release == 0 ? 1.0f : 
                                     (amplitude / (float)release);
+    return false;
   }
 
   inline bool transform(buffp src, uint16_t length, uint32_t pos) 
   {
     using namespace std;
+
+    if (!allActive) return false; // Fake this it is not the end of the sound
 
     bool endOfSound = false;
 
@@ -147,17 +169,18 @@ public:
     return endOfSound;
   }
 
-  void showStatus() 
+  void showStatus(int spaces) 
   {
     using namespace std;
     cout 
-      << ":[D:" << delay
-      << ",A:"  << attack  << "@" << attackRate << "/" << attackStart
-      << ",H:"  << hold    << "/" << holdStart
-      << ",D:"  << decay   << "@" << decayRate  << "/" << decayStart
-      << ",S:"  << sustain << "/" << sustainStart
-      << ",R:"  << release << "@" << releaseRate
-      << "] attenuation:" << fixed << setw(7) << setprecision(5) << attenuation << endl;
+      << setw(spaces) << ' ' << "Envelope: " << (allActive ? "Active" : "Inactive")
+      << " [Delay:"    << delay
+      << " Attack:"   << attack  << " rate="  << attackRate << " start=" << attackStart
+      << " Hold:"     << hold    << " start=" << holdStart
+      << " Decay:"    << decay   << " rate="  << decayRate  << " start=" << decayStart
+      << " Sustain:"  << sustain << " start=" << sustainStart
+      << " Release:"  << release << " rate="  << releaseRate
+      << "] Att:"     << fixed   << setw(7)   << setprecision(5) << attenuation << endl;
   }
 };
 

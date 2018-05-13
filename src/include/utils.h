@@ -16,9 +16,8 @@
 #define centsToRatio(x)       powf(_1200TH_ROOT_OF_2, x)
 #define centsToFreq(x)        (centsToRatio(x) * 8.176f)   // in Hz
 #define centsToFreqRatio(x)   (1 / centsToFreq(x))        // in seconds
-#define centsToDuration(x)    (centsToFreqRatio(x) * config.samplingRate)  // in samples count
 #define centsToSampleCount(x) (centsToRatio(x) * config.samplingRate)
-#define noteFrequency(x)      (NOTE_FACTOR * powf(_12TH_ROOT_OF_2, x))
+#define noteFrequency(x)      (NOTE_FACTOR * powf(_12TH_ROOT_OF_2, x - 12))
 
 class Utils {
 public:

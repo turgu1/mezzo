@@ -71,7 +71,7 @@ public:
 
   void process(buffp buff);
 
-  void showParams();
+  void showStatus(int spaces);
   void completeParams(uint8_t note);
 
   inline uint32_t getStart()       { return start;             }
@@ -87,14 +87,21 @@ public:
   inline uint8_t  getRootKey()     { return rootKey;           }
   inline int8_t   getVelocity()    { return velocity;          }
 
-  inline void keyHasBeenReleased() { volEnvelope.keyHasBeenReleased(pos); }
+  /// Returns true if this call must be considered the end of the note (in the
+  /// case where the envelope as been desactivated)
+  inline bool keyHasBeenReleased() { return volEnvelope.keyHasBeenReleased(pos); }
 
   bool transform(buffp dst, buffp src, uint16_t length);
 
   inline float vibrato(uint32_t pos) { return vib.nextValue(pos); }
 
-  static bool isFilterEnabled() { return BiQuad::isEnabled(); }
-  static void toggleFilter()    { BiQuad::toggle(); }
+  static bool areAllFilterActive()   { return BiQuad::areAllActive();   }
+  static bool areAllVibratoActive()  { return Vibrato::areAllActive();  }
+  static bool areAllEnvelopeActive() { return Envelope::areAllActive(); }
+
+  static bool toggleFilter()     { return BiQuad::toggleAllActive();   }
+  static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
+  static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 };
 
 #endif

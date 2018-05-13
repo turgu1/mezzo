@@ -112,6 +112,8 @@ class Voice : public NewHandlerSupport<Voice> {
  private:
   voicep  next;              ///< Next voice available in the list
 
+  static bool showPlayingState;
+
   volatile voiceState state; ///< This is the state of this voice, as described in the comments above
   volatile bool  active;     ///< This voice is active and is being played
   volatile int   stateLock;  ///< Locked by threads when reading/updating data
@@ -137,7 +139,10 @@ class Voice : public NewHandlerSupport<Voice> {
    Voice();
   ~Voice();
 
-  void showState();
+  static bool togglePlayingState()   { return showPlayingState = !showPlayingState; }
+  static bool isPlayingStateActive() { return showPlayingState; }
+
+  void showStatus(int spaces);
 
   /// Associate a sample with this voice. This will then activate this
   /// voice to be played.
@@ -158,8 +163,11 @@ class Voice : public NewHandlerSupport<Voice> {
   /// the Sample rate (in regard of the audio-out targetted sampling rate) and modulations. 
   int getSamples(buffp buff, int length);
 
-  inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); } ///< Lock a multithreading resource that needs to be modified
-  inline void END()   { __sync_lock_release(&stateLock); } ///< Unlock a multithreading resource that has been modified
+  /// Lock a multithreading resource that needs to be modified
+  inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); }
+
+  /// Unlock a multithreading resource that has been modified
+  inline void END()   { __sync_lock_release(&stateLock); } 
 
   inline bool isActive()   { return  active; }
   inline bool isInactive() { return !active; }
@@ -189,10 +197,10 @@ class Voice : public NewHandlerSupport<Voice> {
   void prepareFifo();
 
   inline void clearFifo()       { fifo->clear();        }
-  inline void noteOff()         { keyIsOn = noteIsOn = false; synth.keyHasBeenReleased(); }
   inline void keyOff()          { keyIsOn = false;      }  
-  inline bool isNoteOn()        { return noteIsOn;      }
   inline bool isKeyOn()         { return keyIsOn;       }
+  inline bool isNoteOn()        { return noteIsOn;      }
+  inline bool noteOff()         { keyIsOn = noteIsOn = false; return synth.keyHasBeenReleased(); }
 
   inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t length) {
     return synth.transform(tmpBuff, voiceBuff, length); }

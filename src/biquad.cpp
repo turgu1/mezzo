@@ -2,5 +2,4 @@
 
 #include "biquad.h"
 
-bool BiQuad::enabled = true;
-
+bool BiQuad::allActive = true;

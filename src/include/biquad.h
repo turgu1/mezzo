@@ -1,27 +1,36 @@
 #ifndef _BIQUAD_
 #define _BIQUAD_
 
+// The algorithm come from the following url:
+//
+//   http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
+//
+
 class BiQuad
 {
 private:
-  static bool enabled;
+  bool active;              // This instance
+  static bool allActive;  // For all instances
 
   float initialFc;
   float initialQ;
-  float a0, a1, a2, b1, b2, z1, z2;
+  float a0, a1, b1, b2, z1, z2;
 
 public:
   BiQuad()
   {
     initialFc = centsToRatio(13500) / config.samplingRate;
-    initialQ  =  1.0f;  // DB
+    initialQ  =  1.0f;
+    active = false;
   }
 
-  static inline bool isEnabled() { return enabled; }
-  static inline void toggle() { enabled = !enabled; }
+  static bool toggleAllActive() { return allActive = !allActive; }
+  static bool areAllActive() { return allActive; }
 
-  inline void setInitialFc  (int16_t fc) { initialFc  = centsToRatio(fc) / config.samplingRate; }
-  inline void addToInitialFc(int16_t fc) { initialFc *= centsToRatio(fc) / config.samplingRate; }
+  inline void setInitialFc  (int16_t fc) { initialFc  = centsToRatio(fc) / config.samplingRate; 
+                                           active = true; }
+  inline void addToInitialFc(int16_t fc) { initialFc *= centsToRatio(fc) / config.samplingRate; 
+                                           active = true; }
 
   inline void setInitialQ  (int16_t q) { initialQ  = ((float) q) / 10.0; }
   inline void addToInitialQ(int16_t q) { initialQ += ((float) q) / 10.0; }
@@ -30,47 +39,47 @@ public:
   {
     if (initialQ == 1.0f) {
       a0 = 1.0f;
-      a1 = a2 = b1 = b2 = 0.0f;
+      a1 = b1 = b2 = 0.0f;
     }
     else {
       float K = tan(M_PI * initialFc);
-      float norm = 1 / (1 + K / initialQ + K * K);
+      float K2 = K * K;
+      float norm = 1 / (1 + K / initialQ + K2);
 
-      a0 = K * K * norm;
+      a0 = K2 * norm;
       a1 = 2 * a0;
-      a2 = a0;
-      b1 = 2 * (K * K - 1) * norm;
-      b2 = (1 - K / initialQ + K * K) * norm;
+      b1 = 2 * (K2 - 1) * norm;
+      b2 = (1 - K / initialQ + K2) * norm;
     }
     z1 = z2 = 0.0f;
-
   }
 
   inline void filter(buffp src, uint16_t length) 
   {
-    if (enabled) {
+    if (allActive && active) {
       while (length--) {
         float val = *src * a0 + z1;
         z1 = (*src * a1) + z2 - (b1 * val);
-        z2 = (*src * a2) - (b2 * val);
+        z2 = (*src * a0) - (b2 * val);
         *src++ = val;
       }
     }
   }
 
-  void showStatus()
+  void showStatus(int spaces)
   {
     using namespace std;
 
-    cout << "[Fc:"  << initialFc 
+    cout << setw(spaces) << ' '
+         << "BiQuad: " << ((allActive && active) ? "Active" : "Inactive")
+         << " [Fc:" << initialFc 
          << ", Q:"  << initialQ
          << ", a0:" << a0 
          << ", a1:" << a1 
-         << ", a2:" << a2
          << ", b1:" << b1 
          << ", b2:" << b2 
          << "]"
-         << endl << flush;
+         << endl;
   }
 };
 

@@ -301,16 +301,16 @@ void Instrument::showZone(uint16_t zIdx)
 {
   using namespace std;
 
-  cerr << "Zone "<< zIdx << ": " <<
+  cout << "Zone "<< zIdx << ": " <<
     "keys ["         << +zones[zIdx].keys.byLo << "-" << +zones[zIdx].keys.byHi << "] " <<
     "velocities ["   << +zones[zIdx].velocities.byLo << "-" << +zones[zIdx].velocities.byHi << "] " <<
     "sample index [" <<  zones[zIdx].sampleIndex << "] " <<
     "gen count ["    << +zones[zIdx].genCount << "] " <<
     "mod count ["    << +zones[zIdx].modCount << "] " << endl;
-  cerr << "  ";
-  soundFont->samples[zones[zIdx].sampleIndex]->showState();
-  cerr << "  ";
-  zones[zIdx].synth.showParams();
+
+  soundFont->samples[zones[zIdx].sampleIndex]->showStatus(2);
+  zones[zIdx].synth.showStatus(2);
+  
   if (zones[zIdx].genCount > 0) {
     cerr << "  Generators:" << endl;
     for (int j = 0; j < zones[zIdx].genCount; j++) {

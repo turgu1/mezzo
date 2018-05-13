@@ -37,6 +37,8 @@ class Poly : public NewHandlerSupport<Poly> {
 
   inline voicep getVoices() { return voices; }
   inline void   decVoiceCount() { voiceCount--; }
+
+  bool showVoicePlayingState() { return Voice::togglePlayingState(); };
 };
 
 void * samplesFeeder(void * args);

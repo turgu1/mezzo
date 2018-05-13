@@ -5,7 +5,7 @@
 
 #define SetOrAdd(x,y) \
   if (type == set) x.set##y(gens->genAmount.shAmount); \
-  else x.addTo##y(gens->genAmount.shAmount)
+  else x.addTo##y(gens->genAmount.shAmount); break
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
@@ -51,28 +51,25 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
       // ----- Volume envelope -----
 
-      case  sfGenOper_delayVolEnv:        SetOrAdd(volEnvelope, Delay      ); break;
-      case  sfGenOper_attackVolEnv:       SetOrAdd(volEnvelope, Attack     ); break;
-      case  sfGenOper_holdVolEnv:         SetOrAdd(volEnvelope, Hold       ); break;
-      case  sfGenOper_decayVolEnv:        SetOrAdd(volEnvelope, Decay      ); break;
-      case  sfGenOper_releaseVolEnv:      SetOrAdd(volEnvelope, Release    ); break;
-      case  sfGenOper_sustainVolEnv:      SetOrAdd(volEnvelope, Sustain    ); break;
-      case  sfGenOper_initialAttenuation: SetOrAdd(volEnvelope, Attenuation); break;
-
-      case  sfGenOper_keynumToVolEnvHold:
-        break;
-      case  sfGenOper_keynumToVolEnvDecay:
-        break;
+      case  sfGenOper_delayVolEnv:         SetOrAdd(volEnvelope, Delay        );
+      case  sfGenOper_attackVolEnv:        SetOrAdd(volEnvelope, Attack       );
+      case  sfGenOper_holdVolEnv:          SetOrAdd(volEnvelope, Hold         );
+      case  sfGenOper_decayVolEnv:         SetOrAdd(volEnvelope, Decay        );
+      case  sfGenOper_releaseVolEnv:       SetOrAdd(volEnvelope, Release      );
+      case  sfGenOper_sustainVolEnv:       SetOrAdd(volEnvelope, Sustain      );
+      case  sfGenOper_initialAttenuation:  SetOrAdd(volEnvelope, Attenuation  );
+      case  sfGenOper_keynumToVolEnvHold:  SetOrAdd(volEnvelope, KeynumToHold );
+      case  sfGenOper_keynumToVolEnvDecay: SetOrAdd(volEnvelope, KeynumToDecay);
 
       // Low-Pass BiQuad Filter
-      case  sfGenOper_initialFilterFc: SetOrAdd(biQuad, InitialFc); break;
-      case  sfGenOper_initialFilterQ:  SetOrAdd(biQuad, InitialQ ); break;
+      case  sfGenOper_initialFilterFc:  SetOrAdd(biQuad, InitialFc);
+      case  sfGenOper_initialFilterQ:   SetOrAdd(biQuad, InitialQ );
 
       // Vibrato
 
-      case  sfGenOper_vibLfoToPitch: SetOrAdd(vib, Pitch    ); break;
-      case  sfGenOper_delayVibLFO:   SetOrAdd(vib, Delay    ); break;
-      case  sfGenOper_freqVibLFO:    SetOrAdd(vib, Frequency); break;
+      case  sfGenOper_vibLfoToPitch:    SetOrAdd(vib, Pitch    );
+      case  sfGenOper_delayVibLFO:      SetOrAdd(vib, Delay    );
+      case  sfGenOper_freqVibLFO:       SetOrAdd(vib, Frequency);
 
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_modLfoToFilterFc:
@@ -167,12 +164,14 @@ void Synthesizer::process(buffp buff)
   (void) buff;
 }
 
-void Synthesizer::showParams()
+void Synthesizer::showStatus(int spaces)
 {
   using namespace std;
 
-  cout << "Synth@" << this << ": "
-       << " root:"        << +rootKey
+  cout << setw(spaces) << ' '
+       << "Synth:" 
+       << "[root:"        << +rootKey
+       << " velocity:"    << +velocity 
        << " start:"       << start
        << " end:"         << end
        << " startLoop:"   << startLoop
@@ -181,14 +180,11 @@ void Synthesizer::showParams()
        << " sizeSample:"  << sizeSample
        << " sizeLoop:"    << sizeLoop
        << " correction:"  << fixed << setw(7) << setprecision(5) << correctionFactor
-       << " velocity:"    << +velocity << endl
-       << "         ";
+       << "]" << endl;
 
-  volEnvelope.showStatus();
-
-  cout << "         Volume Envelope";
-  
-  vib.showStatus();
+  volEnvelope.showStatus(spaces + 4);
+          vib.showStatus(spaces + 4);
+       biQuad.showStatus(spaces + 4);
 }
 
 bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)

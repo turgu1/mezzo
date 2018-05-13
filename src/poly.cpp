@@ -51,7 +51,7 @@ void Poly::showState()
   cout << "[Voices Dump Start]" << endl;
 
   while (voice) {
-    if (!voice->isDormant()) voice->showState();
+    if (!voice->isDormant()) voice->showStatus(2);
 
     voice = voice->getNext();
     i++;
@@ -239,7 +239,15 @@ void Poly::noteOff(char note, bool pedalOn)
         voice->keyOff();   // Just to keep the key state
       }
       else {
-        voice->noteOff();  // This will turn off both key and note
+        if (voice->noteOff()) {  // This will turn off both key and note
+          // Come here usually when the envelope is inactive and there is no
+          // other way to know the time to stop playing this voice. This won't
+          // be good for the player as he/she will ear clicks from the speakers
+          voice->BEGIN();
+            voice->inactivate();
+          voice->END();
+          voiceCount--;
+        }
       }
     }
     voice = voice->getNext();

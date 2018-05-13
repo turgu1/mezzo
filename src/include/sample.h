@@ -43,7 +43,7 @@ public:
  ~Sample();
 
  /// Debugging method to show the current state of a sample
- void showState();
+ void showStatus(int spaces);
 
   #if samples24bits
     static void setSamplesLocation(int16_t * dta, int8_t * dta24) { data = dta; data24 = dta24; };

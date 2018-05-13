@@ -2,6 +2,7 @@
 #define _LFO_
 
 #include <cmath>
+#include <iomanip>
 
 #include "mezzo.h"
 
@@ -38,16 +39,17 @@ public:
     return value;
   }
 
-  void showStatus()
+  void showStatus(int spaces)
   {
     using namespace std;
 
     cout
-      << "Lfo:["
-      << " F:" << frequency
-      << " P:" << phase
-      << " C:" << currentPhase
-      << " I:" << increment
+      << setw(spaces) << ' '
+      << "Lfo:"
+      << "[Freq:"      << frequency
+      << " Phase:"     << phase
+      << " CurrPhase:" << currentPhase
+      << " Incr:"      << increment
       << "]" << endl;
   }
 };

@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <string>
+#include <iomanip>
 
 #include "mezzo.h"
 
@@ -152,12 +153,13 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
 
 //---- showState() -----
 
-void Sample::showState()
+void Sample::showStatus(int spaces)
 {
   using namespace std;
 
-  cerr << "sample:"
-       << " name:"       << name
+  cout << setw(spaces) << ' '
+       << "Sample:"
+       << "[name:"       << name
        << " pitch:"      << +pitch
        << " start:"      << start
        << " end:"        << end
@@ -166,5 +168,6 @@ void Sample::showState()
        << " size:"       << sizeSample
        << " rate:"       << sampleRate
        << " correction:" << +correction
-       << " loaded:"     << (loaded ? "yes" : "no") << endl;
+       << " loaded:"     << (loaded ? "yes" : "no") 
+       << "]" << endl;
 }

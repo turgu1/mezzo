@@ -1,6 +1,7 @@
 #include "copyright.h"
 
 #include <cmath>
+#include <iomanip>
 
 #include "mezzo.h"
 #include "voice.h"
@@ -19,6 +20,8 @@
 
 PRIVATE bool scaleFactorsInitialized = false;
 PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
+
+bool Voice::showPlayingState = false;
 
 float Voice::getScaleFactor(int16_t diff)
 {
@@ -87,13 +90,15 @@ Voice::Voice()
 
   // The 4 additional float in the buffer will allow for the continuity of 
   // interpolation between buffer retrieval action from the fifo. The last 4 samples
-  // of the last retrieved record will be put back as the 4 first samples in the buffer.
+  // of the last retrieved record will be put back as the 4 first samples in the buffer
+  // when a new record is read. See the getSamples() method for more information.
+
   scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT + 4];
 
   if (!scaleFactorsInitialized) {
     scaleFactorsInitialized = true;
 
-    // As per "Twelve-tone equal temperament" described at this urlt:
+    // As per "Twelve-tone equal temperament" described at this url:
     //   https://en.wikipedia.org/wiki/Equal_temperament
 
     for (int i = 0; i < SCALE_FACTOR_COUNT; i++) {
@@ -123,6 +128,7 @@ void Voice::outOfMemory()
 // It will then initialize the voice, load the fifo, prepare the synthesizer 
 // and get ready to sound the sample. It is called when the user had struck
 // a key and then require a sound to be played.
+
 void Voice::setup(samplep      _sample,
                   uint8_t      _note,
                   float        _gain,
@@ -174,6 +180,8 @@ void Voice::setup(samplep      _sample,
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
+
+  if (showPlayingState) showStatus(2);
 }
 
 int Voice::retrieveFifoSamples(buffp buff)
@@ -509,22 +517,27 @@ int Voice::getScaledSamples(buffp buff, int length)
 }
 #endif
 
-void Voice::showState()
+void Voice::showStatus(int spaces)
 {
   using namespace std;
 
   PRIVATE const char *  stateStr[4] = { "DORMANT", "OPENING", "ALIVE", "CLOSING" };
 
-  cout << "> act:"   << (active ? "true" : "false")             << " "
-       << "state:"   << (stateStr[state])                       << " "
-       << "pos:"     << (outputPos)                             << " "
-       << "sample:"  << (sample == NULL ? "none" : "see below") << endl;
+  cout 
+       << setw(spaces) << ' '
+       << "Voice: "   << (active ? "Active" : "Inactive")
+       << " [state:"   << (stateStr[state])
+       << " pos:"     << (outputPos)
+       << " sample:"  << (sample == NULL ? "none" : "see below") 
+       << " resampling factor:" << factor
+       << " note:"  << (+note)
+       << " gain:"  << (gain)
+       << " sbuff:" << (scaleBuff)
+       << " sbpos:" << (scaleBuffPos)
+       << " fifo:"  << (fifo)
+       << "]" << endl;
 
-  cout << "   note:" << (note)                                  << " "
-       << "gain:"    << (gain)                                  << " "
-       << "sbuff:"   << (scaleBuff)                             << " "
-       << "sbpos:"   << (scaleBuffPos)                          << " "
-       << "fifo:"    << (fifo)                                  << endl;
+  if (sample != NULL) sample->showStatus(4 + spaces);
 
-  if (sample != NULL) sample->showState();
+  synth.showStatus(4 + spaces);
 }
