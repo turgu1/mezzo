@@ -15,6 +15,7 @@ private:
   float initialFc;
   float initialQ;
   float a0, a1, b1, b2, z1, z2;
+  float gain;
 
 public:
   BiQuad()
@@ -22,6 +23,7 @@ public:
     initialFc = centsToRatio(13500) / config.samplingRate;
     initialQ  =  1.0f;
     active = false;
+    gain = 1.3f;
   }
 
   static bool toggleAllActive() { return allActive = !allActive; }
@@ -52,6 +54,7 @@ public:
       b2 = (1 - K / initialQ + K2) * norm;
     }
     z1 = z2 = 0.0f;
+
   }
 
   inline void filter(buffp src, uint16_t length) 
@@ -61,7 +64,7 @@ public:
         float val = *src * a0 + z1;
         z1 = (*src * a1) + z2 - (b1 * val);
         z2 = (*src * a0) - (b2 * val);
-        *src++ = val;
+        *src++ = val * gain;
       }
     }
   }
@@ -72,12 +75,13 @@ public:
 
     cout << setw(spaces) << ' '
          << "BiQuad: " << ((allActive && active) ? "Active" : "Inactive")
-         << " [Fc:" << initialFc 
-         << ", Q:"  << initialQ
-         << ", a0:" << a0 
-         << ", a1:" << a1 
-         << ", b1:" << b1 
-         << ", b2:" << b2 
+         << " [Fc:"    << initialFc 
+         << ", Q:"     << initialQ
+         << ", a0:"    << a0 
+         << ", a1:"    << a1 
+         << ", b1:"    << b1 
+         << ", b2:"    << b2 
+         << ", gain:"  << gain
          << "]"
          << endl;
   }
