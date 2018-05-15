@@ -33,7 +33,9 @@ private:
   int8_t   velocity;
   bool     loop;
 
-  enum setGensType { set, adjust };
+  uint64_t genMask;
+  
+  enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
   // Two biQuad IIR parameters have been used:

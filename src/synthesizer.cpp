@@ -3,14 +3,21 @@
 #include <math.h>
 #include <iomanip>
 
-#define SetOrAdd(x,y) \
-  if (type == set) x.set##y(gens->genAmount.shAmount); \
+#define isGenMaskSet(op) ((genMask & (1 << op)) != 0)
+#define isGenMaskClr(op) ((genMask & (1 << op)) == 0)
+#define clrGenMask(op)   (genMask &= ~(1UL << op))
+
+#define SetOrAdd(op,x,y) \
+  if ((type == init) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount);                      \
+  else if (type == set) x.set##y(gens->genAmount.shAmount), clrGenMask(op);                       \
+  else if ((type == adjust) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount), clrGenMask(op); \
   else x.addTo##y(gens->genAmount.shAmount); break
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
   while (genCount--) {
-    switch (gens->sfGenOper) {
+    SFGenerator op = gens->sfGenOper;
+    switch (op) {
       case sfGenOper_startAddrsOffset:
         start += gens->genAmount.shAmount;
         break;
@@ -51,25 +58,25 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
       // ----- Volume envelope -----
 
-      case  sfGenOper_delayVolEnv:         SetOrAdd(volEnvelope, Delay        );
-      case  sfGenOper_attackVolEnv:        SetOrAdd(volEnvelope, Attack       );
-      case  sfGenOper_holdVolEnv:          SetOrAdd(volEnvelope, Hold         );
-      case  sfGenOper_decayVolEnv:         SetOrAdd(volEnvelope, Decay        );
-      case  sfGenOper_releaseVolEnv:       SetOrAdd(volEnvelope, Release      );
-      case  sfGenOper_sustainVolEnv:       SetOrAdd(volEnvelope, Sustain      );
-      case  sfGenOper_initialAttenuation:  SetOrAdd(volEnvelope, Attenuation  );
-      case  sfGenOper_keynumToVolEnvHold:  SetOrAdd(volEnvelope, KeynumToHold );
-      case  sfGenOper_keynumToVolEnvDecay: SetOrAdd(volEnvelope, KeynumToDecay);
+      case  sfGenOper_delayVolEnv:         SetOrAdd(op, volEnvelope, Delay        );
+      case  sfGenOper_attackVolEnv:        SetOrAdd(op, volEnvelope, Attack       );
+      case  sfGenOper_holdVolEnv:          SetOrAdd(op, volEnvelope, Hold         );
+      case  sfGenOper_decayVolEnv:         SetOrAdd(op, volEnvelope, Decay        );
+      case  sfGenOper_releaseVolEnv:       SetOrAdd(op, volEnvelope, Release      );
+      case  sfGenOper_sustainVolEnv:       SetOrAdd(op, volEnvelope, Sustain      );
+      case  sfGenOper_initialAttenuation:  SetOrAdd(op, volEnvelope, Attenuation  );
+      case  sfGenOper_keynumToVolEnvHold:  SetOrAdd(op, volEnvelope, KeynumToHold );
+      case  sfGenOper_keynumToVolEnvDecay: SetOrAdd(op, volEnvelope, KeynumToDecay);
 
       // Low-Pass BiQuad Filter
-      case  sfGenOper_initialFilterFc:  SetOrAdd(biQuad, InitialFc);
-      case  sfGenOper_initialFilterQ:   SetOrAdd(biQuad, InitialQ );
+      case  sfGenOper_initialFilterFc:     SetOrAdd(op, biQuad, InitialFc);
+      case  sfGenOper_initialFilterQ:      SetOrAdd(op, biQuad, InitialQ );
 
       // Vibrato
 
-      case  sfGenOper_vibLfoToPitch:    SetOrAdd(vib, Pitch    );
-      case  sfGenOper_delayVibLFO:      SetOrAdd(vib, Delay    );
-      case  sfGenOper_freqVibLFO:       SetOrAdd(vib, Frequency);
+      case  sfGenOper_vibLfoToPitch:       SetOrAdd(op, vib, Pitch       );
+      case  sfGenOper_delayVibLFO:         SetOrAdd(op, vib, Delay       );
+      case  sfGenOper_freqVibLFO:          SetOrAdd(op, vib, Frequency   );
 
       case  sfGenOper_modLfoToPitch:
       case  sfGenOper_modLfoToFilterFc:
@@ -122,6 +129,8 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
 void Synthesizer::setDefaults(Sample * sample)
 {
+  genMask          = 0xFFFFFFFFUL;
+
   start            = sample->getStart();
   end              = sample->getEnd();
   startLoop        = sample->getStartLoop();
