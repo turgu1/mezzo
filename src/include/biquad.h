@@ -20,19 +20,23 @@ private:
 public:
   BiQuad()
   {
-    initialFc = centsToRatio(13500) / config.samplingRate;
-    initialQ  =  1.0f;
-    active = false;
-    gain = 1.3f;
+    // initialFc = centsToRatio(13500) / config.samplingRate;
+    initialFc = 13500 / config.samplingRate;
+    initialQ  = 1.0f;
+    active    = false;
+    gain      = 1.3f;
   }
 
   static bool toggleAllActive() { return allActive = !allActive; }
   static bool areAllActive() { return allActive; }
 
-  inline void setInitialFc  (int16_t fc) { initialFc  = centsToRatio(fc) / config.samplingRate; 
-                                           active = true; }
-  inline void addToInitialFc(int16_t fc) { initialFc *= centsToRatio(fc) / config.samplingRate; 
-                                           active = true; }
+  void setInitialFc  (int16_t fc);
+  void addToInitialFc(int16_t fc);
+  
+  // inline void setInitialFc  (int16_t fc) { initialFc  = centsToRatio(fc) / config.samplingRate; 
+  //                                          active = true; }
+  // inline void addToInitialFc(int16_t fc) { initialFc *= centsToRatio(fc) / config.samplingRate; 
+  //                                          active = true; }
 
   inline void setInitialQ  (int16_t q) { initialQ  = ((float) q) / 10.0; }
   inline void addToInitialQ(int16_t q) { initialQ += ((float) q) / 10.0; }

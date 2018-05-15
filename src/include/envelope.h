@@ -43,7 +43,7 @@ public:
   { 
     delay = attack = hold = decay = 0;
     keynumToHold = keynumToDecay = 0;
-    amplitude = sustain = attenuation = 1.0f;
+    amplitude = sustain = attenuation = 0.7f;
     release = centsToSampleCount(-3600); 
     setup();
   }
@@ -81,7 +81,7 @@ public:
       sustain = 0.0f;
     }
     else if (s <= 0) {
-      sustain = 1.0f;
+      sustain = 0.7f;
     }
     else {
       sustain = centibelToRatio(- s);

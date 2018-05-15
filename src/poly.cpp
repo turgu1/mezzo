@@ -286,25 +286,15 @@ int Poly::mixer(buffp buff, int frameCount)
 
     int count = voice->getSamples(voiceBuff, frameCount);
 
-    // float n = 0.0f;
-    // binFile.write((char *) &n, 4);
-    // binFile.write((char *) &n, 4);
-    // binFile.write((char *) &n, 4);
-    // binFile.write((char *) &n, 4);
-    // binFile.write((char *) voiceBuff, 4 * count);
-
     if (count > 0) {
 
       bool endOfSound = voice->transform(tmpBuff, voiceBuff, count);
 
-      // binFile.write((char*) tmpBuff, count << LOG_FRAME_SIZE);
 
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;
 
       float   voiceGain = voice->getGain() * config.masterVolume;
-
-      //if (voiceGain > 1.0) logger.DEBUG("Gain: %7.3f", voiceGain);
 
       #if USE_NEON_INTRINSICS
 
@@ -379,12 +369,9 @@ int Poly::mixer(buffp buff, int frameCount)
 
   long dur = duration->getElapse();
 
-  //std::cout << "<" << dur << ">" << std::endl;
-
   mixerDuration = MAX(mixerDuration, dur);
   delete duration;
 
-  //binFile.write((char*) buff, maxFrameCount << LOG_FRAME_SIZE);
   return maxFrameCount;
 }
 

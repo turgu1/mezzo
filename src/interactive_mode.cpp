@@ -65,7 +65,7 @@ void InteractiveMode::menu()
 {
   using namespace std;
   Preset * p;
-  uint16_t nbr;
+  int16_t nbr;
 
   while (true) {
     char ch = showMenuGetSelection();
@@ -110,7 +110,9 @@ void InteractiveMode::menu()
         while (true) {
           cout << endl << "Please enter preset index > ";
           nbr = getNumber();
-          if ((nbr >= 1) && (nbr <= theList.size())) {
+          if (nbr < 0) break;
+
+          if ((nbr >= 1) && (((uint16_t) nbr) <= theList.size())) {
             soundFont->loadPreset(theList[nbr - 1]);
             cout << "=====> " << soundFont->getCurrentPreset()->getName() << " Selected. <=====" << endl;
             break;
@@ -137,9 +139,10 @@ void InteractiveMode::menu()
         cout << "Please enter instrument index > ";
 
         nbr = getNumber();
+        if (nbr < 0) break;
 
-        if ((nbr >= 0) && ((unsigned)nbr < pi.size())) {
-          Instrument * inst = soundFont->getInstrument(pi[nbr]->index);
+        if ((nbr >= 0) && (((uint16_t) nbr) < pi.size())) {
+          Instrument * inst = soundFont->getInstrument(pi[((uint16_t) nbr)]->index);
           assert(inst != NULL);
           inst->showZones();
         }

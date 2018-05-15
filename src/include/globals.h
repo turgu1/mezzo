@@ -77,7 +77,7 @@ PUBLIC Midi       * midi;
 
 PUBLIC Log logger;
 
-PUBLIC std::ofstream binFile;
+// PUBLIC std::ofstream binFile;
 
 #undef PUBLIC
 #endif

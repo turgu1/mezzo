@@ -165,17 +165,16 @@ void Voice::setup(samplep      _sample,
     // resampling is required
     factor *= (((float)sample->getSampleRate()) / ((float)config.samplingRate));
   }
-
-  scaleBuffSize = 0;
-  scaleBuffPos  = 0;
   
   // This initialization is required as the first loop in getSamples will retrieve the last
   // 4 positions in the buffer and put them at the beginning to simplify the algorithm
 
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT    ] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 1] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 2] =
-  scaleBuff[SAMPLE_BUFFER_SAMPLE_COUNT + 3] = 0.0f;
+  scaleBuffSize  =  0;
+
+  scaleBuff[0] =
+  scaleBuff[1] =
+  scaleBuff[2] =
+  scaleBuff[3] = 0.0f;
 
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
@@ -194,8 +193,8 @@ int Voice::retrieveFifoSamples(buffp buff)
   }
   else {
     memcpy(buff,
-     fifo->getHead(),
-     (readSampleCount = fifo->getSampleCount()) << LOG_SAMPLE_SIZE);
+           fifo->getHead(),
+           (readSampleCount = fifo->getSampleCount()) << LOG_SAMPLE_SIZE);
     fifo->pop();
   }
 
@@ -248,7 +247,7 @@ int Voice::getSamples(buffp buff, int length)
 
   // outputPos is the postion where we are in the output as a number
   // of samples since the start of the note. scaledPos is where we need to
-  // get someting from the sample, taking into account pitch changes, resampling
+  // gewt someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind. buffIndex is the specific index in the
   // retrieved buffer.
 
@@ -288,8 +287,6 @@ int Voice::getSamples(buffp buff, int length)
               (y[2] * P3(fractionalPart)) +
               (y[3] * P4(fractionalPart));
 
-    //binFile.write((char *) &v, 4);
-    
     outputPos++;
     count++;
   }
