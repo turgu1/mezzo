@@ -253,8 +253,8 @@ bool Instrument::load(sfBag      * bags,
     if ((keysToLoad.byLo <= zones[zIdx].keys.byHi) && (keysToLoad.byHi >= zones[zIdx].keys.byLo)) {
       if (soundFont->loadSample(zones[zIdx].sampleIndex)) {
         zones[zIdx].synth.setDefaults(soundFont->samples[zones[zIdx].sampleIndex]);
-        zones[zIdx].synth.setGens(globalZone.generators, globalZone.genCount);
-        zones[zIdx].synth.setGens(zones[zIdx].generators,   zones[zIdx].genCount);
+        zones[zIdx].synth.initGens(globalZone.generators, globalZone.genCount);
+        zones[zIdx].synth.setGens(zones[zIdx].generators, zones[zIdx].genCount);
         zones[zIdx].synth.completeParams(60);
       }
       else {

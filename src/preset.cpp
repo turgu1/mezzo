@@ -247,7 +247,6 @@ bool Preset::load(sfBag     * bags,
             }
             gg++;
           }
-          std::cout << std::endl;
           if (zones[zIdx].genCount == 0) zones[zIdx].generators = NULL;
         }
         else {

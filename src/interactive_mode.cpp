@@ -65,7 +65,7 @@ void InteractiveMode::menu()
 {
   using namespace std;
   Preset * p;
-  int16_t  nbr;
+  uint16_t nbr;
 
   while (true) {
     char ch = showMenuGetSelection();
@@ -104,12 +104,22 @@ void InteractiveMode::menu()
       cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
       break;
     
-    case 'P':
-      soundFont->showMidiPresetList();
-      cout << endl << "Please enter preset index > ";
-      nbr = getNumber();
-      if (nbr >= 0) soundFont->loadPreset(nbr);
-      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
+    case 'P': 
+      {
+        std::vector<uint16_t> theList = soundFont->showMidiPresetList();
+        while (true) {
+          cout << endl << "Please enter preset index > ";
+          nbr = getNumber();
+          if ((nbr >= 1) && (nbr <= theList.size())) {
+            soundFont->loadPreset(theList[nbr - 1]);
+            cout << "=====> " << soundFont->getCurrentPreset()->getName() << " Selected. <=====" << endl;
+            break;
+          }
+          else {
+            cout << "Index out of range! Please Try Again." << endl;
+          }
+        }
+      }
       break;      
       
     case 'p':

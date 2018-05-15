@@ -63,6 +63,9 @@ private:
   }
 
 public:
+  inline void initGens(sfGenList * gens, uint8_t genCount) {
+    setGens(gens, genCount, init);
+  }
   inline void setGens(sfGenList * gens, uint8_t genCount) {
     setGens(gens, genCount, set);
   }

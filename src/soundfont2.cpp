@@ -403,22 +403,29 @@ void SoundFont2::addPresetToMidiList(Preset * preset)
   }
 }
 
-void SoundFont2::showMidiPresetList()
+std::vector<uint16_t> SoundFont2::showMidiPresetList()
 {
   using namespace std;
+  std::vector<uint16_t> theList;
 
   int i = 0;
   int qty = presets.size();
+  int colCount;
 
-  for (i = 0; i < 3; i++) cout << "Idx   Bk Mid  Name                 ";
+  if (qty <= 12) colCount = 1;
+  else if (qty <= 24) colCount = 2;
+  else colCount = 3;
+
+  theList.resize(qty);
+
+  for (i = 0; i < colCount; i++) cout << "Idx   Bk Mid  Name                 ";
   cout << endl;
-  for (i = 0; i < 3; i++) cout << "---   -- ---  -------------------- ";
+  for (i = 0; i < colCount; i++) cout << "---   -- ---  -------------------- ";
   cout << endl;
 
   int nxt = 0;
-  int lineCount = (qty + 2) / 3;
 
-  while (lineCount) {
+  do {
     Preset * p = firstMidiPreset;
     for (int j = 0; (p != NULL) && (j < nxt); j++) p = p->getNextMidiPreset();
     if (p != NULL) {
@@ -427,21 +434,29 @@ void SoundFont2::showMidiPresetList()
         if (presets[k] == p) break;
         k++;
       }
-      cout << setw(3) << right << k << ": "
+      theList[nxt] = k;
+      cout << setw(3) << right << (nxt + 1) << ": "
            << "[" << setw(2) << right << p->getBankNbr()
                   << setw(4) << right << p->getMidiNbr() << "] "
            << setw(20) << left << p->getName() << " ";
-      if ((++i % 3) == 0) {
+      if ((++i % colCount) == 0) {
         cout << endl;
-        lineCount--;
       }
     }
     else {
       cout << endl;
-      lineCount--;
     }
-    nxt = (nxt + ((qty + 2) / 3)) % qty;
-  }
 
-  if ((i % 3) != 0) cout << endl;
+    if (colCount > 1) {
+      nxt = (nxt + ((qty + colCount - 1) / colCount)) % qty;
+    }
+    else {
+      nxt = (nxt + 1) % qty;
+    }
+
+  } while (nxt != 0);
+
+  if ((i % colCount) != 0) cout << endl;
+
+  return theList;
 }

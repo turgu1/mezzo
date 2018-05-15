@@ -61,7 +61,7 @@ public:
   bool loadPreviousPreset();
   bool loadFirstPreset();
 
-  void showMidiPresetList();
+  std::vector<uint16_t> showMidiPresetList();
 
   inline Preset * getCurrentPreset() { return currentPreset; };
 

@@ -3,9 +3,9 @@
 #include <math.h>
 #include <iomanip>
 
-#define isGenMaskSet(op) ((genMask & (1 << op)) != 0)
-#define isGenMaskClr(op) ((genMask & (1 << op)) == 0)
-#define clrGenMask(op)   (genMask &= ~(1UL << op))
+#define isGenMaskSet(op) ((genMask &  (1ULL << op)) != 0)
+#define isGenMaskClr(op) ((genMask &  (1ULL << op)) == 0)
+#define clrGenMask(op)    (genMask &= ~(1ULL << op))
 
 #define SetOrAdd(op,x,y) \
   if ((type == init) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount);                      \
