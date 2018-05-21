@@ -45,7 +45,6 @@ public:
     keynumToHold = keynumToDecay = 0;
     amplitude = sustain = attenuation = 0.7f;
     release = centsToSampleCount(-3600); 
-    setup();
   }
 
   static bool toggleAllActive() { return allActive = !allActive; }
@@ -100,14 +99,18 @@ public:
     }
   }
 
-  void setup() 
+  void setup(uint8_t note) 
   {
     keyReleased   = false;
 
     attackStart   = delay;
-    holdStart     = attackStart  + attack;
-    decayStart    = holdStart    + hold;
-    sustainStart  = decayStart   + decay;
+    holdStart     = attackStart + attack;
+    decayStart    = holdStart   + ((keynumToHold  == 0) ? 
+                                    hold : 
+                                    (centsToSampleCount(keynumToHold  * (60.0f - note))));
+    sustainStart  = decayStart  + ((keynumToDecay == 0) ?
+                                    decay : 
+                                    (centsToSampleCount(keynumToDecay * (60.0f - note))));
 
     attackRate    = attack  == 0 ? attenuation : 
                                    (attenuation / (float) attack);
@@ -174,7 +177,7 @@ public:
     using namespace std;
     cout 
       << setw(spaces) << ' ' << "Envelope: " << (allActive ? "Active" : "Inactive")
-      << " [Delay:"    << delay
+      << " [Delay:"   << delay
       << " Attack:"   << attack  << " rate="  << attackRate << " start=" << attackStart
       << " Hold:"     << hold    << " start=" << holdStart
       << " Decay:"    << decay   << " rate="  << decayRate  << " start=" << decayStart

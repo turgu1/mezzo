@@ -19,6 +19,7 @@
 #define centsToSampleCount(x) (centsToRatio(x) * config.samplingRate)
 #define noteFrequency(x)      (NOTE_FACTOR * powf(_12TH_ROOT_OF_2, x - 12))
 
+
 class Utils {
 public:
   static buffp shortToFloatNormalize(buffp dst, int16_t * src, int   len);

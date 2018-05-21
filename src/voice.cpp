@@ -138,18 +138,19 @@ void Voice::setup(samplep      _sample,
 {
   // Connect the sample with the voice
   sample   = _sample;
-  note     = _note;
   synth    = _synth;
   gain     = _gain;
 
-  outputPos      =  0;
-  scaleBuffPos   =  0;
-  scaleBuffSize  =  0;
+  note     =  (synth.getKeynum() == -1) ? _note : synth.getKeynum();
 
-  noteIsOn       = true;
-  keyIsOn        = true;
+  outputPos      =     0;
+  scaleBuffPos   =     0;
+  scaleBuffSize  =     0;
+
+  noteIsOn       =  true;
+  keyIsOn        =  true;
   active         = false;
-  fifoLoadPos    = 0;
+  fifoLoadPos    =     0;
 
   // Feed something in the Fifo ring buffer before activation
   prepareFifo();
@@ -159,7 +160,7 @@ void Voice::setup(samplep      _sample,
 
   synth.completeParams(note);
 
-  factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
+  factor = scaleFactors[(note - synth.getRootKey() + synth.getTranspose()) + 127] * synth.getCorrection();
 
   if (sample->getSampleRate() != config.samplingRate) {
     // resampling is required

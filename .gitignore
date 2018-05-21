@@ -10,3 +10,5 @@ bin/**
 .Spotlight-V100
 .Trashes
 .ctags
+
+data.bin

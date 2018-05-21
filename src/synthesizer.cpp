@@ -3,13 +3,13 @@
 #include <math.h>
 #include <iomanip>
 
-#define isGenMaskSet(op) ((genMask &  (1ULL << op)) != 0)
-#define isGenMaskClr(op) ((genMask &  (1ULL << op)) == 0)
+#define isGenMaskSet(op) ((genMask &   (1ULL << op)) != 0)
+#define isGenMaskClr(op) ((genMask &   (1ULL << op)) == 0)
 #define clrGenMask(op)    (genMask &= ~(1ULL << op))
 
 #define SetOrAdd(op,x,y) \
-  if ((type == init) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount);                      \
-  else if (type == set) x.set##y(gens->genAmount.shAmount), clrGenMask(op);                       \
+  if ((type == init) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount);                        \
+  else if (type == set) x.set##y(gens->genAmount.shAmount), clrGenMask(op);                          \
   else if ((type == adjust) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount), clrGenMask(op); \
   else x.addTo##y(gens->genAmount.shAmount); break
 
@@ -55,6 +55,19 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_velocity:
         velocity = gens->genAmount.wAmount;
         break;
+      case  sfGenOper_keynum:
+        keynum = gens->genAmount.wAmount;
+        break;
+      case  sfGenOper_coarseTune:
+        transpose = (type == set) ?
+          gens->genAmount.shAmount :
+          (transpose + gens->genAmount.shAmount);
+        break;
+      case  sfGenOper_fineTune:
+        fineTune = (type == set) ?
+          gens->genAmount.shAmount :
+          (fineTune + gens->genAmount.shAmount);
+        break;
 
       // ----- Volume envelope -----
 
@@ -73,7 +86,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_initialFilterQ:      SetOrAdd(op, biQuad, InitialQ );
 
       // Vibrato
-
       case  sfGenOper_vibLfoToPitch:       SetOrAdd(op, vib, Pitch       );
       case  sfGenOper_delayVibLFO:         SetOrAdd(op, vib, Delay       );
       case  sfGenOper_freqVibLFO:          SetOrAdd(op, vib, Frequency   );
@@ -98,10 +110,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_chorusEffectsSend:
       case  sfGenOper_reverbEffectsSend:
 
-      case  sfGenOper_keynum:
-
-      case  sfGenOper_coarseTune:
-      case  sfGenOper_fineTune:
       case  sfGenOper_scaleTuning:
 
       case  sfGenOper_sampleModes:
@@ -142,6 +150,9 @@ void Synthesizer::setDefaults(Sample * sample)
 
   pan              =     0;
   velocity         =    -1;
+  keynum           =    -1;
+  transpose        =     0;
+  fineTune         =     0;
 }
 
 void Synthesizer::completeParams(uint8_t note)
@@ -157,13 +168,11 @@ void Synthesizer::completeParams(uint8_t note)
   }
   sizeLoop  = endLoop - startLoop;
 
-  volEnvelope.setup();
+  volEnvelope.setup(note);
   vib.setup(note);
   biQuad.setup();
 
-  //std::cout << "completeParams" << std::endl;
-
-  //showParams();
+  correctionFactor *= centsToRatio(fineTune);
 
   pos = 0;
 }

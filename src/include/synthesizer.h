@@ -29,7 +29,10 @@ private:
   uint32_t sizeLoop;
   float    correctionFactor;
   int16_t  pan;
+  int16_t  fineTune;
   uint8_t  rootKey;
+  int8_t   keynum;
+  int8_t   transpose;
   int8_t   velocity;
   bool     loop;
 
@@ -91,6 +94,9 @@ public:
   inline float    getCorrection()  { return correctionFactor;  }
   inline uint8_t  getRootKey()     { return rootKey;           }
   inline int8_t   getVelocity()    { return velocity;          }
+  inline int8_t   getKeynum()      { return keynum;            }
+  inline int8_t   getTranspose()   { return transpose;         }
+  inline int16_t  getFineTune()    { return fineTune;          }
 
   /// Returns true if this call must be considered the end of the note (in the
   /// case where the envelope as been desactivated)
