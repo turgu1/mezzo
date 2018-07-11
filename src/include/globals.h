@@ -22,6 +22,8 @@
 
 #define USE_NEON_INTRINSICS 0
 
+#define samples24bits 1
+
 class Mezzo;
 class SoundFont2;
 class Sound;
@@ -77,7 +79,7 @@ PUBLIC Midi       * midi;
 
 PUBLIC Log logger;
 
-// PUBLIC std::ofstream binFile;
+PUBLIC std::ofstream binFile;
 
 #undef PUBLIC
 #endif

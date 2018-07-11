@@ -3,15 +3,10 @@
 #include <math.h>
 #include <iomanip>
 
-#define isGenMaskSet(op) ((genMask &   (1ULL << op)) != 0)
-#define isGenMaskClr(op) ((genMask &   (1ULL << op)) == 0)
-#define clrGenMask(op)    (genMask &= ~(1ULL << op))
-
-#define SetOrAdd(op,x,y) \
-  if ((type == init) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount);                        \
-  else if (type == set) x.set##y(gens->genAmount.shAmount), clrGenMask(op);                          \
-  else if ((type == adjust) && isGenMaskSet(op)) x.set##y(gens->genAmount.shAmount), clrGenMask(op); \
-  else x.addTo##y(gens->genAmount.shAmount); break
+#define SetOrAdd(op,x,y)                                        \
+  if (type == init) x.set##y(gens->genAmount.shAmount);         \
+  else if (type == set) x.set##y(gens->genAmount.shAmount);     \
+  else if (type == adjust) x.addTo##y(gens->genAmount.shAmount); break
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
@@ -137,8 +132,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
 void Synthesizer::setDefaults(Sample * sample)
 {
-  genMask          = 0xFFFFFFFFUL;
-
   start            = sample->getStart();
   end              = sample->getEnd();
   startLoop        = sample->getStartLoop();
@@ -209,9 +202,9 @@ bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)
 {
   bool endOfSound;
 
-  biQuad.filter(src, length);
+  //biQuad.filter(src, length);
 
-  endOfSound = volEnvelope.transform(src, length, pos);
+  endOfSound = volEnvelope.transform(src, length);
 
   toStereo(dst, src, length);
 

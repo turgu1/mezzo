@@ -207,18 +207,20 @@ int Midi::selectDevice(int defaultNbr)
   showDevices(devCount);
 
   while (true) {
-    string userData;
+
+    char userData[6];
     int userNbr;
+
     cout << "Please enter MIDI device number to use [" << defaultNbr << "]> ";
 
-    getline(cin, userData);
+    cin.getline(userData, 5);
 
-    if (userData.length() == 0) {
+    if (strlen(userData) == 0) {
       devNbr = defaultNbr;
       break;
     }
 
-    userNbr = atoi(userData.c_str());
+    userNbr = atoi(userData);
 
     if ((userNbr < 0) || (userNbr >= devCount)) {
       cout << "!! Invalid device number[" << userNbr << "]. Please try again !!" << endl;

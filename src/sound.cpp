@@ -35,10 +35,12 @@ int soundCallback(const void *                     inputBuffer,
   }
   else {
     poly->mixer(buff, framesPerBuffer);
-    reverb->process(buff, framesPerBuffer);
-    equalizer->process(buff, framesPerBuffer);
-    if (config.replayEnabled) sound->push(buff);
+    //reverb->process(buff, framesPerBuffer);
+    //equalizer->process(buff, framesPerBuffer);
+    //if (config.replayEnabled) sound->push(buff);
   }
+
+  //binFile.write((char *)buff, framesPerBuffer * 8);
 
   return paContinue;
 }
@@ -168,9 +170,11 @@ void Sound::showDevices(int devCount)
 
     assert(devInfo != NULL);
 
-    cout << "Device " << i << ": " << devInfo->name
-         << ((devInfo->maxOutputChannels > 0) ? " (out)" : " (in)")
-         << endl;
+    if (devInfo->maxOutputChannels > 0) {
+      cout << "Device " << i << ": " << devInfo->name
+           << ((devInfo->maxOutputChannels > 0) ? " (out)" : " (in)")
+           << endl;      
+    }
   }
 
   cout << "[End of list]" << endl << endl;

@@ -104,7 +104,9 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
   // of the sample (no looping case)
 
   while (qty > 0) {
+
     uint16_t sizeToGet;
+    
     if (pos >= maxSampleSize) {
       // The position is now passed the end of the sample.
       if (synth.isLooping()) {

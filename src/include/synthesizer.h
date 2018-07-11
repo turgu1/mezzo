@@ -36,8 +36,6 @@ private:
   int8_t   velocity;
   bool     loop;
 
-  uint64_t genMask;
-  
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
@@ -54,15 +52,20 @@ private:
 
   inline void toStereo(buffp dst, buffp src, uint16_t length) 
   {
+    float fpan = pan / 1000.0f;
+
     const float prop  = M_SQRT2 * 0.5;
-    const float angle = ((float) pan) * M_PI;
+    const float angle = ((float) fpan) * M_PI;
 
     const float left  = prop * (cos(angle) - sin(angle));
     const float right = prop * (cos(angle) + sin(angle));
 
     if      (left  < 0.001) while (length--) { *dst++ = *src++; *dst++ = 0.0; }
     else if (right < 0.001) while (length--) { *dst++ = 0.0; *dst++ = *src++; }
-    else                    while (length--) { *dst++ = *src * right; *dst++ = *src++ * left; }
+    else {
+      //std::cout << "OUPS!!!! : " << pan << "," << left << ", " << right << std::endl;
+      while (length--) { *dst++ = *src * right; *dst++ = *src++ * left; }
+    }
   }
 
 public:
@@ -100,7 +103,7 @@ public:
 
   /// Returns true if this call must be considered the end of the note (in the
   /// case where the envelope as been desactivated)
-  inline bool keyHasBeenReleased() { return volEnvelope.keyHasBeenReleased(pos); }
+  inline bool keyHasBeenReleased() { return volEnvelope.keyHasBeenReleased(); }
 
   bool transform(buffp dst, buffp src, uint16_t length);
 

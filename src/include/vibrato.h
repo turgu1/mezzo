@@ -19,7 +19,7 @@ private:
   float    pitchSamples;
 
 public:
-  Vibrato() { pitch = 0.0f; frequency = 1.0f; delay = centsToSampleCount(-12000); }
+  Vibrato() { pitch = 0.0f; frequency = 8.176f; delay = centsToSampleCount(-12000); }
 
   inline void setup(uint8_t note) {
     // The chosen phase is to get a smooth transition at the beginning of the vibrato integration.
@@ -35,10 +35,10 @@ public:
   inline void addToPitch(int16_t p)   { pitch     += ((float) p); }
 
   inline void setDelay(int16_t d)     { delay      = (d == -32768) ? 0 : centsToSampleCount(d); }
-  inline void addToDelay(int16_t d)   { delay     += (d == -32768) ? 0 : centsToSampleCount(d); }
+  inline void addToDelay(int16_t d)   { delay     *= (d == -32768) ? 1 : centsToRatio(d); }
 
   inline void setFrequency(float f)   { frequency  = centsToFreq(f); }
-  inline void addToFrequency(float f) { frequency += centsToFreq(f); }
+  inline void addToFrequency(float f) { frequency *= centsToRatio(f); }
 
   inline float nextValue(uint32_t pos)
   {

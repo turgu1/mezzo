@@ -28,6 +28,11 @@ public:
   static buffp            interleave(buffp dst, buffp srcLeft, buffp srcRight, int len);
 
   static bool fileExists(const char * name);
+
+  inline static int16_t checkRange(int16_t value, int16_t min, int16_t max, int16_t defValue) {
+    if ((value < min) || (value > max)) return defValue;
+    return value;
+  }
 };
 
 #endif

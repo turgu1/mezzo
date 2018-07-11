@@ -10,6 +10,8 @@
   #include <arm_neon.h>
 #endif
 
+#define BIG_NUMBERS 0
+
 // In midi, there is a potential of 128 note values
 // The vector will get scale factors for offsets between two notes
 // ranging  from -127 to +127
@@ -233,10 +235,17 @@ int Voice::retrieveFifoSamples(buffp buff)
 /// These equations are used in a "sliding window" for wich we only
 /// compute interpolation located between x2 and x3.
 
-#define P1(x) ((x * ((3.0f - x) * x - 2.0f)) / 6.0f)
-#define P2(x) ((x * ((x - 2.0f) * x - 1.0f) + 2.0f) / 2.0f)
-#define P3(x) ((x * ((1.0f - x) * x + 2.0f)) / 2.0f)
-#define P4(x) ((x * ((x * x) - 1.0f)) / 6.0f)
+#if BIG_NUMBERS
+  inline double P1(double x) { return ((x * ((3.0L - x) * x - 2.0L)) / 6.0L); }
+  inline double P2(double x) { return ((x * ((x - 2.0L) * x - 1.0L) + 2.0L) / 2.0L); }
+  inline double P3(double x) { return ((x * ((1.0L - x) * x + 2.0L)) / 2.0L); }
+  inline double P4(double x) { return ((x * ((x * x) - 1.0L)) / 6.0L); }
+#else
+  inline float P1(float x) { return ((x * ((3.0f - x) * x - 2.0f)) / 6.0f); }
+  inline float P2(float x) { return ((x * ((x - 2.0f) * x - 1.0f) + 2.0f) / 2.0f); }
+  inline float P3(float x) { return ((x * ((1.0f - x) * x + 2.0f)) / 2.0f); }
+  inline float P4(float x) { return ((x * ((x * x) - 1.0f)) / 6.0f); }
+#endif
 
 int Voice::getSamples(buffp buff, int length)
 {
@@ -254,12 +263,20 @@ int Voice::getSamples(buffp buff, int length)
 
   while (length--) {
 
-    float scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
+    #if BIG_NUMBERS
+      double scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
+    #else
+      float scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
+    #endif
 
     // The following is working as scaledPos is a positive number...
 
     uint32_t integralPart   = scaledPos;
-    float    fractionalPart = scaledPos - integralPart;
+    #if BIG_NUMBERS
+      double fractionalPart = scaledPos - integralPart;
+    #else
+      float  fractionalPart = scaledPos - integralPart;
+    #endif
 
     int16_t buffIndex = (integralPart % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
 
@@ -283,10 +300,10 @@ int Voice::getSamples(buffp buff, int length)
 
     float * y = &scaleBuff[buffIndex - 1 + 4];
 
-    *buff++ = (y[0] * P1(fractionalPart)) +
-              (y[1] * P2(fractionalPart)) +
-              (y[2] * P3(fractionalPart)) +
-              (y[3] * P4(fractionalPart));
+    *buff++ = (P1(fractionalPart) * y[0]) +
+              (P2(fractionalPart) * y[1]) +
+              (P3(fractionalPart) * y[2]) +
+              (P4(fractionalPart) * y[3]);
 
     outputPos++;
     count++;
@@ -524,15 +541,15 @@ void Voice::showStatus(int spaces)
   cout 
        << setw(spaces) << ' '
        << "Voice: "   << (active ? "Active" : "Inactive")
-       << " [state:"   << (stateStr[state])
+       << " [state:"  << (stateStr[state])
        << " pos:"     << (outputPos)
        << " sample:"  << (sample == NULL ? "none" : "see below") 
        << " resampling factor:" << factor
-       << " note:"  << (+note)
-       << " gain:"  << (gain)
-       << " sbuff:" << (scaleBuff)
-       << " sbpos:" << (scaleBuffPos)
-       << " fifo:"  << (fifo)
+       << " note:"    << (+note)
+       << " gain:"    << (gain)
+       << " sbuff:"   << (scaleBuff)
+       << " sbpos:"   << (scaleBuffPos)
+       << " fifo:"    << (fifo)
        << "]" << endl;
 
   if (sample != NULL) sample->showStatus(4 + spaces);

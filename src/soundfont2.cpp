@@ -337,6 +337,10 @@ bool SoundFont2::retrieveSamples()
     if ((ck != NULL) && (ck->len >= dtaLen))  {
       assert(memcmp(ck->id, "sm24", 4) == 0);
       dta24 = (int8_t *) ck->data;
+      //std::cout << "THERE IS SOME 24 BITS SAMPLES!!!!" << std::endl;
+    }
+    else {
+      //std::cout << "THERE IS NO 24 BITS SAMPLES." << std::endl;      
     }
     Sample::setSamplesLocation(dta, dta24);
   #else

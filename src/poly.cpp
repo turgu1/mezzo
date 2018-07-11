@@ -278,7 +278,7 @@ int Poly::mixer(buffp buff, int frameCount)
 
   std::fill(buff, buff + frameCount + frameCount, 0.0f);
 
-  Duration *duration = new Duration();
+  Duration *duration = new Duration(); // TODO: Keep a duration object forever
 
   voicep voice = firstVoice();
 
