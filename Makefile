@@ -32,8 +32,13 @@ BOOST_LIBDIR := /usr/local/lib
 #                -Wno-char-subscripts -Wno-unused-function -pthread -g -fno-inline
 
 # For normal usage
-CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
-              -Wno-char-subscripts -Wno-unused-function -O3 -pthread
+CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
+               -Wno-char-subscripts -Wno-unused-function -pthread -O3 \
+               -DNEON=1 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations
+
+
+#CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
+#              -Wno-char-subscripts -Wno-unused-function -O3 -pthread
 
 # CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
 #               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline

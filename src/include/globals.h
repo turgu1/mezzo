@@ -20,7 +20,13 @@
 # define PUBLIC extern
 #endif
 
-#define USE_NEON_INTRINSICS 0
+#if __ARM_FEATURE_DSP
+  #pragma message "Using NEON Intrinsics"
+  #define USE_NEON_INTRINSICS 1
+#else
+  #define USE_NEON_INTRINSICS 0
+#endif
+
 
 #define samples24bits 1
 
