@@ -205,7 +205,7 @@ int Voice::retrieveFifoSamples(buffp buff)
 }
 
 
-#if 1
+#if 0
 
 /// Lagrange 4th order interpolation polynomes.
 ///
@@ -405,6 +405,67 @@ int Voice::getSamples(buffp buff, int length)
 #undef P5
 #undef P6
 #undef P7
+
+#endif
+
+#if 1
+int Voice::getSamples(buffp buff, int length)
+{
+  int count = 0;
+
+  assert(scaleBuff != NULL);
+  assert(buff != NULL);
+  assert(length > 0);
+
+  // outputPos is the postion where we are in the output as a number
+  // of samples since the start of the note. scaledPos is where we need to
+  // get someting from the sample, taking into account pitch changes, resampling
+  // and modulation of all kind. buffIndex is the specific index in the
+  // retrieved buffer.
+
+  float scaledPos1 = ((float) outputPos) * factor;
+
+  while (length--) {
+
+    float scaledPos = scaledPos1 + synth.vibrato(outputPos);
+
+    scaledPos1 += factor;
+
+    // The following is working as scaledPos is a positive number...
+
+    uint32_t integralPart = scaledPos;
+    float  fractionalPart = scaledPos - integralPart;
+
+    int16_t buffIndex = (integralPart % SAMPLE_BUFFER_SAMPLE_COUNT) - 2;
+
+    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
+      scaleBuffPos += scaleBuffSize;
+
+      // Retrieve the last 4 samples from the end of the buffer and put them at
+      // the beginning to ensure proper interpolation at the beginning of next
+      // buffer.
+      //
+      // For the first samples retrieval at the beginning of a note to be played,
+      // the last 4 samples have been initialized to zero (0.0f) by the setup()
+      // method.
+      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      
+      if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
+      assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
+    }
+
+    assert(buffIndex >= -2); 
+
+    float * y = &scaleBuff[buffIndex - 1 + 4];
+
+    *buff++ = y[1] + (y[2] - y[1]) * fractionalPart;
+
+    outputPos++;
+    count++;
+  }
+
+  return count;
+}
 
 #endif
 
