@@ -204,8 +204,8 @@ int Voice::retrieveFifoSamples(buffp buff)
   return readSampleCount;
 }
 
-
 #if 0
+#if 1
 
 /// Lagrange 4th order interpolation polynomes.
 ///
@@ -406,6 +406,7 @@ int Voice::getSamples(buffp buff, int length)
 #undef P6
 #undef P7
 
+#endif
 #endif
 
 #if 1
