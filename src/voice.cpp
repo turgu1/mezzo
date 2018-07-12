@@ -257,17 +257,25 @@ int Voice::getSamples(buffp buff, int length)
 
   // outputPos is the postion where we are in the output as a number
   // of samples since the start of the note. scaledPos is where we need to
-  // gewt someting from the sample, taking into account pitch changes, resampling
+  // get someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind. buffIndex is the specific index in the
   // retrieved buffer.
+
+  #if BIG_NUMBERS
+    double scaledPos1 = ((float) outputPos) * factor;
+  #else
+    float scaledPos1 = ((float) outputPos) * factor;
+  #endif
 
   while (length--) {
 
     #if BIG_NUMBERS
-      double scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
+      double scaledPos = scaledPos1 + synth.vibrato(outputPos);
     #else
-      float scaledPos = ((float) outputPos) * factor + synth.vibrato(outputPos);
+      float scaledPos = scaledPos1 + synth.vibrato(outputPos);
     #endif
+
+    scaledPos1 += factor;
 
     // The following is working as scaledPos is a positive number...
 
@@ -402,11 +410,11 @@ int Voice::getSamples(buffp buff, int length)
 
 #if 0
 
-//---- getScaledSamples()
+//---- getSamples()
 //
 // This is called when the required samples must be reconstructed from
 // another note data that is of a different pitch than the required one.
-int Voice::getScaledSamples(buffp buff, int length)
+int Voice::getSamples(buffp buff, int length)
 {
   int   count = 0;
 
