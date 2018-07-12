@@ -314,7 +314,7 @@ int Poly::mixer(buffp buff, int frameCount)
           float32x4_t vecOut = vld1q_f32(buffOut);
           float32x4_t vecIn = vld1q_f32(buffIn);
 
-          vecIn = vmulq_n_f32(vecIn, voiceGain);
+          vecIn  = vmulq_n_f32(vecIn, voiceGain);
           vecOut = vaddq_f32(vecOut, vecIn);
           vst1q_f32(buffOut, vecOut);
 
