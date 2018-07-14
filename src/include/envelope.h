@@ -173,10 +173,6 @@ public:
 
     keyReleased    = true;
     releaseRate    = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, quick ? 8000 : release);
-    state          = RELEASE;
-
-    rate           = releaseRate;
-    ticks          = quick ? 8000 : release;
 
     //std::cout << "KeyHasBeenReleased: Rate: " << releaseRate << ", Amplitude: " << amplitude << ", Release: " << release << std::endl;
 
@@ -230,15 +226,27 @@ public:
         break;
 
       default:
-        state = OFF;
+        state     = OFF;
+        amplitude = 0.0f;
+        rate      = 0.0f;
         break;
     }
-    
   }
 
   inline bool transform(buffp src, uint16_t length) 
   {
     if (!allActive) return false; // Fake this it is not the end of the sound
+
+    if (state >= OFF) return true;
+
+    if (keyReleased && (state < RELEASE)) {
+      state = release == 0 ? OFF : RELEASE;
+      rate  = releaseRate;
+      ticks = release;
+      
+      if (state >= OFF) return true;
+    }
+
 
     // while (length--) {
     //   if (keyReleased) {                                         // key release
@@ -321,6 +329,7 @@ public:
     }
 
     // std::cout << amplitude << ", ";
+    // std::cout << "(" << +state << ", " << amplitude << ", " << ticks << ") " << std::flush;
 
     return state == OFF;
   }
