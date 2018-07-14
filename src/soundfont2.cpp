@@ -422,6 +422,8 @@ std::vector<uint16_t> SoundFont2::showMidiPresetList()
 
   theList.resize(qty);
 
+  std::cout << "Qty: " << qty << std::endl;
+
   for (i = 0; i < colCount; i++) cout << "Idx   Bk Mid  Name                 ";
   cout << endl;
   for (i = 0; i < colCount; i++) cout << "---   -- ---  -------------------- ";
@@ -457,6 +459,8 @@ std::vector<uint16_t> SoundFont2::showMidiPresetList()
     else {
       nxt = (nxt + 1) % qty;
     }
+
+    std::cout << "{" << nxt << "}";
 
   } while (nxt != 0);
 

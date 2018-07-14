@@ -37,10 +37,12 @@ HOST_TYPE := $(shell arch)
 
 ifeq (${HOST_TYPE},i386)
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
+               -DNDEBUG=1 \
                -Wno-char-subscripts -Wno-unused-function -O3 -pthread
 else
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
                -Wno-char-subscripts -Wno-unused-function -pthread -O3 \
+               -DNDEBUG=1 \
                -DNEON=1 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations
 endif
 
