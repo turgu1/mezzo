@@ -38,7 +38,7 @@ private:
   float sustain;
   float attenuation;
 
-  bool     keyReleased;
+  volatile bool keyReleased;
 
 public:
 
@@ -171,8 +171,8 @@ public:
   {
     if (!allActive) return true; // This will fake the end of the sound
 
-    keyReleased    = true;
     releaseRate    = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, quick ? 8000 : release);
+    keyReleased    = true;
 
     //std::cout << "KeyHasBeenReleased: Rate: " << releaseRate << ", Amplitude: " << amplitude << ", Release: " << release << std::endl;
 
@@ -199,6 +199,7 @@ public:
           break;
         }
         state = HOLD;
+        amplitude = attenuation;
 
       case HOLD:
         if (hold > 0) {
@@ -322,14 +323,14 @@ public:
       //     endOfSound = true;
       //     break;
       // }
-      
+
       amplitude *= rate;
       amplitude = MAX(MIN(attenuation, amplitude), 0.0f);
       *src++ *= amplitude;
     }
 
     // std::cout << amplitude << ", ";
-    // std::cout << "(" << +state << ", " << amplitude << ", " << ticks << ") " << std::flush;
+    //std::cout << "(St:" << +state << ", Ampl:" << amplitude << ", Tcks:" << ticks << ", Att:" << attenuation << ")" << std::endl;
 
     return state == OFF;
   }
