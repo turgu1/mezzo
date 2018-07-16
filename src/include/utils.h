@@ -22,7 +22,27 @@
 
 class Utils {
 public:
-  static buffp shortToFloatNormalize(buffp dst, int16_t * src, int   len);
+  inline static buffp shortToFloatNormalize(buffp dst, int16_t * src, int len)
+  {
+    #if USE_NEON_INTRINSICS
+      float32_t norm = 1.0 / 32768.0;
+      for (int i = 0; i < len; i += 4) {
+        int16x4_t   s16    = vld1_s16(&src[i]);
+        int32x4_t   s32    = vmovl_s16(s16);
+        float32x4_t f32    = vcvtq_f32_s32(s32);
+        float32x4_t result = vmulq_n_f32(f32, norm);
+        vst1q_f32(&dst[i], result);
+      }
+    #else
+      const float norm = 1.0 / 32768.0;
+
+      for (int i = 0; i < len; i++) {
+        dst[i] = src[i] * norm;
+      }
+    #endif
+    return dst;
+  }
+
   static buffp                 merge(buffp dst, buffp src,     int   len);
   static buffp        mergeAndMultBy(buffp dst, buffp src,     float ampl,     int len);
   static buffp            interleave(buffp dst, buffp srcLeft, buffp srcRight, int len);

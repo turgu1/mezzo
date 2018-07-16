@@ -139,11 +139,11 @@ void Voice::setup(samplep      _sample,
                   uint16_t     _presetZoneIdx)
 {
   // Connect the sample with the voice
-  sample   = _sample;
-  synth    = _synth;
-  gain     = _gain;
+  sample         = _sample;
+  synth          = _synth;
+  gain           = _gain;
 
-  note     =  (synth.getKeynum() == -1) ? _note : synth.getKeynum();
+  note           =  (synth.getKeynum() == -1) ? _note : synth.getKeynum();
 
   outputPos      =     0;
   scaleBuffPos   =     0;
@@ -192,6 +192,7 @@ int Voice::retrieveFifoSamples(buffp buff)
 
   if (fifo->isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
+    std::cout << "FIFO Empty!!" << std::endl;
     readSampleCount = 0;
   }
   else {
