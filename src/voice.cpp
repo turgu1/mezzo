@@ -451,7 +451,7 @@ int Voice::getSamples(buffp buff, int length)
       // method.
       #if USE_NEON_INTRINSICS
         float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
-        vst1q_f32(scaleBuff, f);
+        vst1q_f32(&scaleBuff[0], f);
       #else
         memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
       #endif
