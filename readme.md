@@ -9,7 +9,7 @@ Mezzo is a C++ application that runs on a Raspberry PI 2 or 3. It is a kind of a
 Mezzo has the following characteristics:
 
 * 512 voices polyphony. Mileage may vary depending on the resources available.
-* Very low latency (lower than 5.3ms)
+* Very low latency (lower than 6ms)
 * Algebraic Reverb filter, based on the FreeVerb algorithm
 * 7 band digital output equalizer (work in progress)
 * High optimization using ARM NEON or Intel SSE DSP intrinsic instructions

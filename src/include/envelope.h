@@ -171,8 +171,9 @@ public:
   {
     if (!allActive) return true; // This will fake the end of the sound
 
-    releaseRate    = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, quick ? 8000 : release);
-    keyReleased    = true;
+    release     = quick ? 8000 : release;
+    releaseRate = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, release);
+    keyReleased = true;
 
     //std::cout << "KeyHasBeenReleased: Rate: " << releaseRate << ", Amplitude: " << amplitude << ", Release: " << release << std::endl;
 
@@ -248,82 +249,8 @@ public:
       if (state >= OFF) return true;
     }
 
-
-    // while (length--) {
-    //   if (keyReleased) {                                         // key release
-    //     if (pos < (keyReleasedPos + release)) {
-    //       amplitude *= releaseRate;
-    //     }
-    //     else {
-    //       amplitude  = 0.0f;
-    //       endOfSound = true;
-    //     }
-    //   }
-    //   else {
-    //     if      (pos < attackStart ) amplitude  = 0.0001f;       // delay
-    //     else if (pos < holdStart   ) amplitude *= attackRate;    // attack
-    //     else if (pos < decayStart  ) ;                           // hold
-    //     else if (pos < sustainStart) amplitude *= decayRate;     // decay
-    //     else                         amplitude  = sustain - attenuation;       // sustain
-    //   }
-    //   amplitude = MAX(MIN(1.0f, amplitude), 0.0f);
-    //   *src++ *= amplitude;
-    //   pos += 1;
-    // }
-
     while (length--) {
       if (ticks-- == 0) nextState();
-      // switch (state) {
-      //   case DELAY:
-      //     if (delay > 0) {
-      //       delay --;
-      //       amplitude = 0.0f;
-      //       break;
-      //     }
-      //     state     = ATTACK;
-      //     amplitude = 0.0001f;
-
-      //   case ATTACK:
-      //     if (attack > 0) {
-      //       attack--;
-      //       amplitude *= attackRate;
-      //       break;
-      //     }
-      //     state = HOLD;
-      //     amplitude = attenuation;
-
-      //   case HOLD:
-      //     if (hold > 0) {
-      //       hold --;
-      //       break;
-      //     }
-      //     state = DECAY;
-
-      //   case DECAY:
-      //     if (decay > 0) {
-      //       decay --;
-      //       amplitude *= decayRate;
-      //       break;
-      //     }
-      //     state = SUSTAIN;
-
-      //   case SUSTAIN:
-      //     break;
-
-      //   case RELEASE:
-      //     if (release > 0) {
-      //       release --;
-      //       amplitude *= releaseRate;
-      //       break;
-      //     }
-      //     state = OFF;
-      //     amplitude = 0.0f;
-
-      //   case OFF:
-      //     endOfSound = true;
-      //     break;
-      // }
-
       amplitude *= rate;
       amplitude = MAX(MIN(attenuation, amplitude), 0.0f);
       *src++ *= amplitude;

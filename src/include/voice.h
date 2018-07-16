@@ -12,7 +12,7 @@ typedef class Voice * voicep;
 
 /// Class Voice represents a sample that is currently playing through
 /// the PCM device. (Class Sample represents the static portion of a
-/// sample.)  Mezzo, at launch time, pre-allocate 256 voices that will
+/// sample.)  Mezzo, at launch time, pre-allocate 512 voices that will
 /// be associated to samples dynamically when a new sound will be
 /// required to be played. The number of pre-allocated voices can be
 /// easily changed in the Poly class definition (poly.h).
