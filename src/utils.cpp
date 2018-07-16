@@ -13,7 +13,7 @@ buffp Utils::shortToFloatNormalize(buffp dst, int16_t * src, int len)
     for (int i = 0; i < len; i += 4) {
       int16x4_t   i16    = vld1_s16(&src[i]);
       int32x4_t   i32    = vmovl_s16(i16);
-      float32x4_t f32    = vcvt_f32_s32(i32);
+      float32x4_t f32    = vcvtq_f32_s32(i32);
       float32x4_t result = vmulq_n_f32(f32, norm);
       vst1q_f32(&dst[i], result);
     }
