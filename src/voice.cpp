@@ -449,7 +449,12 @@ int Voice::getSamples(buffp buff, int length)
       // For the first samples retrieval at the beginning of a note to be played,
       // the last 4 samples have been initialized to zero (0.0f) by the setup()
       // method.
-      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      #if USE_NEON_INTRINSICS
+        float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
+        vst1q_f32(scaleBuff, f);
+      #else
+        memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+      #endif
       
       if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
       assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
