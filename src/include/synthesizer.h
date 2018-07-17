@@ -50,23 +50,7 @@ private:
   // Not sure if the end-state of it is the right one. Seems to be
   // similar to the one used in the Polyphone program.
 
-  inline void toStereo(buffp dst, buffp src, uint16_t length) 
-  {
-    float fpan = pan / 1000.0f;
-
-    const float prop  = M_SQRT2 * 0.5;
-    const float angle = ((float) fpan) * M_PI;
-
-    const float left  = prop * (cos(angle) - sin(angle));
-    const float right = prop * (cos(angle) + sin(angle));
-
-    if      (left  < 0.001) while (length--) { *dst++ = *src++; *dst++ = 0.0; }
-    else if (right < 0.001) while (length--) { *dst++ = 0.0; *dst++ = *src++; }
-    else {
-      //std::cout << "OUPS!!!! : " << pan << "," << left << ", " << right << std::endl;
-      while (length--) { *dst++ = *src * right; *dst++ = *src++ * left; }
-    }
-  }
+  void toStereo(buffp dst, buffp src, uint16_t length);
 
 public:
   inline void initGens(sfGenList * gens, uint8_t genCount) {

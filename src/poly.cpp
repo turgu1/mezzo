@@ -300,9 +300,8 @@ int Poly::mixer(buffp buff, int frameCount)
 
         // This is an ARM NEON optimized mixing algorithm. We gain a
         // factor 4 of performance improvement using those vectorized
-        // instructions. Very neat! This will allow us to add new features
-        // in a near future... (reverb, equalizer, filters, etc...)
-
+        // instructions. 
+      
         // Ensure that there is a multiple of 4 floating point samples in the buffer
         while (count & 1) {
           tmpBuff[count << 1] = 0;

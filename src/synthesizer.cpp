@@ -3,6 +3,42 @@
 #include <math.h>
 #include <iomanip>
 
+  void Synthesizer::toStereo(buffp dst, buffp src, uint16_t length) 
+  {
+
+    if      (pan >=  250) while (length--) { *dst++ = *src++; *dst++ = 0.0f; }
+    else if (pan <= -250) while (length--) { *dst++ = 0.0f; *dst++ = *src++; }
+    else {
+      float fpan = pan * (1.0f / 1000.0f);
+
+      const float prop  = M_SQRT2 * 0.5f;
+      const float angle = ((float) fpan) * M_PI;
+
+      const float left  = prop * (cos(angle) - sin(angle));
+      const float right = prop * (cos(angle) + sin(angle));
+      //std::cout << "OUPS!!!! : " << pan << "," << left << ", " << right << std::endl;
+      while (length--) { *dst++ = *src * right; *dst++ = *src++ * left; }
+    }
+  }
+
+bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)
+{
+  bool endOfSound;
+
+  //biQuad.filter(src, length);
+
+  endOfSound = volEnvelope.transform(src, length);
+
+  toStereo(dst, src, length);
+
+  pos += length;
+
+  // if (endOfSound) std::cout << "End of Sound" << std::endl;
+  // std::cout << "[" << amplVolEnv << "]" << std::endl;
+
+  return endOfSound;
+}
+
 #define SetOrAdd(op,x,y)                                        \
   if (type == init) x.set##y(gens->genAmount.shAmount);         \
   else if (type == set) x.set##y(gens->genAmount.shAmount);     \
@@ -198,21 +234,4 @@ void Synthesizer::showStatus(int spaces)
        biQuad.showStatus(spaces + 4);
 }
 
-bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)
-{
-  bool endOfSound;
-
-  //biQuad.filter(src, length);
-
-  endOfSound = volEnvelope.transform(src, length);
-
-  toStereo(dst, src, length);
-
-  pos += length;
-
-  // if (endOfSound) std::cout << "End of Sound" << std::endl;
-  // std::cout << "[" << amplVolEnv << "]" << std::endl;
-
-  return endOfSound;
-}
 
