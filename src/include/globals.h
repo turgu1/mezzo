@@ -21,7 +21,6 @@
 #endif
 
 #if __ARM_FEATURE_DSP
-  #pragma message "Using NEON Intrinsics"
   #define USE_NEON_INTRINSICS 1
 #else
   #define USE_NEON_INTRINSICS 0

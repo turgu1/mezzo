@@ -28,6 +28,7 @@ private:
   uint32_t sizeSample;
   uint32_t sizeLoop;
   float    correctionFactor;
+  float    left, right;
   int16_t  pan;
   int16_t  fineTune;
   uint8_t  rootKey;
@@ -50,7 +51,7 @@ private:
   // Not sure if the end-state of it is the right one. Seems to be
   // similar to the one used in the Polyphone program.
 
-  void toStereo(buffp dst, buffp src, uint16_t length);
+  void toStereoAndAdd(buffp dst, buffp src, uint16_t length, float gain);
 
 public:
   inline void initGens(sfGenList * gens, uint8_t genCount) {
@@ -89,7 +90,7 @@ public:
   /// case where the envelope as been desactivated)
   inline bool keyHasBeenReleased() { return volEnvelope.keyHasBeenReleased(); }
 
-  bool transform(buffp dst, buffp src, uint16_t length);
+  bool transformAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain);
 
   inline float vibrato(uint32_t pos) { return vib.nextValue(pos); }
 

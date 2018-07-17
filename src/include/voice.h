@@ -202,8 +202,8 @@ class Voice : public NewHandlerSupport<Voice> {
   inline bool isNoteOn()        { return noteIsOn;      }
   inline bool noteOff()         { keyIsOn = noteIsOn = false; return synth.keyHasBeenReleased(); }
 
-  inline bool transform(buffp tmpBuff, buffp voiceBuff, uint16_t length) {
-    return synth.transform(tmpBuff, voiceBuff, length); }
+  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length, float gain) {
+    return synth.transformAndAdd(dst, src, length, gain); }
 };
 
 #endif

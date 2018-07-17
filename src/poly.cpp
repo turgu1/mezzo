@@ -288,65 +288,65 @@ int Poly::mixer(buffp buff, int frameCount)
 
     if (count > 0) {
 
-      bool endOfSound = voice->transform(tmpBuff, voiceBuff, count);
-
-
       buffp buffOut = buff;
       buffp buffIn  = tmpBuff;
 
       float   voiceGain = voice->getGain() * config.masterVolume;
 
-      #if USE_NEON_INTRINSICS
+      bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count, voiceGain);
+      // bool endOfSound = voice->transformAndAdd(tmpBuff, voiceBuff, count, voiceGain);
 
-        // This is an ARM NEON optimized mixing algorithm. We gain a
-        // factor 4 of performance improvement using those vectorized
-        // instructions. 
-      
-        // Ensure that there is a multiple of 4 floating point samples in the buffer
-        while (count & 1) {
-          tmpBuff[count << 1] = 0;
-          tmpBuff[(count++ << 1) + 1] = 0.0;
-        }
-        i = count >> 1;
+      // #if USE_NEON_INTRINSICS
 
-        while (i--) {
-          __builtin_prefetch(&buffOut[0]);
-          __builtin_prefetch(&buffOut[1]);
-          __builtin_prefetch(&buffOut[2]);
-          __builtin_prefetch(&buffOut[3]);
-          __builtin_prefetch(&buffIn[0]);
-          __builtin_prefetch(&buffIn[1]);
-          __builtin_prefetch(&buffIn[2]);
-          __builtin_prefetch(&buffIn[3]);
-          float32x4_t vecOut = vld1q_f32(buffOut);
-          float32x4_t vecIn = vld1q_f32(buffIn);
+      //   // This is an ARM NEON optimized mixing algorithm. We gain a
+      //   // factor 4 of performance improvement using those vectorized
+      //   // instructions. 
 
-          vecIn  = vmulq_n_f32(vecIn, voiceGain);
-          vecOut = vaddq_f32(vecOut, vecIn);
-          vst1q_f32(buffOut, vecOut);
+      //   // Ensure that there is a multiple of 4 floating point samples in the buffer
+      //   while (count & 1) {
+      //     tmpBuff[count << 1] = 0;
+      //     tmpBuff[(count++ << 1) + 1] = 0.0;
+      //   }
+      //   i = count >> 1;
 
-          buffOut += 4;
-          buffIn += 4;
-        }
+      //   while (i--) {
+      //     __builtin_prefetch(&buffOut[0]);
+      //     __builtin_prefetch(&buffOut[1]);
+      //     __builtin_prefetch(&buffOut[2]);
+      //     __builtin_prefetch(&buffOut[3]);
+      //     __builtin_prefetch(&buffIn[0]);
+      //     __builtin_prefetch(&buffIn[1]);
+      //     __builtin_prefetch(&buffIn[2]);
+      //     __builtin_prefetch(&buffIn[3]);
+      //     float32x4_t vecOut = vld1q_f32(buffOut);
+      //     float32x4_t vecIn = vld1q_f32(buffIn);
 
-      #else
+      //     vecIn  = vmulq_n_f32(vecIn, voiceGain);
+      //     vecOut = vaddq_f32(vecOut, vecIn);
+      //     vst1q_f32(buffOut, vecOut);
 
-        i = count;  // This will be our running counter
+      //     buffOut += 4;
+      //     buffIn += 4;
+      //   }
 
-        sample_t  a, b;
+      // #else
 
-        while (i--) {
+      //   i = count;  // This will be our running counter
+
+      //   sample_t  a, b;
+
+      //   while (i--) {
           
-          a = *buffOut;
-          b = *buffIn++ * voiceGain;
-          *buffOut++ = MIX(a, b);
+      //     a = *buffOut;
+      //     b = *buffIn++ * voiceGain;
+      //     *buffOut++ = MIX(a, b);
 
-          a = *buffOut;
-          b = *buffIn++ * voiceGain;
-          *buffOut++ = MIX(a, b);
-        }
+      //     a = *buffOut;
+      //     b = *buffIn++ * voiceGain;
+      //     *buffOut++ = MIX(a, b);
+      //   }
 
-      #endif
+      // #endif
 
       // if endOfSound, we are at the end of the envelope sequence
       // and will now get rid of the voice.

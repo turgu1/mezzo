@@ -3,25 +3,54 @@
 #include <math.h>
 #include <iomanip>
 
-  void Synthesizer::toStereo(buffp dst, buffp src, uint16_t length) 
+  void Synthesizer::toStereoAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain) 
   {
 
-    if      (pan >=  250) while (length--) { *dst++ = *src++; *dst++ = 0.0f; }
-    else if (pan <= -250) while (length--) { *dst++ = 0.0f; *dst++ = *src++; }
+    if (pan >=  250) {
+      #if USE_NEON_INTRINSICS
+        float32x4x2_t dstData;
+        float32x4_t   srcData;
+        float32x4_t   gainData = vld1q_dup_f32(&gain);
+
+        int count = length >> 2;
+        while (count--) {
+          dstData = vld2q_f32(dst);
+          srcData = vld1q_f32(src);
+          dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, gainData);
+          vst2q_f32(dst, dstData);
+          src += 4;
+          dst += 8;
+        }
+      #else
+        while (length--) { *dst += (*src++ * gain); dst += 2; }
+      #endif
+    }
+    else if (pan <= -250) {
+      #if USE_NEON_INTRINSICS
+        float32x4x2_t dstData;
+        float32x4_t   srcData;
+        float32x4_t   gainData = vld1q_dup_f32(&gain);
+
+        int count = length >> 2;
+        while (count--) {
+          dstData = vld2q_f32(dst);
+          srcData = vldq_f32(src);
+          dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, gainData);
+          vst2q_f32(dst, dstData);
+          src += 4;
+          dst += 8;
+        }
+      #else
+        dst++;
+        while (length--) { *dst += (*src++ * gain); dst += 2; }
+      #endif
+    }
     else {
-      float fpan = pan * (1.0f / 1000.0f);
-
-      const float prop  = M_SQRT2 * 0.5f;
-      const float angle = ((float) fpan) * M_PI;
-
-      const float left  = prop * (cos(angle) - sin(angle));
-      const float right = prop * (cos(angle) + sin(angle));
-      //std::cout << "OUPS!!!! : " << pan << "," << left << ", " << right << std::endl;
-      while (length--) { *dst++ = *src * right; *dst++ = *src++ * left; }
+      while (length--) { *dst++ += *src * right * gain; *dst++ += *src++ * left * gain; }
     }
   }
 
-bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)
+bool Synthesizer::transformAndAdd(buffp dst, buffp src, uint16_t length, float gain)
 {
   bool endOfSound;
 
@@ -29,7 +58,7 @@ bool Synthesizer::transform(buffp dst, buffp src, uint16_t length)
 
   endOfSound = volEnvelope.transform(src, length);
 
-  toStereo(dst, src, length);
+  toStereoAndAdd(dst, src, length, gain);
 
   pos += length;
 
@@ -204,6 +233,16 @@ void Synthesizer::completeParams(uint8_t note)
   correctionFactor *= centsToRatio(fineTune);
 
   pos = 0;
+
+  // Stereo panning left/right
+
+  float fpan = pan * (1.0f / 1000.0f);
+
+  const float prop  = M_SQRT2 * 0.5f;
+  const float angle = ((float) fpan) * M_PI;
+
+  left  = prop * (cos(angle) - sin(angle));
+  right = prop * (cos(angle) + sin(angle));
 }
 
 void Synthesizer::process(buffp buff)
