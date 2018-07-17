@@ -52,10 +52,15 @@ int main(int argc, char **argv)
 
   assert(mezzo != NULL);
 
-  pthread_t feeder;
+  pthread_t smplFeeder;
+  pthread_t vFeeder;
 
-  if (pthread_create(&feeder, NULL, samplesFeeder, NULL)) {
+  if (pthread_create(&smplFeeder, NULL, samplesFeeder, NULL)) {
     logger.FATAL("Unable to start samplesFeeder thread.");
+  }
+
+  if (pthread_create(&vFeeder, NULL, voicesFeeder, NULL)) {
+    logger.FATAL("Unable to start voicesFeeder thread.");
   }
 
   if (config.interactive) {
@@ -66,7 +71,8 @@ int main(int argc, char **argv)
 
   // Here we wait until the two threads have been stopped
 
-  pthread_join(feeder, NULL);
+  pthread_join(smplFeeder, NULL);
+  pthread_join(vFeeder, NULL);
 
   // Leave gracefully
 

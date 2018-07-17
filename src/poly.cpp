@@ -19,7 +19,7 @@
 //---- samplesFeeder() ----
 //
 // This function represent a thread responsible of reading
-// samples from the SoundFont to push into the voices structure in real-time.
+// samples from the SoundFont to push into the voices structure close to real-time.
 
 void * samplesFeeder(void * args)
 {
@@ -32,6 +32,27 @@ void * samplesFeeder(void * args)
     while ((voice != NULL) && keepRunning) {
 
       voice->feedFifo();
+
+      sched_yield();
+      voice = voice->getNext();
+    }
+  }
+
+  pthread_exit(NULL);
+}
+
+//---- voicesFeeder() ----
+
+void * voicesFeeder(void * args)
+{
+  (void) args;
+
+  while (keepRunning) {
+    voicep voice = poly->getVoices();
+
+    while ((voice != NULL) && keepRunning) {
+
+      voice->feedBuffer();
 
       sched_yield();
       voice = voice->getNext();
@@ -85,10 +106,8 @@ Poly::Poly()
   voiceCount = maxVoiceCount = 0;
 
   tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
-  voiceBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
   std::fill(tmpBuff,   tmpBuff   + FRAME_BUFFER_SAMPLE_COUNT,  0.0f);
-  std::fill(voiceBuff, voiceBuff + SAMPLE_BUFFER_SAMPLE_COUNT, 0.0f);
 }
 
 //---- ~Poly() ----
@@ -110,7 +129,6 @@ Poly::~Poly()
   }
 
   delete [] tmpBuff;
-  delete [] voiceBuff;
 
   logger.INFO("Max Nbr of Voices used: %d.\n", maxVoiceCount);
 }
@@ -272,7 +290,6 @@ void Poly::voicesSustainOff()
 int Poly::mixer(buffp buff, int frameCount)
 {
   int maxFrameCount = 0; // Max number of frames that have been mixed
-  int i;                 // Running counter on frames
   int mixedCount = 0;    // Running counter on how many voices have beed
                          //   mixed so far in the loop
 
@@ -284,87 +301,39 @@ int Poly::mixer(buffp buff, int frameCount)
 
   while (voice != NULL) {
 
-    int count = voice->getSamples(voiceBuff, frameCount);
+    buffp voiceBuff;
 
-    if (count > 0) {
+    int count = voice->getBuffer(&voiceBuff);
 
-      buffp buffOut = buff;
-      buffp buffIn  = tmpBuff;
+    if (voiceBuff != NULL) {
 
-      float   voiceGain = voice->getGain() * config.masterVolume;
+      if (count > 0) {
 
-      bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count, voiceGain);
-      // bool endOfSound = voice->transformAndAdd(tmpBuff, voiceBuff, count, voiceGain);
+        bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count);
 
-      // #if USE_NEON_INTRINSICS
+        voice->releaseBuffer();
 
-      //   // This is an ARM NEON optimized mixing algorithm. We gain a
-      //   // factor 4 of performance improvement using those vectorized
-      //   // instructions. 
+        // if endOfSound, we are at the end of the envelope sequence
+        // and will now get rid of the voice.
+        if (endOfSound) {
+          voice->BEGIN();
+            voice->inactivate();
+          voice->END();
+          voiceCount--;
+        }
 
-      //   // Ensure that there is a multiple of 4 floating point samples in the buffer
-      //   while (count & 1) {
-      //     tmpBuff[count << 1] = 0;
-      //     tmpBuff[(count++ << 1) + 1] = 0.0;
-      //   }
-      //   i = count >> 1;
-
-      //   while (i--) {
-      //     __builtin_prefetch(&buffOut[0]);
-      //     __builtin_prefetch(&buffOut[1]);
-      //     __builtin_prefetch(&buffOut[2]);
-      //     __builtin_prefetch(&buffOut[3]);
-      //     __builtin_prefetch(&buffIn[0]);
-      //     __builtin_prefetch(&buffIn[1]);
-      //     __builtin_prefetch(&buffIn[2]);
-      //     __builtin_prefetch(&buffIn[3]);
-      //     float32x4_t vecOut = vld1q_f32(buffOut);
-      //     float32x4_t vecIn = vld1q_f32(buffIn);
-
-      //     vecIn  = vmulq_n_f32(vecIn, voiceGain);
-      //     vecOut = vaddq_f32(vecOut, vecIn);
-      //     vst1q_f32(buffOut, vecOut);
-
-      //     buffOut += 4;
-      //     buffIn += 4;
-      //   }
-
-      // #else
-
-      //   i = count;  // This will be our running counter
-
-      //   sample_t  a, b;
-
-      //   while (i--) {
-          
-      //     a = *buffOut;
-      //     b = *buffIn++ * voiceGain;
-      //     *buffOut++ = MIX(a, b);
-
-      //     a = *buffOut;
-      //     b = *buffIn++ * voiceGain;
-      //     *buffOut++ = MIX(a, b);
-      //   }
-
-      // #endif
-
-      // if endOfSound, we are at the end of the envelope sequence
-      // and will now get rid of the voice.
-      if (endOfSound) {
+        maxFrameCount = MAX(maxFrameCount, count);
+      }
+      else {
+        // There is no more frames available so we desactivate the current voice.
         voice->BEGIN();
           voice->inactivate();
         voice->END();
         voiceCount--;
       }
-
-      maxFrameCount = MAX(maxFrameCount, count);
     }
     else {
-      // There is no more frames available so we desactivate the current voice.
-      voice->BEGIN();
-        voice->inactivate();
-      voice->END();
-      voiceCount--;
+      if (voice->isActive()) std::cout << "Voice buffer not ready!" << std::endl;
     }
 
     mixedCount += 1;

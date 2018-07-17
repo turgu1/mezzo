@@ -130,6 +130,10 @@ class Voice : public NewHandlerSupport<Voice> {
   uint16_t    scaleBuffSize;
   uint32_t    fifoLoadPos;
   float       factor;
+
+  buffp       buffer;
+  int         bufferSize;
+  volatile bool bufferReady;
   
   Synthesizer synth;
 
@@ -161,7 +165,8 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This method returns the next scaled bundle of samples required by
   /// the mixer. The data is resample in accordance with the shifted pitch (if requires)
   /// the Sample rate (in regard of the audio-out targetted sampling rate) and modulations. 
-  int getSamples(buffp buff, int length);
+  int getBuffer(buffp *buff);
+  void releaseBuffer(bool resetPos = false);
 
   /// Lock a multithreading resource that needs to be modified
   inline void BEGIN() { while (__sync_lock_test_and_set(&stateLock, 1)); }
@@ -186,12 +191,17 @@ class Voice : public NewHandlerSupport<Voice> {
   inline float   getGain() { return gain; }
   inline int16_t  getPan() { return synth.getPan(); }
 
+  inline buffp   getBuffer() { return buffer; }
+  inline int     getBufferSize() { return bufferSize; }
+
   static float getScaleFactor(int16_t diff);
 
   /// This method is used by the SampleFeeder thread to read new data
   /// from the sample and put it in the next avail slot in the
   /// fifo buffer, if there is some room available.
   void feedFifo();
+
+  void feedBuffer();
 
   /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
@@ -202,8 +212,8 @@ class Voice : public NewHandlerSupport<Voice> {
   inline bool isNoteOn()        { return noteIsOn;      }
   inline bool noteOff()         { keyIsOn = noteIsOn = false; return synth.keyHasBeenReleased(); }
 
-  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length, float gain) {
-    return synth.transformAndAdd(dst, src, length, gain); }
+  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length) {
+    return synth.transformAndAdd(dst, src, length, gain * config.masterVolume); }
 };
 
 #endif

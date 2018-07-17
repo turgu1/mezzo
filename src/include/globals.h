@@ -24,6 +24,7 @@
   #define USE_NEON_INTRINSICS 1
 #else
   #define USE_NEON_INTRINSICS 0
+  typedef float float32_t;
 #endif
 
 

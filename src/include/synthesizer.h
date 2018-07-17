@@ -3,9 +3,14 @@
 
 #include <iostream>
 
+#include "globals.h"
 #include "vibrato.h"
 #include "envelope.h"
 #include "biquad.h"
+
+#if USE_NEON_INTRINSICS
+  #include <arm_neon.h>
+#endif
 
 // A synthesizer is containing the generators and code to
 // transform samples in relashionship with the generators. A synthesizer
@@ -28,7 +33,7 @@ private:
   uint32_t sizeSample;
   uint32_t sizeLoop;
   float    correctionFactor;
-  float    left, right;
+  float32_t left, right;
   int16_t  pan;
   int16_t  fineTune;
   uint8_t  rootKey;
@@ -51,7 +56,82 @@ private:
   // Not sure if the end-state of it is the right one. Seems to be
   // similar to the one used in the Polyphone program.
 
-  void toStereoAndAdd(buffp dst, buffp src, uint16_t length, float gain);
+  inline void toStereoAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain) 
+  {
+    #if USE_NEON_INTRINSICS
+      buffp s = &src[length];
+      while (length & 0x03) {
+        *s++ = 0.0f;
+        length++;
+      }
+    #endif
+      
+    if (pan >=  250) {
+      #if USE_NEON_INTRINSICS
+        float32x4x2_t dstData;
+        float32x4_t   srcData;
+
+        int count = length >> 2;
+        while (count--) {
+          __builtin_prefetch(dst);
+          __builtin_prefetch(src);
+          dstData = vld2q_f32(dst);
+          srcData = vld1q_f32(src);
+          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, gain);
+          vst2q_f32(dst, dstData);
+          src += 4;
+          dst += 8;
+        }
+      #else
+        while (length--) { *dst += (*src++ * gain); dst += 2; }
+      #endif
+    }
+    else if (pan <= -250) {
+      #if USE_NEON_INTRINSICS
+        float32x4x2_t dstData;
+        float32x4_t   srcData;
+
+        int count = length >> 2;
+        while (count--) {
+          __builtin_prefetch(dst);
+          __builtin_prefetch(src);
+          dstData = vld2q_f32(dst);
+          srcData = vld1q_f32(src);
+          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, gain);
+          vst2q_f32(dst, dstData);
+          src += 4;
+          dst += 8;
+        }
+      #else
+        dst++;
+        while (length--) { *dst += (*src++ * gain); dst += 2; }
+      #endif
+    }
+    else {
+      #if USE_NEON_INTRINSICS
+        float32x4x2_t dstData;
+        float32x4_t   srcData;
+        float32_t     leftFactor  = left  * gain;
+        float32_t     rightFactor = right * gain;
+
+        int count = length >> 2;
+        while (count--) {
+          __builtin_prefetch(dst);
+          __builtin_prefetch(src);
+          dstData = vld2q_f32(dst);
+          srcData = vld1q_f32(src);
+          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, rightFactor);
+          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, leftFactor);
+          vst2q_f32(dst, dstData);
+          src += 4;
+          dst += 8;
+        }
+      #else
+        while (length--) { *dst++ += *src * right * gain; *dst++ += *src++ * left * gain; }
+      #endif
+    }
+  }
+
 
 public:
   inline void initGens(sfGenList * gens, uint8_t genCount) {
@@ -90,8 +170,6 @@ public:
   /// case where the envelope as been desactivated)
   inline bool keyHasBeenReleased() { return volEnvelope.keyHasBeenReleased(); }
 
-  bool transformAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain);
-
   inline float vibrato(uint32_t pos) { return vib.nextValue(pos); }
 
   static bool areAllFilterActive()   { return BiQuad::areAllActive();   }
@@ -101,6 +179,24 @@ public:
   static bool toggleFilter()     { return BiQuad::toggleAllActive();   }
   static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
+
+  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain)
+  {
+    bool endOfSound;
+
+    //biQuad.filter(src, length);
+
+    endOfSound = volEnvelope.transform(src, length);
+
+    toStereoAndAdd(dst, src, length, gain);
+
+    pos += length;
+
+    // if (endOfSound) std::cout << "End of Sound" << std::endl;
+    // std::cout << "[" << amplVolEnv << "]" << std::endl;
+
+    return endOfSound;
+  }
 };
 
 #endif

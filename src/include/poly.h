@@ -42,5 +42,6 @@ class Poly : public NewHandlerSupport<Poly> {
 };
 
 void * samplesFeeder(void * args);
+void *  voicesFeeder(void * args);
 
 #endif // POLY_H
