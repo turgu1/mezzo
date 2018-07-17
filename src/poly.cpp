@@ -311,6 +311,14 @@ int Poly::mixer(buffp buff, int frameCount)
         i = count >> 1;
 
         while (i--) {
+          __builtin_prefetch(&buffOut[0]);
+          __builtin_prefetch(&buffOut[1]);
+          __builtin_prefetch(&buffOut[2]);
+          __builtin_prefetch(&buffOut[3]);
+          __builtin_prefetch(&buffIn[0]);
+          __builtin_prefetch(&buffIn[1]);
+          __builtin_prefetch(&buffIn[2]);
+          __builtin_prefetch(&buffIn[3]);
           float32x4_t vecOut = vld1q_f32(buffOut);
           float32x4_t vecIn = vld1q_f32(buffIn);
 

@@ -1,5 +1,11 @@
 #include "copyright.h"
 
+#include "globals.h"
+
+#if USE_NEON_INTRINSICS
+  #include <arm_neon.h>
+#endif
+
 #ifndef _UTILS_
 #define _UTILS_
 

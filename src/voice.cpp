@@ -46,6 +46,9 @@ void Voice::feedFifo()
           fifo->setSampleCount(count);
           fifo->push();
         }
+        else {
+          //inactivate();
+        }
         END();
       }
     }
@@ -192,7 +195,7 @@ int Voice::retrieveFifoSamples(buffp buff)
 
   if (fifo->isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
-    std::cout << "FIFO Empty!!" << std::endl;
+    //if (isActive()) std::cout << "FIFO Empty!!" << std::endl;
     readSampleCount = 0;
   }
   else {

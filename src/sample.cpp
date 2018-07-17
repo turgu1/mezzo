@@ -78,14 +78,14 @@ bool Sample::load()
   if (sizeSample < sizeFirstBlock) sizeFirstBlock = sizeSample;
 
   firstBlock = new int16_t[sizeFirstBlock];
-  //memcpy(firstBlock, &data[start], sizeFirstBlock * 2);
-  std::copy(firstBlock, firstBlock + sizeFirstBlock, &data[start]);
+  memcpy(firstBlock, &data[start], sizeFirstBlock * 2);
+  //std::copy(firstBlock, firstBlock + sizeFirstBlock, &data[start]);
 
   #if samples24bits
     if (data24) {
       firstBlock24 = new int8_t[sizeFirstBlock];
-      //memcpy(firstBlock24, &data24[start], sizeFirstBlock);
-      std::copy(firstBlock24, firstBlock24 + sizeFirstBlock, &data24[start]);
+      memcpy(firstBlock24, &data24[start], sizeFirstBlock);
+      //std::copy(firstBlock24, firstBlock24 + sizeFirstBlock, &data24[start]);
     }
   #endif
 
