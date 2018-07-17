@@ -40,6 +40,8 @@ public:
       }
     #endif
 
+    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
+
     #if USE_NEON_INTRINSICS
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);

@@ -206,11 +206,12 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
 
-  inline void clearFifo()       { fifo->clear();        }
-  inline void keyOff()          { keyIsOn = false;      }  
-  inline bool isKeyOn()         { return keyIsOn;       }
-  inline bool isNoteOn()        { return noteIsOn;      }
-  inline bool noteOff()         { keyIsOn = noteIsOn = false; return synth.keyHasBeenReleased(); }
+  inline void clearFifo() { fifo->clear();        }
+  inline void keyOff()    { keyIsOn = false;      }  
+  inline bool isKeyOn()   { return keyIsOn;       }
+  inline bool isNoteOn()  { return noteIsOn;      }
+  inline bool noteOff()   { keyIsOn = noteIsOn = false; 
+                            return synth.keyHasBeenReleased(); }
 
   inline bool transformAndAdd(buffp dst, buffp src, uint16_t length) {
     return synth.transformAndAdd(dst, src, length, gain * config.masterVolume); }

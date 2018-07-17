@@ -65,7 +65,9 @@ private:
         length++;
       }
     #endif
-      
+
+    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
+
     if (pan >=  250) {
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
