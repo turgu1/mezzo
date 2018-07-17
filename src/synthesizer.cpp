@@ -14,6 +14,8 @@
 
         int count = length >> 2;
         while (count--) {
+          __builtin_prefetch(dst);
+          __builtin_prefetch(src);
           dstData = vld2q_f32(dst);
           srcData = vld1q_f32(src);
           dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, gainData);
@@ -33,8 +35,10 @@
 
         int count = length >> 2;
         while (count--) {
+          __builtin_prefetch(dst);
+          __builtin_prefetch(src);
           dstData = vld2q_f32(dst);
-          srcData = vldq_f32(src);
+          srcData = vld1q_f32(src);
           dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, gainData);
           vst2q_f32(dst, dstData);
           src += 4;
