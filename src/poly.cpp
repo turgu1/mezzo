@@ -332,9 +332,9 @@ int Poly::mixer(buffp buff, int frameCount)
         voiceCount--;
       }
     }
-    else {
-      if (voice->isActive()) std::cout << "Voice buffer not ready!" << std::endl;
-    }
+    // else {
+    //   if (voice->isActive()) std::cout << "Voice buffer not ready!" << std::endl;
+    // }
 
     mixedCount += 1;
 

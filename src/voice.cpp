@@ -93,13 +93,12 @@ Voice::Voice()
   fifo           = new Fifo;
   next           = NULL;
 
-
   buffer = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
 
   // The 4 additional float in the buffer will allow for the continuity of 
   // interpolation between buffer retrieval action from the fifo. The last 4 samples
   // of the last retrieved record will be put back as the 4 first samples in the buffer
-  // when a new record is read. See the getSamples() method for more information.
+  // when a new record is read. See the feedBuffer() method for more information.
 
   scaleBuff = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT + 4];
 

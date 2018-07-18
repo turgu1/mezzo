@@ -56,7 +56,7 @@ private:
   // Not sure if the end-state of it is the right one. Seems to be
   // similar to the one used in the Polyphone program.
 
-  inline void toStereoAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain) 
+  inline void toStereoAndAdd(buffp dst, buffp src, buffp env, uint16_t length, float32_t gain) 
   {
     #if USE_NEON_INTRINSICS
       buffp s = &src[length];
@@ -64,9 +64,11 @@ private:
         *s++ = 0.0f;
         length++;
       }
+      assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+    #else
+      assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #endif
 
-    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
 
     if (pan >=  250) {
       #if USE_NEON_INTRINSICS
@@ -75,17 +77,21 @@ private:
 
         int count = length >> 2;
         while (count--) {
+          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
+          envData = vld1q_f32(env);
           dstData = vld2q_f32(dst);
           srcData = vld1q_f32(src);
-          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, gain);
+          envData = vmulq_n_f32(envData, gain);
+          dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, envData);
           vst2q_f32(dst, dstData);
           src += 4;
+          env += 4;
           dst += 8;
         }
       #else
-        while (length--) { *dst += (*src++ * gain); dst += 2; }
+        while (length--) { *dst += (*src++ * gain * *env++); dst += 2; }
       #endif
     }
     else if (pan <= -250) {
@@ -95,41 +101,60 @@ private:
 
         int count = length >> 2;
         while (count--) {
+          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
+          envData = vld1q_f32(env);
           dstData = vld2q_f32(dst);
           srcData = vld1q_f32(src);
-          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, gain);
+          envData = vmulq_n_f32(envData, gain);
+          dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, envData);
           vst2q_f32(dst, dstData);
           src += 4;
+          env += 4;
           dst += 8;
         }
       #else
         dst++;
-        while (length--) { *dst += (*src++ * gain); dst += 2; }
+        while (length--) { *dst += (*src++ * gain * *env++); dst += 2; }
       #endif
     }
     else {
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
-        float32_t     leftFactor  = left  * gain;
-        float32_t     rightFactor = right * gain;
+        float32x4_t   leftFactor;
+        float32x4_t   rightFactor;
 
         int count = length >> 2;
         while (count--) {
+          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
-          dstData = vld2q_f32(dst);
-          srcData = vld1q_f32(src);
-          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, rightFactor);
-          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, leftFactor);
+
+          leftFactor  = vld1q_f32(env);
+          rightFactor = vld1q_f32(env);
+          dstData     = vld2q_f32(dst);
+          srcData     = vld1q_f32(src);
+          leftFactor  = vmulq_n_f32(leftFactor,  gain );
+          rightFactor = vmulq_n_f32(rightFactor, gain );
+          leftFactor  = vmulq_n_f32(leftFactor,  left );
+          rightFactor = vmulq_n_f32(rightFactor, right);
+
+          dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, rightFactor);
+          dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, leftFactor);
+          
           vst2q_f32(dst, dstData);
+          
           src += 4;
+          env += 4;
           dst += 8;
         }
       #else
-        while (length--) { *dst++ += *src * right * gain; *dst++ += *src++ * left * gain; }
+        while (length--) { 
+          *dst++ += *src * right * gain * *env; 
+          *dst++ += *src++ * left * gain * *env++; 
+        }
       #endif
     }
   }
@@ -184,13 +209,17 @@ public:
 
   inline bool transformAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain)
   {
+    float env[SAMPLE_BUFFER_SAMPLE_COUNT];
+
     bool endOfSound;
 
     //biQuad.filter(src, length);
 
-    endOfSound = volEnvelope.transform(src, length);
+    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
 
-    toStereoAndAdd(dst, src, length, gain);
+    endOfSound = volEnvelope.transform(env, length);
+
+    toStereoAndAdd(dst, src, env, length, gain);
 
     pos += length;
 

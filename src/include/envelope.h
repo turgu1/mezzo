@@ -253,7 +253,7 @@ public:
       if (ticks-- == 0) nextState();
       amplitude *= rate;
       amplitude = MAX(MIN(attenuation, amplitude), 0.0f);
-      *src++ *= amplitude;
+      *src++ = amplitude;
     }
 
     // std::cout << amplitude << ", ";
