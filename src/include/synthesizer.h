@@ -63,6 +63,7 @@ private:
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
+        float32x4_t   envData;
 
         int count = length >> 2;
         while (count--) {
@@ -87,6 +88,7 @@ private:
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
+        float32x4_t   envData;
 
         int count = length >> 2;
         while (count--) {
