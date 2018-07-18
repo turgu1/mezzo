@@ -42,6 +42,9 @@ void * samplesFeeder(void * args)
 }
 
 //---- voicesFeeder() ----
+//
+// This function represent a thread responsible of readying a voice buffer packet
+// on time for consumption by the poly::mixer method.
 
 void * voicesFeeder(void * args)
 {
@@ -89,7 +92,7 @@ Poly::Poly()
 {
   setNewHandler(outOfMemory);
 
-  voicep prev = NULL;
+  voicep prev  = NULL;
   voicep voice = NULL;
 
   for (int i = 0; i < MAX_VOICES; i++) {
@@ -105,7 +108,7 @@ Poly::Poly()
 
   voiceCount = maxVoiceCount = 0;
 
-  tmpBuff   = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
+  tmpBuff = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
 
   std::fill(tmpBuff,   tmpBuff   + FRAME_BUFFER_SAMPLE_COUNT,  0.0f);
 }
@@ -332,9 +335,10 @@ int Poly::mixer(buffp buff, int frameCount)
         voiceCount--;
       }
     }
-    // else {
+    else {
     //   if (voice->isActive()) std::cout << "Voice buffer not ready!" << std::endl;
-    // }
+      std::cout << '.' << std::flush;
+    }
 
     mixedCount += 1;
 

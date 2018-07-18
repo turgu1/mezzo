@@ -186,6 +186,8 @@ void Voice::setup(samplep      _sample,
   scaleBuff[2] =
   scaleBuff[3] = 0.0f;
 
+  feedBuffer(true);
+  
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
@@ -232,9 +234,9 @@ void Voice::releaseBuffer(bool resetPos)
   bufferReady = false;
 }
 
-void Voice::feedBuffer()
+void Voice::feedBuffer(bool bypass)
 {
-  if (isActive() && !bufferReady) {
+  if (bypass || (isActive() && !bufferReady)) {
 
     int count = 0;
     int length = SAMPLE_BUFFER_SAMPLE_COUNT;
@@ -306,7 +308,7 @@ void Voice::showStatus(int spaces)
 {
   using namespace std;
 
-  PRIVATE const char *  stateStr[4] = { "DORMANT", "OPENING", "ALIVE", "CLOSING" };
+  PRIVATE const char *  stateStr[4] = { "DORMANT", "ALIVE" };
 
   cout 
        << setw(spaces) << ' '

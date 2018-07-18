@@ -410,19 +410,22 @@ void SoundFont2::addPresetToMidiList(Preset * preset)
 std::vector<uint16_t> SoundFont2::showMidiPresetList()
 {
   using namespace std;
-  std::vector<uint16_t> theList;
+  vector<uint16_t> theList;
 
   int i = 0;
   int qty = presets.size();
+  int qty2;
   int colCount;
+  int entriesPerColumn;
 
   if (qty <= 12) colCount = 1;
   else if (qty <= 24) colCount = 2;
   else colCount = 3;
 
-  theList.resize(qty);
+  entriesPerColumn = (qty + colCount - 1) / colCount;
+  qty2 = entriesPerColumn * colCount;
 
-  std::cout << "Qty: " << qty << std::endl;
+  theList.resize(qty);
 
   for (i = 0; i < colCount; i++) cout << "Idx   Bk Mid  Name                 ";
   cout << endl;
@@ -454,15 +457,21 @@ std::vector<uint16_t> SoundFont2::showMidiPresetList()
     }
 
     if (colCount > 1) {
-      nxt = (nxt + ((qty + colCount - 1) / colCount)) % qty;
+      if ((nxt + entriesPerColumn) < qty2) {
+        nxt += entriesPerColumn;
+      }
+      else {
+        nxt = (nxt + entriesPerColumn + 1) - qty2;
+        if (nxt >= entriesPerColumn) break;
+      }
     }
     else {
-      nxt = (nxt + 1) % qty;
+      nxt += 1;
     }
 
-    std::cout << "{" << nxt << "}";
+    if (nxt >= qty2) break;
 
-  } while (nxt != 0);
+  } while (true);
 
   if ((i % colCount) != 0) cout << endl;
 

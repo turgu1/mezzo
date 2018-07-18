@@ -201,7 +201,11 @@ class Voice : public NewHandlerSupport<Voice> {
   /// fifo buffer, if there is some room available.
   void feedFifo();
 
-  void feedBuffer();
+  // At setup time, the bypass parameter allows to feed the buffer for
+  // the first packet before being taken in charge by the feeding thread.
+  // This is to ensure that the first packet in ready for consumption in
+  // time for the poly::mixer method.
+  void feedBuffer(bool bypass = false);
 
   /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
