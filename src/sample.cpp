@@ -95,6 +95,10 @@ bool Sample::load()
 
 uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & synth)
 {
+  static int16_t tmpBuffer[SAMPLE_BUFFER_SAMPLE_COUNT];
+
+  int16_t * iBuff = tmpBuffer;
+
   const uint32_t offset         = (synth.getStart() - start);
   const uint32_t sizeFirstBlock = synth.isLooping() ? MIN(this->sizeFirstBlock - offset, synth.getEndLoop()) :
                                                       this->sizeFirstBlock - offset;
@@ -110,7 +114,7 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
     uint16_t sizeToGet;
     
     if (pos >= maxSampleSize) {
-      // The position is now passed the end of the sample.
+      // The position has now passed the end of the sample.
       if (synth.isLooping()) {
 
         // We are looping. Find where we are in the loop portion
@@ -121,35 +125,38 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
         // If we are still in the cached block, get some data from it
         if (thePos < sizeFirstBlock) {
           sizeToGet = MIN(sizeToGet, sizeFirstBlock - thePos);
-          Utils::shortToFloatNormalize(buff, &firstBlock[offset + thePos], sizeToGet);
+          memcpy(iBuff, &firstBlock[offset + thePos], sizeToGet << 1);
         }
         else {
           //sizeToGet = MIN(sizeToGet, synth.getSizeSample() - thePos);
-          Utils::shortToFloatNormalize(buff, &data[synth.getStart() + thePos], sizeToGet);
+          memcpy(iBuff, &data[synth.getStart() + thePos], sizeToGet << 1);
         }
         assert((thePos + sizeToGet) <= maxSampleSize);
       }
       else {
         // We are not looping. Send back what was read.
+        if (count > 0) Utils::shortToFloatNormalize(buff, tmpBuffer, count);
         return count;
       }
     }
     else if (pos < sizeFirstBlock) {
       sizeToGet = MIN(qty, sizeFirstBlock - pos);
-      Utils::shortToFloatNormalize(buff, &firstBlock[offset + pos], sizeToGet);
+      memcpy(iBuff, &firstBlock[offset + pos], sizeToGet << 1);
       assert((pos + sizeToGet) <= maxSampleSize);
     }
     else {
       sizeToGet = MIN(qty, maxSampleSize - pos);
-      Utils::shortToFloatNormalize(buff, &data[synth.getStart() + pos], sizeToGet);
+      memcpy(iBuff, &data[synth.getStart() + pos], sizeToGet << 1);
       assert((pos + sizeToGet) <= maxSampleSize);
     }
 
     qty   -= sizeToGet;
     count += sizeToGet;
-    buff  += sizeToGet;
+    iBuff += sizeToGet;
     pos   += sizeToGet;
   }
+
+  Utils::shortToFloatNormalize(buff, tmpBuffer, count);
 
   assert(qty == 0);
   return count;

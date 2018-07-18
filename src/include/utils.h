@@ -36,7 +36,7 @@ public:
     assert(src != NULL);
     assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
 
-    #if 0 //USE_NEON_INTRINSICS
+    #if USE_NEON_INTRINSICS
       int16_t * s = &src[length];
       while ((length & 0x03) != 0) {
         *s++ = 0;
@@ -45,7 +45,7 @@ public:
       assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #endif
 
-    #if 0 //USE_NEON_INTRINSICS
+    #if USE_NEON_INTRINSICS
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);
         int16x4_t   s16    = vld1_s16(&src[i]);
@@ -62,9 +62,9 @@ public:
     return dst;
   }
 
-  static buffp                 merge(buffp dst, buffp src,     int   len);
-  static buffp        mergeAndMultBy(buffp dst, buffp src,     float ampl,     int len);
-  static buffp            interleave(buffp dst, buffp srcLeft, buffp srcRight, int len);
+  static buffp          merge(buffp dst, buffp src,     int   len);
+  static buffp mergeAndMultBy(buffp dst, buffp src,     float ampl,     int len);
+  static buffp     interleave(buffp dst, buffp srcLeft, buffp srcRight, int len);
 
   static bool fileExists(const char * name);
 
