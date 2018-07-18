@@ -281,12 +281,14 @@ void Voice::feedBuffer()
         #else
           memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
         #endif
-        
-        if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) break;
+
+        if ((scaleBuffSize = retrieveFifoSamples(&scaleBuff[4])) == 0) {
+          break;
+        }
         assert((!synth.isLooping()) || (scaleBuffSize == SAMPLE_BUFFER_SAMPLE_COUNT));
       }
 
-      assert(buffIndex >= -2); 
+      assert(buffIndex >= -2);
 
       float * y = &scaleBuff[buffIndex - 1 + 4];
 

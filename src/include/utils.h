@@ -32,17 +32,20 @@ public:
   {
     const float32_t norm = 1.0 / 32768.0;
 
-    #if USE_NEON_INTRINSICS
+    assert(dst != NULL);
+    assert(src != NULL);
+    assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+
+    #if 0 //USE_NEON_INTRINSICS
       int16_t * s = &src[length];
-      while (length & 0x03) {
+      while ((length & 0x03) != 0) {
         *s++ = 0;
         length++;
       }
+      assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #endif
 
-    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
-
-    #if USE_NEON_INTRINSICS
+    #if 0 //USE_NEON_INTRINSICS
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);
         int16x4_t   s16    = vld1_s16(&src[i]);
