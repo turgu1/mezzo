@@ -48,10 +48,13 @@ private:
   inline void toStereoAndAdd(buffp dst, buffp src, buffp env, uint16_t length, float32_t gain) 
   {
     #if USE_NEON_INTRINSICS
-      buffp s = &src[length];
-      while (length & 0x03) {
-        *s++ = 0.0f;
-        length++;
+      // If required, pad the buffer to be a multiple of 4
+      if (length & 0x03) {
+        buffp s = &src[length];
+        do {
+          *s++ = 0.0f;
+          length++;
+        } while (length & 0x03);
       }
       assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #else

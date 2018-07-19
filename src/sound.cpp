@@ -27,6 +27,7 @@ int soundCallback(const void *                     inputBuffer,
   (void) timeInfo;
   (void) statusFlags;
 
+
   if (config.replayEnabled && sound->isReplaying()) {
     sound->get(buff);
   }

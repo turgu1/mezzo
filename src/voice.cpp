@@ -59,7 +59,7 @@ void Voice::prepareFifo()
 {
   fifo->clear();
   // while (!fifo->isFull())
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 2; i++)
   {
     uint16_t count = sample->getData(
       fifo->getTail(),
@@ -175,8 +175,8 @@ void Voice::setup(samplep      _sample,
     // resampling is required
     factor *= (((float)sample->getSampleRate()) / ((float)config.samplingRate));
   }
-  
-  // This initialization is required as the first loop in getSamples will retrieve the last
+
+  // This initialization is required as the first loop in feedBuffer will retrieve the last
   // 4 positions in the buffer and put them at the beginning to simplify the algorithm
 
   scaleBuffSize  =  0;
@@ -185,6 +185,8 @@ void Voice::setup(samplep      _sample,
   scaleBuff[1] =
   scaleBuff[2] =
   scaleBuff[3] = 0.0f;
+
+  // Retrieve the first packet. The others will be fed through a thread after activation.
 
   feedBuffer(true);
   
