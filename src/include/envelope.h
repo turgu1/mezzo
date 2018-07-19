@@ -4,8 +4,13 @@
 #include <iostream>
 #include <iomanip>
 
+#include "globals.h"
 #include "mezzo.h"
 #include "utils.h"
+
+#if USE_NEON_INTRINSICS
+  #include <arm_neon.h>
+#endif
 
 class Envelope
 {
@@ -127,11 +132,7 @@ public:
 
   inline float computeRate(float startLevel, float endLevel, uint32_t lengthInSamples) 
   {
-    float res = 1.0f + (log(endLevel) - log(startLevel)) / (lengthInSamples);
-
-    //std::cout << "ComputeRate: Start:" << startLevel << ", End: " << endLevel << ", Length: " << lengthInSamples << std::endl;
-    
-    return res;
+    return = 1.0f + (log(endLevel) - log(startLevel)) / (lengthInSamples);
   }
 
   inline void setup(uint8_t note) 
@@ -140,33 +141,19 @@ public:
 
     keyReleased   = false;
 
-    // decayStart    = holdStart   + ((keynumToHold  == 0) ? 
-    //                                 hold : 
-    //                                 (centsToSampleCount(keynumToHold  * (60.0f - note))));
-    // sustainStart  = decayStart  + ((keynumToDecay == 0) ?
-    //                                 decay : 
-    //                                 (centsToSampleCount(keynumToDecay * (60.0f - note))));
-
-    // attackRate    = attack == 0 ? (1.0f - attenuation) : 
-    //                               computeRate(0.0001f, 1.0f - attenuation, attack);
-    // decayRate     = decay  == 0 ? (1.0f - attenuation) : 
-    //                               computeRate(1.0f - attenuation, 1.0f - attenuation - sustain, decay);
-
     attackRate    = attack == 0 ? (attenuation) : 
                                   computeRate(0.0001f, attenuation, attack);
     decayRate     = decay  == 0 ? (attenuation) : 
                                   computeRate(attenuation, attenuation * sustain, decay);
-
     rate = 0;
-    //std::cout << "Setup: Attack: " << attack << ", Rate: " << attackRate << ", Decay: " << decay << ", Rate: " << decayRate << std::endl;
-
-    // showStatus();
   }
 
   inline bool keyIsReleased() { return keyReleased; }
 
   /// When the key has been released by the player, prepare for the
-  /// release portion of the envelope.
+  /// release portion of the envelope. A quick release means a shortened
+  /// period to go to a 0 amplitude. If the envelope is inactive (as requested
+  /// by the user)
   inline bool keyHasBeenReleased(bool quick = false) 
   {
     if (!allActive) return true; // This will fake the end of the sound
@@ -174,8 +161,6 @@ public:
     release     = quick ? 8000 : release;
     releaseRate = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, release);
     keyReleased = true;
-
-    //std::cout << "KeyHasBeenReleased: Rate: " << releaseRate << ", Amplitude: " << amplitude << ", Release: " << release << std::endl;
 
     return false;
   }
@@ -235,7 +220,12 @@ public:
     }
   }
 
-  inline bool transform(buffp src, uint16_t length) 
+  // From where we are in the stream of envelope levels, build an
+  // array with the changes of amplitude to apply to a packet of
+  // samples. Returns true if at the end of the envelope.
+  //
+  // If using NEON Intrinsics, length must be a multiple of 4.
+  inline bool getAmplitudes(buffp amps, uint16_t length) 
   {
     if (!allActive) return false; // Fake this it is not the end of the sound
 
@@ -249,15 +239,47 @@ public:
       if (state >= OFF) return true;
     }
 
-    while (length--) {
-      if (ticks-- == 0) nextState();
-      amplitude *= rate;
-      amplitude = MAX(MIN(attenuation, amplitude), 0.0f);
-      *src++ = amplitude;
-    }
+    #if USE_NEON_INTRINSICS
+      assert(((length & 0x03) == 0) && (length >= 4));
 
-    // std::cout << amplitude << ", ";
-    //std::cout << "(St:" << +state << ", Ampl:" << amplitude << ", Tcks:" << ticks << ", Att:" << attenuation << ")" << std::endl;
+      float rates[4];
+      rates[0] = rate;
+      rates[1] = rate * rate;
+      rates[2] = rates[1] * rate;
+      rates[3] = rates[2] * rate;
+      __builtin_prefetch(rates);
+      float32x4_t zeros = vld1q_n_f32(0.0f);
+      float32x4_t attenuations = vld1q_n_f32(attenuation);
+      float32x4_t rts = vld1q_f32(rates);
+
+      for (;length > 0; length -= 4) {
+        float32x4_t amplitudes = vld1q_n_f32(amplitude);
+        amplitudes = vmulq_f32(amplitudes, rts);
+        amplitudes = vminq_f32(amplitudes, attenuations);
+        amplitudes = vmaxq_32(amplitudes, zeros);
+        vst1q_f32(amps, amplitudes);
+        amplitude = amps[3];
+        amps += 4;
+        if (ticks <= 4) {
+          nextState();
+          rates[0] = rate;
+          rates[1] = rate * rate;
+          rates[2] = rates[1] * rate;
+          rates[3] = rates[2] * rate;
+          __builtin_prefetch(rates);
+          float32x4_t rts = vld1q_f32(rates);
+        }
+        else {
+          ticks -= 4;
+        }
+      }      
+    #else
+      for (; length > 0; length--) {
+        if (ticks-- == 0) nextState();
+        amplitude = MAX(MIN(attenuation, amplitude * rate), 0.0f);
+        *amps++ = amplitude;
+      }
+    #endif
 
     return state == OFF;
   }

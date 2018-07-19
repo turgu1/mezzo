@@ -153,12 +153,11 @@ void Voice::setup(samplep      _sample,
   outputPos      =     0;
   scaleBuffPos   =     0;
   scaleBuffSize  =     0;
+  fifoLoadPos    =     0;
 
   noteIsOn       =  true;
   keyIsOn        =  true;
   active         = false;
-  fifoLoadPos    =     0;
-
   bufferReady    = false;
 
   // Feed something in the Fifo ring buffer before activation
