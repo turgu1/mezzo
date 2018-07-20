@@ -8,9 +8,9 @@
 
 #include "interactive_mode.h"
 
-//---- sigfpe_handler ----
+//---- sigfpeHandler ----
 
-/// The sigfpe_handler() function receives control when a floating point exception occurs.
+/// The sigfpeHandler() function receives control when a floating point exception occurs.
 
 void sigfpeHandler(int dummy)
 {
@@ -21,7 +21,7 @@ void sigfpeHandler(int dummy)
   exit(1);
 }
 
-//---- sigint_handler ----
+//---- sigintHandler ----
 
 /// The sigintHanfler() function receives control when a signal is sent to the application. The
 /// current behaviour is to start a rundown of Mezzo, setting the keepRunning boolean value
@@ -53,14 +53,19 @@ int main(int argc, char **argv)
   assert(mezzo != NULL);
 
   pthread_t smplFeeder;
-  pthread_t vFeeder;
+  pthread_t vFeeder1;
+  pthread_t vFeeder2;
 
   if (pthread_create(&smplFeeder, NULL, samplesFeeder, NULL)) {
     logger.FATAL("Unable to start samplesFeeder thread.");
   }
 
-  if (pthread_create(&vFeeder, NULL, voicesFeeder, NULL)) {
-    logger.FATAL("Unable to start voicesFeeder thread.");
+  if (pthread_create(&vFeeder1, NULL, voicesFeeder1, NULL)) {
+    logger.FATAL("Unable to start voicesFeeder1 thread.");
+  }
+
+  if (pthread_create(&vFeeder2, NULL, voicesFeeder2, NULL)) {
+    logger.FATAL("Unable to start voicesFeeder2 thread.");
   }
 
   if (config.interactive) {
@@ -72,7 +77,8 @@ int main(int argc, char **argv)
   // Here we wait until the two threads have been stopped
 
   pthread_join(smplFeeder, NULL);
-  pthread_join(vFeeder, NULL);
+  pthread_join(vFeeder1, NULL);
+  pthread_join(vFeeder2, NULL);
 
   // Leave gracefully
 

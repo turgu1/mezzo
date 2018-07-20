@@ -21,6 +21,9 @@ class Voice : public NewHandlerSupport<Voice> {
 
  private:
   voicep  next;              ///< Next voice available in the list
+  
+  uint32_t seq;
+  static  uint32_t nextSeq;
 
   static bool showPlayingState;
 
@@ -100,6 +103,7 @@ class Voice : public NewHandlerSupport<Voice> {
   inline int8_t  getNote() { return note; }
   inline float   getGain() { return gain; }
   inline int16_t  getPan() { return synth.getPan(); }
+  inline uint32_t getSeq() { return seq; }
 
   inline buffp   getBuffer() { return buffer; }
   inline int     getBufferSize() { return bufferSize; }

@@ -46,19 +46,46 @@ void * samplesFeeder(void * args)
 // This function represent a thread responsible of readying a voice buffer packet
 // on time for consumption by the poly::mixer method.
 
-void * voicesFeeder(void * args)
+void * voicesFeeder1(void * args)
 {
   (void) args;
 
   while (keepRunning) {
     voicep voice = poly->getVoices();
 
+    while ((voice != NULL) && (voice->getSeq() & 0x01)) voice = voice->getNext();
+
     while ((voice != NULL) && keepRunning) {
 
       voice->feedBuffer();
 
       sched_yield();
-      voice = voice->getNext();
+      do {
+        voice = voice->getNext();
+      } while ((voice != NULL) && (voice->getSeq() & 0x01));
+    }
+  }
+
+  pthread_exit(NULL);
+}
+
+void * voicesFeeder2(void * args)
+{
+  (void) args;
+
+  while (keepRunning) {
+    voicep voice = poly->getVoices();
+
+    while ((voice != NULL) && ((voice->getSeq() & 0x01) == 0)) voice = voice->getNext();
+
+    while ((voice != NULL) && keepRunning) {
+
+      voice->feedBuffer();
+
+      sched_yield();
+      do {
+        voice = voice->getNext();
+      } while ((voice != NULL) && ((voice->getSeq() & 0x01) == 0));
     }
   }
 

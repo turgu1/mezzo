@@ -23,7 +23,8 @@
 PRIVATE bool  scaleFactorsInitialized = false;
 PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
 
-bool Voice::showPlayingState = false;
+bool     Voice::showPlayingState = false;
+uint32_t Voice::nextSeq = 0;
 
 float Voice::getScaleFactor(int16_t diff)
 {
@@ -184,6 +185,8 @@ void Voice::setup(samplep      _sample,
   scaleBuff[1] =
   scaleBuff[2] =
   scaleBuff[3] = 0.0f;
+
+  seq = nextSeq++;
 
   // Retrieve the first packet. The others will be fed through a thread after activation.
 
