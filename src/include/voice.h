@@ -132,7 +132,7 @@ class Voice : public NewHandlerSupport<Voice> {
                             return synth.keyHasBeenReleased(); }
 
   inline bool transformAndAdd(buffp dst, buffp src, uint16_t length) {
-    return synth.transformAndAdd(dst, src, length, gain * config.masterVolume); }
+    return synth.transformAndAdd(dst, src, length); }
 };
 
 #endif

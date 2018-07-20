@@ -303,6 +303,8 @@ void Voice::feedBuffer(bool bypass)
       count++;
     }
 
+    synth.applyEnvelopeAndGain(buffer, length, gain * config.masterVolume);
+
     bufferSize = count;
     bufferReady = true;
   }

@@ -20,33 +20,34 @@
 class Synthesizer {
 
 private:
-  Vibrato  vib;
-  Envelope volEnvelope;
-  BiQuad   biQuad;
+  Vibrato   vib;
+  Envelope  volEnvelope;
+  BiQuad    biQuad;
 
-  uint32_t pos;
-  uint32_t start;
-  uint32_t end;
-  uint32_t startLoop;
-  uint32_t endLoop;
-  uint32_t sampleRate;
-  uint32_t sizeSample;
-  uint32_t sizeLoop;
-  float    correctionFactor;
+  uint32_t  pos;
+  uint32_t  start;
+  uint32_t  end;
+  uint32_t  startLoop;
+  uint32_t  endLoop;
+  uint32_t  sampleRate;
+  uint32_t  sizeSample;
+  uint32_t  sizeLoop;
+  float     correctionFactor;
   float32_t left, right;
-  int16_t  pan;
-  int16_t  fineTune;
-  uint8_t  rootKey;
-  int8_t   keynum;
-  int8_t   transpose;
-  int8_t   velocity;
-  bool     loop;
+  int16_t   pan;
+  int16_t   fineTune;
+  uint8_t   rootKey;
+  int8_t    keynum;
+  int8_t    transpose;
+  int8_t    velocity;
+  bool      loop;
+  bool      endOfSound;
 
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
   // The length parameter must be a multiple of 4, if NEON is in use
-  inline void toStereoAndAdd(buffp dst, buffp src, buffp env, uint16_t length, float32_t gain) 
+  inline void toStereoAndAdd(buffp dst, buffp src, uint16_t length) 
   {
     #if USE_NEON_INTRINSICS
       assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
@@ -59,93 +60,72 @@ private:
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
-        float32x4_t   envData;
 
         int count = length >> 2;
         while (count--) {
-          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
-          envData = vld1q_f32(env);
           dstData = vld2q_f32(dst);
           srcData = vld1q_f32(src);
-          envData = vmulq_n_f32(envData, gain);
-          dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, envData);
+          dstData.val[0] = vaddq_f32(dstData.val[0], srcData);
           vst2q_f32(dst, dstData);
           src += 4;
-          env += 4;
           dst += 8;
         }
       #else
-        while (length--) { *dst += (*src++ * gain * *env++); dst += 2; }
+        while (length--) { *dst += *src++; dst += 2; }
       #endif
     }
     else if (pan <= -250) {
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
-        float32x4_t   envData;
 
         int count = length >> 2;
         while (count--) {
-          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
-          envData = vld1q_f32(env);
           dstData = vld2q_f32(dst);
           srcData = vld1q_f32(src);
-          envData = vmulq_n_f32(envData, gain);
-          dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, envData);
+          dstData.val[1] = vaddq_f32(dstData.val[1], srcData);
           vst2q_f32(dst, dstData);
           src += 4;
-          env += 4;
           dst += 8;
         }
       #else
         dst++;
-        while (length--) { *dst += (*src++ * gain * *env++); dst += 2; }
+        while (length--) { *dst += *src++; dst += 2; }
       #endif
     }
     else {
       #if USE_NEON_INTRINSICS
         float32x4x2_t dstData;
         float32x4_t   srcData;
-        float32x4_t   leftFactor;
-        float32x4_t   rightFactor;
 
         int count = length >> 2;
         while (count--) {
-          __builtin_prefetch(env);
           __builtin_prefetch(dst);
           __builtin_prefetch(src);
 
-          leftFactor  = vld1q_f32(env);
-          rightFactor = vld1q_f32(env);
-          dstData     = vld2q_f32(dst);
-          srcData     = vld1q_f32(src);
-          leftFactor  = vmulq_n_f32(leftFactor,  gain );
-          rightFactor = vmulq_n_f32(rightFactor, gain );
-          leftFactor  = vmulq_n_f32(leftFactor,  left );
-          rightFactor = vmulq_n_f32(rightFactor, right);
+          dstData = vld2q_f32(dst);
+          srcData = vld1q_f32(src);
 
-          dstData.val[0] = vmlaq_f32(dstData.val[0], srcData, rightFactor);
-          dstData.val[1] = vmlaq_f32(dstData.val[1], srcData, leftFactor);
+          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, right);
+          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, left);
           
           vst2q_f32(dst, dstData);
           
           src += 4;
-          env += 4;
           dst += 8;
         }
       #else
         while (length--) { 
-          *dst++ += *src * right * gain * *env; 
-          *dst++ += *src++ * left * gain * *env++; 
+          *dst++ += *src   * right; 
+          *dst++ += *src++ * left; 
         }
       #endif
     }
   }
-
 
 public:
   inline void initGens(sfGenList * gens, uint8_t genCount) {
@@ -164,21 +144,24 @@ public:
   void showStatus(int spaces);
   void completeParams(uint8_t note);
 
-  inline uint32_t getStart()       { return start;             }
-  inline uint32_t getEnd()         { return end;               }
-  inline uint32_t getStartLoop()   { return startLoop;         }
-  inline uint32_t getEndLoop()     { return endLoop;           }
-  inline uint32_t getSampleRate()  { return sampleRate;        }
-  inline bool     isLooping()      { return loop;              }
-  inline uint16_t getPan()         { return pan;               }
-  inline uint32_t getSizeSample()  { return sizeSample;        }
-  inline uint32_t getSizeLoop()    { return sizeLoop;          }
-  inline float    getCorrection()  { return correctionFactor;  }
-  inline uint8_t  getRootKey()     { return rootKey;           }
-  inline int8_t   getVelocity()    { return velocity;          }
-  inline int8_t   getKeynum()      { return keynum;            }
-  inline int8_t   getTranspose()   { return transpose;         }
-  inline int16_t  getFineTune()    { return fineTune;          }
+  inline uint32_t   getStart()       { return start;             }
+  inline uint32_t   getEnd()         { return end;               }
+  inline uint32_t   getStartLoop()   { return startLoop;         }
+  inline uint32_t   getEndLoop()     { return endLoop;           }
+  inline uint32_t   getSampleRate()  { return sampleRate;        }
+  inline bool       isLooping()      { return loop;              }
+  inline uint16_t   getPan()         { return pan;               }
+  inline uint32_t   getSizeSample()  { return sizeSample;        }
+  inline uint32_t   getSizeLoop()    { return sizeLoop;          }
+  inline float      getCorrection()  { return correctionFactor;  }
+  inline uint8_t    getRootKey()     { return rootKey;           }
+  inline int8_t     getVelocity()    { return velocity;          }
+  inline int8_t     getKeynum()      { return keynum;            }
+  inline int8_t     getTranspose()   { return transpose;         }
+  inline int16_t    getFineTune()    { return fineTune;          }
+  inline Envelope * getVolEnvelope() { return &volEnvelope;       }
+
+  inline void     setEndOfSound(bool val) { endOfSound = val;  }
 
   /// Returns true if this call must be considered the end of the note (in the
   /// case where the envelope as been desactivated)
@@ -194,12 +177,45 @@ public:
   static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
-  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length, float32_t gain)
+  // The length parameter must be a multiple of 4, if NEON is in use
+  inline void applyEnvelopeAndGain(buffp src, uint16_t length, float32_t gain) 
   {
     float amps[SAMPLE_BUFFER_SAMPLE_COUNT];
+    float * env;
 
-    bool endOfSound;
+    #if USE_NEON_INTRINSICS
+      assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+    #else
+      assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+    #endif
 
+    endOfSound = volEnvelope.getAmplitudes(amps, length);
+
+    env = amps;
+
+    #if USE_NEON_INTRINSICS
+      float32x4_t   srcData;
+      float32x4_t   envData;
+
+      int count = length >> 2;
+      while (count--) {
+        __builtin_prefetch(env);
+        __builtin_prefetch(src);
+        envData = vld1q_f32(env);
+        srcData = vld1q_f32(src);
+        envData = vmulq_n_f32(envData, gain);
+        srcData = vmulq_f32(srcData, envData);
+        vst1q_f32(src, srcData);
+        src += 4;
+        env += 4;
+      }
+    #else
+      while (length--) { *src++ *= gain * *env++; }
+    #endif
+  }
+
+  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length)
+  {
     //biQuad.filter(src, length);
 
     #if USE_NEON_INTRINSICS
@@ -216,9 +232,7 @@ public:
 
     assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
 
-    endOfSound = volEnvelope.getAmplitudes(amps, length);
-
-    toStereoAndAdd(dst, src, amps, length, gain);
+    toStereoAndAdd(dst, src, length);
 
     pos += length;
 
