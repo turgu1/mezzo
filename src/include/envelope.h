@@ -132,7 +132,7 @@ public:
 
   inline float computeRate(float startLevel, float endLevel, uint32_t lengthInSamples) 
   {
-    return = 1.0f + (log(endLevel) - log(startLevel)) / (lengthInSamples);
+    return 1.0f + (log(endLevel) - log(startLevel)) / (lengthInSamples);
   }
 
   inline void setup(uint8_t note) 
@@ -242,21 +242,23 @@ public:
     #if USE_NEON_INTRINSICS
       assert(((length & 0x03) == 0) && (length >= 4));
 
+      static float zero = 0.0f;
+
       float rates[4];
       rates[0] = rate;
       rates[1] = rate * rate;
       rates[2] = rates[1] * rate;
       rates[3] = rates[2] * rate;
       __builtin_prefetch(rates);
-      float32x4_t zeros = vld1q_n_f32(0.0f);
-      float32x4_t attenuations = vld1q_n_f32(attenuation);
+      float32x4_t zeros = vld1q_dup_f32(&zero);
+      float32x4_t attenuations = vld1q_dup_f32(&attenuation);
       float32x4_t rts = vld1q_f32(rates);
 
       for (;length > 0; length -= 4) {
-        float32x4_t amplitudes = vld1q_n_f32(amplitude);
+        float32x4_t amplitudes = vld1q_dup_f32(&amplitude);
         amplitudes = vmulq_f32(amplitudes, rts);
         amplitudes = vminq_f32(amplitudes, attenuations);
-        amplitudes = vmaxq_32(amplitudes, zeros);
+        amplitudes = vmaxq_f32(amplitudes, zeros);
         vst1q_f32(amps, amplitudes);
         amplitude = amps[3];
         amps += 4;
@@ -267,12 +269,12 @@ public:
           rates[2] = rates[1] * rate;
           rates[3] = rates[2] * rate;
           __builtin_prefetch(rates);
-          float32x4_t rts = vld1q_f32(rates);
+          rts = vld1q_f32(rates);
         }
         else {
           ticks -= 4;
         }
-      }      
+      }
     #else
       for (; length > 0; length--) {
         if (ticks-- == 0) nextState();

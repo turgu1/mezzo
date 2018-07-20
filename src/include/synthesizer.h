@@ -218,7 +218,7 @@ public:
 
     endOfSound = volEnvelope.getAmplitudes(amps, length);
 
-    toStereoAndAdd(dst, src, env, length, gain);
+    toStereoAndAdd(dst, src, amps, length, gain);
 
     pos += length;
 
