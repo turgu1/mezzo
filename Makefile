@@ -37,7 +37,6 @@ HOST_TYPE := $(shell arch)
 
 ifeq (${HOST_TYPE},i386)
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
-               -DNDEBUG=1 \
                -Wno-char-subscripts -Wno-unused-function -O3 -pthread
 else
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
