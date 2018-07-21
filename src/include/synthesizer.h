@@ -46,10 +46,17 @@ private:
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
-  // The length parameter must be a multiple of 4, if NEON is in use
   inline void toStereoAndAdd(buffp dst, buffp src, uint16_t length) 
   {
     #if USE_NEON_INTRINSICS
+      // If required, pad the buffer to be a multiple of 4
+      if (length & 0x03) {
+        buffp s = &src[length];
+        do {
+          *s++ = 0.0f;
+          length++;
+        } while (length & 0x03);
+      }
       assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #else
       assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
@@ -177,13 +184,20 @@ public:
   static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
-  // The length parameter must be a multiple of 4, if NEON is in use
   inline void applyEnvelopeAndGain(buffp src, uint16_t length, float32_t gain) 
   {
     float amps[SAMPLE_BUFFER_SAMPLE_COUNT];
     float * env;
 
     #if USE_NEON_INTRINSICS
+      // If required, pad the buffer to be a multiple of 4
+      if (length & 0x03) {
+        buffp s = &src[length];
+        do {
+          *s++ = 0.0f;
+          length++;
+        } while (length & 0x03);
+      }
       assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
     #else
       assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
@@ -227,7 +241,6 @@ public:
           length++;
         } while (length & 0x03);
       }
-
     #endif
 
     assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
