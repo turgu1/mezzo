@@ -33,9 +33,18 @@ BOOST_LIBDIR := /usr/local/lib
 
 # For normal usage
 
-HOST_TYPE := $(shell arch)
+HOST_TYPE := $(shell uname -m)
+OS_TYPE    = ${shell uname -s}
 
-ifeq (${HOST_TYPE},i386)
+BOOST_LIBS  := -lboost_iostreams -lboost_program_options
+
+ifeq (${OS_TYPE},Darwin)
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi
+else
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi -lasound
+endif
+
+ifeq (${HOST_TYPE},x86_64)
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
                -Wno-char-subscripts -Wno-unused-function -O3 -pthread
 else
@@ -52,8 +61,6 @@ endif
 #               -Wno-char-subscripts -Wno-unused-function -D__LINUX_ALSA__ -O3 -g -fno-inline
 
 
-BOOST_LIBS  := -lboost_iostreams -lboost_program_options
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi -lasound
 INC         := -I$(INCDIR) -I$(BOOST_INCDIR)
 INCDEP      := -I$(INCDIR) -I$(BOOST_INCDIR)
 

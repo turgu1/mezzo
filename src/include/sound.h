@@ -3,7 +3,7 @@
 #ifndef _SOUND_
 #define _SOUND_
 
-#include "rtaudio/RtAudio.h"
+#include "RtAudio.h"
 
 /// The Sound class is responsible of supplying the proper linkage
 /// with the PCM sound device. It uses the RtAudio library to

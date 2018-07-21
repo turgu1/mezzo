@@ -26,18 +26,13 @@ int soundCallback(void *               outputBuffer,
 
   if (status) std::cout << "Stream RtAudio Underflow Detected." << std::endl;
 
-  std::cout << "YELLOW0!!!" << std::endl << std::flush;
-
   if (config.replayEnabled && sound->isReplaying()) {
-  std::cout << "YELLOW1!!!" << std::endl << std::flush;
     sound->get(buff);
   }
   else if (sound->holding()) {
-  std::cout << "YELLOW2!!!" << std::endl << std::flush;
     std::fill(buff, buff + nBufferFrames + nBufferFrames, 0.0f);
   }
   else {
-  std::cout << "YELLOW3!!!" << std::endl << std::flush;
     poly->mixer(buff, nBufferFrames);
     reverb->process(buff, nBufferFrames);
     //equalizer->process(buff, nBufferFrames);
