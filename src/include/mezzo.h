@@ -3,8 +3,6 @@
 #ifndef _MEZZO_
 #define _MEZZO_
 
-#define SUCCESS 0
-
 #include "globals.h"
 #include "utils.h"
 

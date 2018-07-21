@@ -53,7 +53,7 @@ endif
 
 
 BOOST_LIBS  := -lboost_iostreams -lboost_program_options
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread  -lrtmidi
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi -lasound
 INC         := -I$(INCDIR) -I$(BOOST_INCDIR)
 INCDEP      := -I$(INCDIR) -I$(BOOST_INCDIR)
 

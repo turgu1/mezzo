@@ -10,87 +10,83 @@
 #include "mezzo.h"
 #include "sound.h"
 
-#define CHKPA(stmt, msg) \
-  if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
 
-int soundCallback(const void *                     inputBuffer,
-                  void *                           outputBuffer,
-                  unsigned long                    framesPerBuffer,
-                  const PaStreamCallbackTimeInfo * timeInfo,
-                  PaStreamCallbackFlags            statusFlags,
-                  void *                           userData)
+int soundCallback(void *               outputBuffer,
+                  void *               inputBuffer,
+                  unsigned int         nBufferFrames,
+                  double               streamTime,
+                  RtAudioStreamStatus  status,
+                  void *               userData)
 {
   buffp buff = (buffp) outputBuffer;
 
   (void) inputBuffer; /* Prevent "unused variable" warnings. */
   (void) userData;
-  (void) timeInfo;
-  (void) statusFlags;
+  (void) streamTime;
 
+  if (status) std::cout << "Stream RtAudio Underflow Detected." << std::endl;
+
+  std::cout << "YELLOW0!!!" << std::endl << std::flush;
 
   if (config.replayEnabled && sound->isReplaying()) {
+  std::cout << "YELLOW1!!!" << std::endl << std::flush;
     sound->get(buff);
   }
   else if (sound->holding()) {
-    std::fill(buff, buff + framesPerBuffer + framesPerBuffer, 0.0f);
+  std::cout << "YELLOW2!!!" << std::endl << std::flush;
+    std::fill(buff, buff + nBufferFrames + nBufferFrames, 0.0f);
   }
   else {
-    poly->mixer(buff, framesPerBuffer);
-    reverb->process(buff, framesPerBuffer);
-    //equalizer->process(buff, framesPerBuffer);
+  std::cout << "YELLOW3!!!" << std::endl << std::flush;
+    poly->mixer(buff, nBufferFrames);
+    reverb->process(buff, nBufferFrames);
+    //equalizer->process(buff, nBufferFrames);
     //if (config.replayEnabled) sound->push(buff);
   }
 
-  //binFile.write((char *)buff, framesPerBuffer * 8);
+  //binFile.write((char *)buff, nBufferFrames * 8);
 
-  return paContinue;
+  return 0;
 }
 
 void Sound::openPort(int devNbr)
 {
-  int err;
+  RtAudio::StreamParameters params;
 
-  PaStreamParameters params;
-  PaStreamFlags      flags;
+  params.deviceId     = devNbr;
+  params.nChannels    = 2;
+  params.firstChannel = 0;
+  unsigned int bufferFrames = BUFFER_FRAME_COUNT;
 
-  params.device       = devNbr;
-  params.channelCount = 2;
-
-  params.sampleFormat = paFloat32;
-  flags = 0;
-
-  params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
-  params.hostApiSpecificStreamInfo = NULL;
-
-  CHKPA(Pa_OpenStream(&stream,
-                      NULL, &params, config.samplingRate,
-                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
-        "Unable to open PortAudio Stream: %s");
-
-  CHKPA(Pa_StartStream(stream),
-        "Unable to start PortAudio Stream: %s");
+  try {
+    dac.openStream(&params, NULL, RTAUDIO_FLOAT32,
+                    config.samplingRate, &bufferFrames, &soundCallback);
+    dac.startStream();
+  }
+  catch (RtAudioError& e) {
+    e.printMessage();
+  }
 }
 
 int Sound::findDeviceNbr()
 {
   int devCount;
 
-  const PaDeviceInfo *devInfo;
-  int devNbr = config.pcmDeviceNbr;;
+  RtAudio::DeviceInfo devInfo;
+  int devNbr = config.pcmDeviceNbr;
 
-  if ((devCount = Pa_GetDeviceCount()) < 0) {
-    logger.FATAL("Unable to get audio device count: %s.", 
-                 Pa_GetErrorText(devCount));
+  if ((devCount = dac.getDeviceCount()) < 1) {
+    logger.FATAL("No audio device found");
   }
 
   if (!config.silent && !config.interactive) showDevices(devCount);
 
   if (config.pcmDeviceName.size() > 0) {
     for (int i = 0; i < devCount; i++) {
-      devInfo = Pa_GetDeviceInfo(i);
+      devInfo = dac.getDeviceInfo(i);
 
-      if ((devNbr == -1) && 
-          (strcasestr(devInfo->name, config.pcmDeviceName.c_str()) != NULL)) {
+      if ((devNbr == -1) && devInfo.probed &&
+          (strcasestr(devInfo.name.c_str(), config.pcmDeviceName.c_str()) != NULL)) {
         devNbr = i;
         break;
       }
@@ -98,21 +94,18 @@ int Sound::findDeviceNbr()
   }
 
   if (devNbr == -1) {
-    devNbr =  Pa_GetDefaultOutputDevice();
-    if (devNbr == paNoDevice) devNbr = 0;
+    devNbr = dac.getDefaultOutputDevice();
     logger.INFO("Default PCM Device (%d) selected.", devNbr);
   }
   else {
     logger.INFO("PCM Device Selected: %d.", devNbr);
-  }  
-  
+  }
+
   return devNbr;
 }
 
 Sound::Sound()
 {
-  int err;
-
   setNewHandler(outOfMemory);
 
   using namespace std;
@@ -120,15 +113,9 @@ Sound::Sound()
   replay = false;
   hold = true;
 
-  stream = NULL;
-
-  CHKPA(Pa_Initialize(), "Unable to initialize PortAudio: %s");
-
   int devNbr = findDeviceNbr();
-  
-  if (config.interactive) devNbr = selectDevice(devNbr);
 
-  openPort(devNbr);
+  if (config.interactive) devNbr = selectDevice(devNbr);
 
   // Initialize replay buffer
   rbuff = new sample_t[REPLAY_BUFFER_SAMPLE_COUNT];
@@ -137,18 +124,16 @@ Sound::Sound()
 
   rhead = rtail = rbuff;
   rend  = &rbuff[REPLAY_BUFFER_SAMPLE_COUNT];
+
+  openPort(devNbr);
 }
 
 Sound::~Sound()
 {
-  if (stream) {
-    Pa_AbortStream(stream);
-    Pa_CloseStream(stream);
-  }
+  dac.abortStream();
+  if (dac.isStreamOpen()) dac.closeStream();
 
   delete [] rbuff;
-
-  Pa_Terminate();
 }
 
 void Sound::outOfMemory()
@@ -160,21 +145,19 @@ void Sound::showDevices(int devCount)
 {
   using namespace std;
 
-  const PaDeviceInfo *devInfo;
+  RtAudio::DeviceInfo devInfo;
 
   cout << endl << endl;
   cout << "PCM Device list:" << endl;
   cout << "---------------"  << endl;
 
   for (int i = 0; i < devCount; i++) {
-    devInfo = Pa_GetDeviceInfo(i);
+    devInfo = dac.getDeviceInfo(i);
 
-    assert(devInfo != NULL);
-
-    if (devInfo->maxOutputChannels > 0) {
-      cout << "Device " << i << ": " << devInfo->name
-           << ((devInfo->maxOutputChannels > 0) ? " (out)" : " (in)")
-           << endl;      
+    if (devInfo.outputChannels > 0) {
+      cout << "Device " << i << ": " << devInfo.name
+           << ((devInfo.outputChannels > 0) ? " (out)" : " (in)")
+           << endl;
     }
   }
 
@@ -189,8 +172,8 @@ int Sound::selectDevice(int defaultNbr)
 
   int devNbr = -1;
 
-  if ((devCount = Pa_GetDeviceCount()) < 0) {
-    logger.ERROR("Unable to get audio device count: %s.", Pa_GetErrorText(devCount));
+  if ((devCount = dac.getDeviceCount()) < 1) {
+    logger.ERROR("No audio device found.");
   }
 
   showDevices(devCount);
@@ -207,7 +190,7 @@ int Sound::selectDevice(int defaultNbr)
       devNbr = defaultNbr;
       break;
     }
-    
+
     userNbr = atoi(userData.c_str());
 
     if ((userNbr < 0) || (userNbr >= devCount)) {
@@ -219,6 +202,6 @@ int Sound::selectDevice(int defaultNbr)
     }
   }
   cout << "PCM Device Selected: " << devNbr << endl;
-  
+
   return devNbr;
 }

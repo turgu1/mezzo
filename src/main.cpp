@@ -86,5 +86,5 @@ int main(int argc, char **argv)
 
   logger.INFO("Completed.");
 
-  return SUCCESS;
+  return 0;
 }

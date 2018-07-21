@@ -3,10 +3,10 @@
 #ifndef _SOUND_
 #define _SOUND_
 
-#include <portaudio.h>
+#include "rtaudio/RtAudio.h"
 
 /// The Sound class is responsible of supplying the proper linkage
-/// with the PCM sound device. It uses the PortAudio library to
+/// with the PCM sound device. It uses the RtAudio library to
 /// get access to the ALSA API of the operating system. Through the configuration file,
 /// the user identify the PCM device to connect with. Once connected, the class setup
 /// a callback function that will be asynchronously requesting new PCM data from the
@@ -25,7 +25,7 @@
 class Sound : public NewHandlerSupport<Sound> {
 
  private:
-  PaStream *stream;  ///< The connection to the PortAudio stream
+  RtAudio dac;  ///< The connection to the RtAudio stream
   
   #define REPLAY_BUFFER_SIZE (860 * FRAME_BUFFER_SIZE)  ///< Replay buffer size in bytes
   #define REPLAY_FRAME_COUNT (860 * BUFFER_FRAME_COUNT) ///< Replay buffer size in frames
@@ -48,24 +48,24 @@ class Sound : public NewHandlerSupport<Sound> {
   /// the data before sending it to the PCM device. The data is also pushed in the FIFO
   /// replay buffer.
   ///
-  /// This routine will be called by the PortAudio engine when audio is needed.
+  /// This routine will be called by the RtAudio engine when audio is needed.
   /// It may be called at interrupt level on some machines so don't do anything
   /// that could mess up the system like calling memory allocation functions that would
   /// disrupt the data structure involved.
 
-  friend int soundCallback(const void *                     inputBuffer,
-                           void *                           outputBuffer,
-                           unsigned long                    framesPerBuffer,
-                           const PaStreamCallbackTimeInfo * timeInfo,
-                           PaStreamCallbackFlags            statusFlags,
-                           void *                           userData);
+  friend int soundCallback(void *              outputBuffer,
+                           void *              inputBuffer,
+                           unsigned int        nBufferFrames,
+                           double              streamTime,
+                           RtAudioStreamStatus status,
+                           void *              userData);
  public:
   /// This method selects which PCM device to connect to, establish the connection and
   /// setup the callback function.
    Sound();
   ~Sound();
 
-  /// Open PortAudio stream
+  /// Open RtAudio stream
   void openPort(int devNbr);
   
   /// Show available devices to user
