@@ -93,9 +93,11 @@ bool Sample::load()
   return true;
 }
 
-uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & synth)
+uint16_t Sample::getData(buffp buff, uint32_t pos, Synthesizer & synth)
 {
-  static int16_t tmpBuffer[SAMPLE_BUFFER_SAMPLE_COUNT];
+  int16_t tmpBuffer[SAMPLE_BUFFER_SAMPLE_COUNT];
+
+  uint16_t qty = SAMPLE_BUFFER_SAMPLE_COUNT;
 
   int16_t * iBuff = tmpBuffer;
 
@@ -134,9 +136,11 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
         assert((thePos + sizeToGet) <= maxSampleSize);
       }
       else {
-        // We are not looping. Send back what was read.
-        if (count > 0) Utils::shortToFloatNormalize(buff, tmpBuffer, count);
-        return count;
+        // We are not looping. Send back what was read with the rest as lastValue.
+        sizeToGet = qty;
+        std::fill(iBuff, iBuff + sizeToGet, synth.getLastValue());
+        //if (count > 0) Utils::shortToFloatNormalize(buff, tmpBuffer, count);
+        //return count;
       }
     }
     else if (pos < sizeFirstBlock) {
@@ -155,6 +159,8 @@ uint16_t Sample::getData(buffp buff, uint32_t pos, uint16_t qty, Synthesizer & s
     iBuff += sizeToGet;
     pos   += sizeToGet;
   }
+
+  synth.setLastValue(tmpBuffer[count - 1]);
 
   Utils::shortToFloatNormalize(buff, tmpBuffer, count);
 

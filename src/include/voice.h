@@ -21,7 +21,7 @@ class Voice : public NewHandlerSupport<Voice> {
 
  private:
   voicep  next;              ///< Next voice available in the list
-  
+
   uint32_t seq;
   static  uint32_t nextSeq;
 
@@ -125,10 +125,10 @@ class Voice : public NewHandlerSupport<Voice> {
   void prepareFifo();
 
   inline void clearFifo() { fifo->clear();        }
-  inline void keyOff()    { keyIsOn = false;      }  
+  inline void keyOff()    { keyIsOn = false;      }
   inline bool isKeyOn()   { return keyIsOn;       }
   inline bool isNoteOn()  { return noteIsOn;      }
-  inline bool noteOff()   { keyIsOn = noteIsOn = false; 
+  inline bool noteOff()   { keyIsOn = noteIsOn = false;
                             return synth.keyHasBeenReleased(); }
 
   inline bool transformAndAdd(buffp dst, buffp src, uint16_t length) {

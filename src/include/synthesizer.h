@@ -42,6 +42,7 @@ private:
   int8_t    velocity;
   bool      loop;
   bool      endOfSound;
+  int16_t   lastValue;
 
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
@@ -119,15 +120,15 @@ private:
 
           dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, right);
           dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, left);
-          
+
           vst2q_f32(dst, dstData);
-          
+
           src += 4;
           dst += 8;
         }
       #else
-        while (length--) { 
-          *dst++ += *src   * right; 
+        while (length--) {
+          *dst++ += *src   * right;
           *dst++ += *src++ * left; 
         }
       #endif
@@ -166,9 +167,12 @@ public:
   inline int8_t     getKeynum()      { return keynum;            }
   inline int8_t     getTranspose()   { return transpose;         }
   inline int16_t    getFineTune()    { return fineTune;          }
-  inline Envelope * getVolEnvelope() { return &volEnvelope;       }
+  inline Envelope * getVolEnvelope() { return &volEnvelope;      }
 
   inline void     setEndOfSound(bool val) { endOfSound = val;  }
+
+  inline void     setLastValue(int16_t v) { lastValue = v;     }
+  inline int16_t  getLastValue()          { return lastValue;  }
 
   /// Returns true if this call must be considered the end of the note (in the
   /// case where the envelope as been desactivated)

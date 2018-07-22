@@ -53,6 +53,8 @@ void Sound::openPort(int devNbr)
   params.firstChannel = 0;
   unsigned int bufferFrames = BUFFER_FRAME_COUNT;
 
+  dac.showWarnings(false);
+
   try {
     dac.openStream(&params, NULL, RTAUDIO_FLOAT32,
                     config.samplingRate, &bufferFrames, &soundCallback);

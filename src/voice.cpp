@@ -39,7 +39,6 @@ void Voice::feedFifo()
         uint16_t count = sample->getData(
           fifo->getTail(),
           fifoLoadPos,
-          SAMPLE_BUFFER_SAMPLE_COUNT,
           synth
         );
         if (count) {
@@ -65,7 +64,6 @@ void Voice::prepareFifo()
     uint16_t count = sample->getData(
       fifo->getTail(),
       fifoLoadPos,
-      SAMPLE_BUFFER_SAMPLE_COUNT,
       synth
     );
     if (count) {
