@@ -46,9 +46,7 @@ public:
         } while (length & 0x03);
       }
       assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
-    #endif
 
-    #if USE_NEON_INTRINSICS
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);
         int16x4_t   s16    = vld1_s16(&src[i]);
@@ -63,6 +61,39 @@ public:
       }
     #endif
     return dst;
+  }
+
+  static inline void clip(buffp buff, int length)
+  {
+    const float minusOne = -1.0f;
+    const float one      =  1.0f;
+
+    #if USE_NEON_INTRINSICS
+      // If required, pad the buffer to be a multiple of 4
+      if (length & 0x03) {
+        float * s = &buff[length];
+        do {
+          *s++ = 0.0f;
+          length++;
+        } while (length & 0x03);
+      }
+      assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+
+      float32x4_t minusOnes = vld1q_dup_f32(&minusOne);
+      float32x4_t ones = vld1q_dup_f32(&one);
+
+      for (; length >= 0; length -= 4) {
+        float32x4_t data = vld1q_f32(buff);
+        data = vminq_f32(vmaxq_f32(data, minusOnes), ones);
+        vst1q_f32(buff, data);
+        buff += 4;
+      }
+    #else
+      while (length--) {
+        *buff = MIN(MAX(*buff, minusOne), one);
+        buff++;
+      }
+    #endif
   }
 
   static buffp          merge(buffp dst, buffp src,     int   len);

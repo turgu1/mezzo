@@ -242,7 +242,7 @@ public:
     #if USE_NEON_INTRINSICS
       assert(((length & 0x03) == 0) && (length >= 4));
 
-      static float zero = 0.0f;
+      const float zero = 0.0f;
 
       float rates[4];
       rates[0] = rate;

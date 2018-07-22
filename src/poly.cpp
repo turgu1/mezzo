@@ -372,6 +372,8 @@ int Poly::mixer(buffp buff, int frameCount)
     voice = nextVoice(voice);
   }
 
+  Utils::clip(buff, frameCount << 1);
+
   maxVoicesMixed = MAX(maxVoicesMixed, mixedCount);
 
   long dur = duration->getElapse();
