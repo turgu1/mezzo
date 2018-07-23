@@ -37,6 +37,8 @@ int soundCallback(void *               outputBuffer,
     reverb->process(buff, nBufferFrames);
     //equalizer->process(buff, nBufferFrames);
     //if (config.replayEnabled) sound->push(buff);
+
+    Utils::clip(buff, nBufferFrames << 1);
   }
 
   //binFile.write((char *)buff, nBufferFrames * 8);

@@ -68,6 +68,8 @@ public:
     const float minusOne = -1.0f;
     const float one      =  1.0f;
 
+    assert((length >= 1) && (length <= (SAMPLE_BUFFER_SAMPLE_COUNT << 1)));
+
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
@@ -77,12 +79,12 @@ public:
           length++;
         } while (length & 0x03);
       }
-      assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert((length >= 4) && (length <= (SAMPLE_BUFFER_SAMPLE_COUNT << 1)));
 
       float32x4_t minusOnes = vld1q_dup_f32(&minusOne);
       float32x4_t ones = vld1q_dup_f32(&one);
 
-      for (; length >= 0; length -= 4) {
+      for (; length > 0; length -= 4) {
         float32x4_t data = vld1q_f32(buff);
         data = vminq_f32(vmaxq_f32(data, minusOnes), ones);
         vst1q_f32(buff, data);
