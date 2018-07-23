@@ -1,6 +1,6 @@
 # Mezzo: Sound Font V2 Sampling Based Synthesizer
 
-Important: Not at a state of usability. Won't be ready before August 2018.
+Important: This software can now (as of July 23rd, 2018) be used to play music. There is still some debugging being done and some features to be added, so stay tuned.
 
 Note: The documentation is still work in progress...
 
@@ -12,13 +12,13 @@ Mezzo has the following characteristics:
 * Very low latency (lower than 6ms)
 * Algebraic Reverb filter, based on the FreeVerb algorithm
 * 7 band digital output equalizer (work in progress)
-* High optimization using ARM NEON or Intel SSE DSP intrinsic instructions
+* High optimization for the Raspberry Pi using ARM NEON intrinsic DSP instructions
 * Multithreaded application, to allow for very large sampling libraries that goes beyond RAM memory limitations.
 * Console based, no graphics, fire and forget application
 * Minimal interactive mode for initial setup and debugging purposes
 * MIDI channel listening control
 * Free and Open source. You can do what you want with it. See the licensing section for details
-* Well documented application. Looking at the code, you can learn a bit on how such an application can be designed
+* Well documented application (in progress). Looking at the code, you can learn a bit on how such an application can be designed
 
 ## Some background
 
@@ -39,7 +39,7 @@ vary depending on the platform performances (CPU, memory, I/O bandwidth).
 
 ## External Devices
 
-As stated, I'm using a Roland A-88 to control Mezzo. This MIDI controller is beneficial as it is equipped with a USB based serial interface. The usual MIDI connectors are also available but unused in this application for simplicity (no need for spefitif electronic changes to the PI). That controller supplies many knobs and buttons that allow controlling volume, reverb, etc. This is a rather expansive MIDI controller. Other options are available on the market. If you get access to a controller that only use MIDI standard connectors, you may have to built your own hardware interface or acquire a MIDI to USB adapter (search for "midi USB interface" on Amazon). Mezzo also support the used of a sustain pedal hooked to the MIDI controller
+As stated, I'm using a Roland A-88 to control Mezzo. This MIDI controller is beneficial as it is equipped with a USB based serial interface. The usual MIDI connectors are also available but unused in this application for simplicity (no need for specific electronic changes to the PI). That controller supplies many knobs and buttons that allow controlling volume, reverb, etc. This is a rather expansive MIDI controller. Other options are available on the market. If you get access to a controller that only use MIDI standard connectors, you may have to built your own hardware interface or acquire a MIDI to USB adapter (search for "midi USB interface" on Amazon). Mezzo also support the used of a sustain pedal hooked to the MIDI controller
 
 For audio output, I've tried at first to use the PI on-board audio device but the sound quality was not adequate. I acquired a MUSE DAC (Digital to Analog Converter based on the famous PCM2704 chip available for 25$ on Amazon) that supply output for headphones, S/PDIF and optical connections that would allow for external audio amplification.
 
@@ -54,9 +54,9 @@ Two methods are available to install Mezzo:
 
 The suite of GNU C++ compiler and libraries is required to build the application. Also, the following libraries have been used to supply interfaces to external resources:
 
-* PortAudio - For ALSA based PCM device access
-* RtMidi - Midi ALSA input device interaction (already part of Mezzo source code)
-* Boost - C++ libraries to support some algorithms design
+* RtAudio - For ALSA based PCM audio device access
+* RtMidi  - Midi ALSA input device interaction (already part of Mezzo source code)
+* Boost   - C++ libraries to support some algorithms design
 
 Raspbian is already containing the GNU C++ suite of tools. What remains to be install are some external libraries. The following subsections give commands to be executed in a teminal shell.
 
@@ -67,20 +67,7 @@ Starting from a plain vanilla Raspbian distribution, you will need to install th
 ```bash
 sudo apt-get update
 sudo apt-get upgrade
-sudo apt-get install git librtmidi-dev libboost1.62-all-dev libasound2-dev
-```
-
-### Compiling and installing PortAudio
-
-It will be required to build and install version V19 of PortAudio as the version available as a package is too old and doesn't contain some of the added features of v19. To do so, execute the following commands:
-
-```bash
-wget http://www.portaudio.com/archives/pa_stable_v190600_20161030.tgz
-tar zxf pa_stable_v190600_20161030.tgz
-cd ./portaudio
-./configure --prefix=/usr --enable-cxx --with-alsa
-make
-sudo make install
+sudo apt-get install git librtmidi-dev librtaudio-dev libboost1.62-all-dev libasound2-dev
 ```
 
 ## Retrieving and compiling Mezzo
@@ -111,14 +98,15 @@ I'm use to play with the following sample library: [Sal-Stein-Uprights-Detailed-
 
 SF2 is a sound font library file format that is easy to read and doesn't require too much resources to extract PCM data. Sampling libraries are usually huge (from hundreds of megabytes to several gigabytes) and would need enough disk space to be kept on the device. You may choose to put your SF2 library on a USB dongle, external disk drive or on the Micro-SD card on which the Raspbian operating system has been installed. My own preference was to use the Micro-SD card as it will not require any external equipment and would allow for raisonable performance in terms of I/O. Using a USB dongle would be more practical only if you intend to use small sampling libraries. It could become impratical performance-wise if disk caching is not sufficient to allow for real-time sample retrieval from the file.
 
-Mezzo requires a minimum of information to make it happy to start listening to the MIDI controller and prepare the sounds to be output to the PCM device. This information is gathered in a configuration file names mezzo.conf. You can copy the supplied one to the main user directory:
+Mezzo requires a minimum of information to make it happy to start listening to the MIDI controller and prepare the sounds to be sent to the PCM audio device. This information is gathered in a configuration file names .mezzo.conf that must be on the users's main directory. You can copy the supplied one to the directory:
 
 ```bash
 cp ~/mezzo/mezzo.conf ~/.mezzo.conf
 ```
 
 You then need to adjust the parameters located in the .mezzo.conf file to your
-liking. The content is self-explanatory.
+liking. The content is self-explanatory. In particular, you have to identify the soundFont library file (usually with a filename ending with '.sf2') to be loaded at launch time. 
+use and its location.
 
 ## Licensing
 
