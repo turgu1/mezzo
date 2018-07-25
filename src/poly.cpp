@@ -16,6 +16,9 @@
   #include <arm_neon.h>
 #endif
 
+pthread_cond_t  voiceCond  = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t voiceMutex = PTHREAD_MUTEX_INITIALIZER;
+
 //---- samplesFeeder() ----
 //
 // This function represent a thread responsible of reading
@@ -27,6 +30,11 @@ void * samplesFeeder(void * args)
 
   while (keepRunning) {
 
+    if (poly->getVoiceCount() == 0) {
+      pthread_cond_wait(&voiceCond, &voiceMutex);
+      pthread_mutex_unlock(&voiceMutex);
+    } 
+    
     voicep voice = poly->getVoices();
 
     while ((voice != NULL) && keepRunning) {
@@ -51,6 +59,12 @@ void * voicesFeeder1(void * args)
   (void) args;
 
   while (keepRunning) {
+
+    if (poly->getVoiceCount() == 0) {
+      pthread_cond_wait(&voiceCond, &voiceMutex);
+      pthread_mutex_unlock(&voiceMutex);
+    } 
+    
     voicep voice = poly->getVoices();
 
     while ((voice != NULL) && (voice->getSeq() & 0x01)) voice = voice->getNext();
@@ -74,6 +88,12 @@ void * voicesFeeder2(void * args)
   (void) args;
 
   while (keepRunning) {
+
+    if (poly->getVoiceCount() == 0) {
+      pthread_cond_wait(&voiceCond, &voiceMutex);
+      pthread_mutex_unlock(&voiceMutex);
+    } 
+
     voicep voice = poly->getVoices();
 
     while ((voice != NULL) && ((voice->getSeq() & 0x01) == 0)) voice = voice->getNext();
@@ -255,6 +275,7 @@ void Poly::addVoice(samplep       sample,
                     uint16_t presetZoneIdx)
 {
   voicep voice;
+  bool unblockThreads = (voiceCount == 0);
 
   //noteOff(note, false);
 
@@ -274,6 +295,10 @@ void Poly::addVoice(samplep       sample,
   if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
 
   voice->setup(sample, note, gain, synth, preset, presetZoneIdx);
+
+  if (unblockThreads) {
+    pthread_cond_broadcast(&voiceCond);
+  }
 }
 
 //---- noteOff() ----

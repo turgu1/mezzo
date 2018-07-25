@@ -28,6 +28,7 @@ class Poly : public NewHandlerSupport<Poly> {
   voicep nextVoice(voicep prev);
   void   addVoice(samplep s, uint8_t note, float gain, Synthesizer & synth,
                   Preset & preset, uint16_t presetZoneIdx);
+
   voicep nextAvailable();
   void   noteOff(char note, bool pedal_on);
   void   voicesSustainOff();
@@ -37,6 +38,7 @@ class Poly : public NewHandlerSupport<Poly> {
 
   inline voicep getVoices() { return voices; }
   inline void   decVoiceCount() { voiceCount--; }
+  inline int    getVoiceCount() { return voiceCount; }
 
   bool showVoicePlayingState() { return Voice::togglePlayingState(); };
 };
