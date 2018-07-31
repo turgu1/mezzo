@@ -110,6 +110,9 @@ use and its location.
 
 ## Licensing
 
+The following applies to all source files, except for [src/include/neon_2_sse.h] that is copyright 2012-2018 from
+Intel Corporation. See that file for the complete copyright notice. It was downloaded from [https://github/intel/ARM_NEON_2_x86_SSE].
+
 [Simplified BSD License]
 
 Copyright (c) 2018, Guy Turcotte

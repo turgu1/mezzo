@@ -47,11 +47,15 @@ endif
 ifeq (${HOST_TYPE},x86_64)
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
                -DNDEBUG=1 \
-               -Wno-char-subscripts -Wno-unused-function -O3 -pthread
+               -Wno-char-subscripts -Wno-unused-function -Wno-deprecated-declarations \
+               -Wno-unknown-attributes -Wno-unused-variable -Wno-unused-parameter \
+               -O3 -pthread
 else
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
                -DNDEBUG=1 \
-               -Wno-char-subscripts -Wno-unused-function -pthread -O3 \
+               -Wno-char-subscripts -Wno-unused-function -Wno-deprecated-declarations \
+               -Wno-unknown-attributes -Wno-unused-variable -Wno-unused-parameter \
+               -pthread -O3 \
                -DNEON=1 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations
 endif
 

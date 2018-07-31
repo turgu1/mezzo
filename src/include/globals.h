@@ -1,3 +1,41 @@
+// Notice
+// ------
+//
+// This file is part of the Mezzo SoundFont2 Sampling Based Synthesizer:
+//
+//     https://github.com/turgu1/mezzo
+//
+// Simplified BSD License
+// ----------------------
+//
+// Copyright (c) 2018, Guy Turcotte
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// The views and conclusions contained in the software and documentation are those
+// of the authors and should not be interpreted as representing official policies,
+// either expressed or implied, of the FreeBSD Project.
+//
+
 #ifndef _GLOBALS_
 #define _GLOBALS_
 
@@ -20,15 +58,26 @@
 # define PUBLIC extern
 #endif
 
+// All DSP related instructions are made using NEON intrinsics as RASPBERRY PI 2/3 are targetted.
+// Compiling on an Intel x86 processor is possible using the translation from NEON to SSE probivided
+// by the neon_2_sse.h include file. See https://github.com/intel/ARM_NEON_2_x86_SSE
+
 #if __ARM_FEATURE_DSP
   #define USE_NEON_INTRINSICS 1
+  #include <arm_neon.h>
 #else
-  #define USE_NEON_INTRINSICS 0
+  #define USE_NEON_INTRINSICS 1
+  #include <neon_2_sse.h>
+#endif
+
+// if you ever wants to not used DSP intrinsics, the float32_t definition is required
+
+#if !USE_NEON_INTRINSICS
   typedef float float32_t;
 #endif
 
-
-#define samples24bits 1
+// Todo: Complete 24 bits support
+#define samples24bits 0
 
 class Mezzo;
 class SoundFont2;
@@ -44,8 +93,8 @@ class Midi;
 /// The Poly class retrieves buffers of samples from voices and build frames to
 ///    send back to the Sound output class
 
-typedef float sample_t;    ///< A single sample
-typedef sample_t * buffp;  ///< A pointer on a sample or a frame buffer, depending on context
+typedef float sample_t;     ///< A single sample
+typedef sample_t * buffp;   ///< A pointer on a sample or a frame buffer, depending on context
 typedef struct {
   sample_t left;
   sample_t right;
@@ -53,7 +102,7 @@ typedef struct {
 
 #define KEY_NOT_USED 59999u
 
-#define MAX_VOICES 512  ///< Maximum number of voices at any time
+#define MAX_VOICES 512      ///< Maximum number of voices at any time
 
 #define PRIVATE             static
 

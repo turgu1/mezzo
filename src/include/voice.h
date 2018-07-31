@@ -1,10 +1,45 @@
-#include "copyright.h"
+// Notice
+// ------
+//
+// This file is part of the Mezzo SoundFont2 Sampling Based Synthesizer:
+//
+//     https://github.com/turgu1/mezzo
+//
+// Simplified BSD License
+// ----------------------
+//
+// Copyright (c) 2018, Guy Turcotte
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// The views and conclusions contained in the software and documentation are those
+// of the authors and should not be interpreted as representing official policies,
+// either expressed or implied, of the FreeBSD Project.
+//
 
 #ifndef VOICE_H
 #define VOICE_H
 
-#include "fifo.h"
-#include "sample.h"
+#include "mezzo.h"
 
 typedef enum { DORMANT, ALIVE } voiceState;
 
@@ -19,7 +54,7 @@ typedef std::array<sample_t, BUFFER_SAMPLE_COUNT + 4> scaleRecord;
 /// required to be played. The number of pre-allocated voices can be
 /// easily changed in the Poly class definition (poly.h).
 
-class Voice : public NewHandlerSupport<Voice> {
+class Voice {
 
  private:
   voicep  next;              ///< Next voice available in the list
@@ -39,7 +74,7 @@ class Voice : public NewHandlerSupport<Voice> {
   bool        keyIsOn;       ///< The *keyboard* midi key is on
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
   uint32_t    outputPos;     ///< Position in the scaled (or not) processed stream of samples
-  Fifo      * fifo;          ///< Fifo for samples retrieved through threading
+  Fifo        fifo;          ///< Fifo for samples retrieved through threading
   scaleRecord scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
   uint32_t    scaleBuffPos;
   uint16_t    scaleBuffSize;
@@ -51,8 +86,6 @@ class Voice : public NewHandlerSupport<Voice> {
   volatile bool bufferReady;
   
   Synthesizer synth;
-
-  static void outOfMemory(); ///< New operation handler when out of memory occurs
 
  public:
    Voice();
@@ -123,7 +156,7 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
 
-  inline void clearFifo() { fifo->clear();        }
+  inline void clearFifo() { fifo.clear();        }
   inline void keyOff()    { keyIsOn = false;      }
   inline bool isKeyOn()   { return keyIsOn;       }
   inline bool isNoteOn()  { return noteIsOn;      }

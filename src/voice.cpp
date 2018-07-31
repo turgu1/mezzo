@@ -1,14 +1,45 @@
-#include "copyright.h"
+// Notice
+// ------
+//
+// This file is part of the Mezzo SoundFont2 Sampling Based Synthesizer:
+//
+//     https://github.com/turgu1/mezzo
+//
+// Simplified BSD License
+// ----------------------
+//
+// Copyright (c) 2018, Guy Turcotte
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// The views and conclusions contained in the software and documentation are those
+// of the authors and should not be interpreted as representing official policies,
+// either expressed or implied, of the FreeBSD Project.
+//
 
 #include <cmath>
 #include <iomanip>
 
 #include "mezzo.h"
-#include "voice.h"
-
-#if USE_NEON_INTRINSICS
-  #include <arm_neon.h>
-#endif
 
 #define BIG_NUMBERS 0
 
@@ -34,17 +65,17 @@ float Voice::getScaleFactor(int16_t diff)
 void Voice::feedFifo()
 {
   if (isActive() && isAlive()) {
-    if (!fifo->isFull()) {
+    if (!fifo.isFull()) {
       if (__sync_lock_test_and_set(&stateLock, 1) == 0) {
         uint16_t count = sample->getData(
-          fifo->getTail(),
+          fifo.getTail(),
           fifoLoadPos,
           synth
         );
         if (count) {
           fifoLoadPos += count;
-          fifo->setSampleCount(count);
-          fifo->push();
+          fifo.setSampleCount(count);
+          fifo.push();
         }
         else {
           //inactivate();
@@ -57,19 +88,18 @@ void Voice::feedFifo()
 
 void Voice::prepareFifo()
 {
-  fifo->clear();
-  // while (!fifo->isFull())
+  fifo.clear();
   for (int i = 0; i < 2; i++)
   {
     uint16_t count = sample->getData(
-      fifo->getTail(),
+      fifo.getTail(),
       fifoLoadPos,
       synth
     );
     if (count) {
       fifoLoadPos += count;
-      fifo->setSampleCount(count);
-      fifo->push();
+      fifo.setSampleCount(count);
+      fifo.push();
     }
     else {
       return;
@@ -81,15 +111,12 @@ void Voice::prepareFifo()
 
 Voice::Voice()
 {
-  setNewHandler(outOfMemory);
-
   active         = false;
   state          = DORMANT;
   stateLock      = 0;
   sample         = NULL;
   noteIsOn       = false;
   keyIsOn        = false;
-  fifo           = new Fifo;
   next           = NULL;
 
   // The 4 additional float in the buffer will allow for the continuity of 
@@ -113,14 +140,6 @@ Voice::Voice()
 
 Voice::~Voice()
 {
-  delete fifo;
-}
-
-//----- outOfMemory() ----
-
-void Voice::outOfMemory()
-{
-  logger.FATAL("Voice: Unable to allocate memory.");
 }
 
 //---- setup() ----
@@ -196,16 +215,16 @@ int Voice::retrieveFifoSamples(scaleRecord & buff, int pos)
 {
   int readSampleCount;
 
-  if (fifo->isEmpty()) {
+  if (fifo.isEmpty()) {
     // No more data available or the thread was not fast enough to get data on time
     //if (isActive()) std::cout << "FIFO Empty!!" << std::endl;
     readSampleCount = 0;
   }
   else {
-    sampleRecord & src = fifo->getHead();
-    readSampleCount = fifo->getSampleCount();
+    sampleRecord & src = fifo.getHead();
+    readSampleCount = fifo.getSampleCount();
     std::copy(std::begin(src), std::end(src), &buff[pos]);
-    fifo->pop();
+    fifo.pop();
   }
 
   return readSampleCount;
@@ -228,14 +247,15 @@ void Voice::releaseBuffer(bool resetPos)
 
 void Voice::feedBuffer(bool bypass)
 {
+  #if USE_NEON_INTRINSICS
+    sampleRecord y1, y2, frac;
+  #endif
+
   if (bypass || (isActive() && !bufferReady)) {
 
-    int count = 0;
-    int length = BUFFER_SAMPLE_COUNT;
-    // buffp buff = buffer;
+    int count;
 
     assert(scaleBuff != NULL);
-    // assert(buff != NULL);
 
     // outputPos is the postion where we are in the output as a number
     // of samples since the start of the note. scaledPos is where we need to
@@ -245,7 +265,7 @@ void Voice::feedBuffer(bool bypass)
 
     float scaledPos1 = ((float) outputPos) * factor;
 
-    while (length--) {
+    for (count = 0; count < BUFFER_SAMPLE_COUNT; count++) {
 
       float scaledPos = scaledPos1 + synth.vibrato(outputPos);
 
@@ -268,6 +288,7 @@ void Voice::feedBuffer(bool bypass)
         // For the first samples retrieval at the beginning of a note to be played,
         // the last 4 samples have been initialized to zero (0.0f) by the setup()
         // method.
+
         #if USE_NEON_INTRINSICS
           float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
           vst1q_f32(&scaleBuff[0], f);
@@ -283,14 +304,38 @@ void Voice::feedBuffer(bool bypass)
 
       assert(buffIndex >= -2);
 
-      float * y = &scaleBuff[buffIndex - 1 + 4];
+      #if USE_NEON_INTRINSICS
+        y1[count]   = scaleBuff[buffIndex + 4];
+        y2[count]   = scaleBuff[buffIndex + 5];
+        frac[count] = fractionalPart;
+      #else
+        float * y = &scaleBuff[buffIndex - 1 + 4];
 
-      buffer[count++] = y[1] + (y[2] - y[1]) * fractionalPart;
+        buffer[count++] = y[1] + (y[2] - y[1]) * fractionalPart;
+      #endif
 
       outputPos++;
     }
 
-    if (count > 0) synth.applyEnvelopeAndGain(buffer, count, gain * config.masterVolume);
+    if (count > 0) {
+        #if USE_NEON_INTRINSICS
+          while (count & 0x03) {
+            y1[count] = y2[count] = frac[count] = 0;
+            count++;
+          }
+          for (int i = 0; i < count; i += 4) {
+            __builtin_prefetch(&y2[i]);
+            __builtin_prefetch(&y1[i]);
+            __builtin_prefetch(&frac[i]);
+            float32x4_t vy2   = vld1q_f32(&y2[i]);
+            float32x4_t vy1   = vld1q_f32(&y1[i]);
+            float32x4_t vfrac = vld1q_f32(&frac[i]);
+            vst1q_f32(&buffer[i], vmlaq_f32(vy1, vsubq_f32(vy2, vy1), vfrac));
+          }
+        #endif
+
+      synth.applyEnvelopeAndGain(buffer, count, gain * config.masterVolume);
+    }
 
     bufferSize = count;
     bufferReady = true;
@@ -313,7 +358,6 @@ void Voice::showStatus(int spaces)
        << " note:"    << (+note)
        << " gain:"    << (gain)
        << " sbpos:"   << (scaleBuffPos)
-       << " fifo:"    << (fifo)
        << "]" << endl;
 
   if (sample != NULL) sample->showStatus(4 + spaces);
