@@ -108,7 +108,7 @@ You then need to adjust the parameters located in the .mezzo.conf file to your l
 
 ## Licensing
 
-The following applies to all source files, except for [neon_2_sse.h](src/include/neon_2_sse.h) that is copyright 2012-2018 from Intel Corporation. See that file for the complete copyright notice. It was downloaded from [Intel](https://github.com/intel/ARM_NEON_2_x86_SSE) on GitHub.
+The following applies to all source files, except for [neon_2_sse.h](https://github.com/turgu1/mezzo/src/include/neon_2_sse.h) that is copyright 2012-2018 from Intel Corporation. See that file for the complete copyright notice. It was downloaded from [Intel](https://github.com/intel/ARM_NEON_2_x86_SSE) on GitHub.
 
 [Simplified BSD License]
 
