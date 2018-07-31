@@ -180,11 +180,6 @@ void Synthesizer::completeParams(uint8_t note)
   right = prop * (cos(angle) + sin(angle));
 }
 
-void Synthesizer::process(buffp buff)
-{
-  (void) buff;
-}
-
 void Synthesizer::showStatus(int spaces)
 {
   using namespace std;

@@ -6,6 +6,8 @@
 
 #include "soundfont2.h"
 
+#define show(v)
+
 Mezzo::Mezzo()
 {
   setNewHandler(outOfMemory);
@@ -15,12 +17,13 @@ Mezzo::Mezzo()
 
   soundFont->loadMidiPreset(0, 0);
 
-  reverb    = new Reverb();
-  poly      = new Poly();
-  equalizer = new Equalizer();
-  sound     = new Sound();
-  midi      = new Midi();
+  show("reverb");    reverb    = new Reverb();
+  show("poly");      poly      = new Poly();
+  show("equalizer"); equalizer = new Equalizer();
+  show("sound");     sound     = new Sound();
+  show("midi");      midi      = new Midi();
 
+  show("conti");     
   sound->conti();
 
   binFile.open("data.bin", std::ios::out | std::ios::binary);

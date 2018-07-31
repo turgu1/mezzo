@@ -22,7 +22,7 @@
 class Fifo : public NewHandlerSupport<Fifo> {
 
  private:
-  buffp buff[FIFO_BUFFER_COUNT];
+  sampleRecord buff[FIFO_BUFFER_COUNT];
   int   sampleCount[FIFO_BUFFER_COUNT];
 
   volatile int head, tail;
@@ -37,8 +37,8 @@ class Fifo : public NewHandlerSupport<Fifo> {
 
   void showState();
 
-  inline buffp getHead() { return buff[head]; }
-  inline buffp getTail() { return buff[tail]; }
+  inline sampleRecord & getHead() { return buff[head]; }
+  inline sampleRecord & getTail() { return buff[tail]; }
 
   inline void  pop() { if (++head >= FIFO_BUFFER_COUNT) head = 0; __DEC }
   inline void push() { if (++tail >= FIFO_BUFFER_COUNT) tail = 0; __INC }

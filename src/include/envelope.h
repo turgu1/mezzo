@@ -225,7 +225,7 @@ public:
   // samples. Returns true if at the end of the envelope.
   //
   // If using NEON Intrinsics, length must be a multiple of 4.
-  inline bool getAmplitudes(buffp amps, uint16_t length) 
+  inline bool getAmplitudes(sampleRecord & amps, uint16_t length) 
   {
     if (!allActive) return false; // Fake this it is not the end of the sound
 
@@ -254,14 +254,13 @@ public:
       float32x4_t attenuations = vld1q_dup_f32(&attenuation);
       float32x4_t rts = vld1q_f32(rates);
 
-      for (;length > 0; length -= 4) {
+      for (int i = 0; i < length; i += 4) {
         float32x4_t amplitudes = vld1q_dup_f32(&amplitude);
         amplitudes = vmulq_f32(amplitudes, rts);
         amplitudes = vminq_f32(amplitudes, attenuations);
         amplitudes = vmaxq_f32(amplitudes, zeros);
-        vst1q_f32(amps, amplitudes);
-        amplitude = amps[3];
-        amps += 4;
+        vst1q_f32(&amps[i], amplitudes);
+        amplitude = amps[i + 3];
         if (ticks <= 4) {
           nextState();
           rates[0] = rate;
@@ -276,10 +275,10 @@ public:
         }
       }
     #else
-      for (; length > 0; length--) {
+      for (int i = 0; i < length; i++) {
         if (ticks-- == 0) nextState();
         amplitude = MAX(MIN(attenuation, amplitude * rate), 0.0f);
-        *amps++ = amplitude;
+        amps[i] = amplitude;
       }
     #endif
 

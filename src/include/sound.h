@@ -31,18 +31,15 @@ class Sound : public NewHandlerSupport<Sound> {
  private:
   RtAudio dac;  ///< The connection to the RtAudio stream
   
-  #define REPLAY_BUFFER_SIZE (860 * FRAME_BUFFER_SIZE)  ///< Replay buffer size in bytes
   #define REPLAY_FRAME_COUNT (860 * BUFFER_FRAME_COUNT) ///< Replay buffer size in frames
-  #define REPLAY_BUFFER_SAMPLE_COUNT (REPLAY_FRAME_COUNT * 2) ///< Number of PCM samples in the replay buffer
 
   bool hold;   ///< If true, stop asking form samples as a new library is being loaded
   bool replay; ///< Set to true is replaying is required by the user
 
-  buffp rbuff; ///< FIFO Buffer on the last ~5 seconds PCM data
-  buffp rhead; ///< Head Pointer on the replay buffer
-  buffp rtail; ///< Tail Pointer on the replay buffer
-  buffp rend;  ///< Address that follows the end of the rbuff space
-  buffp rpos;  ///< Current replay position
+  std::array<frame_t, 860 * BUFFER_FRAME_COUNT> replayBuffer; ///< FIFO Buffer on the last ~5 seconds PCM data
+  uint32_t rhead; ///< Head Pointer on the replay buffer
+  uint32_t rtail; ///< Tail Pointer on the replay buffer
+  uint32_t rpos;  ///< Current replay position
 
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 
@@ -106,18 +103,18 @@ class Sound : public NewHandlerSupport<Sound> {
 
   /// Push in the replay buffer the just prepared PCM data. As the replay buffer is managed
   /// as a FIFO, it keep only the last 5 seconds of musical data.
-  inline void push(buffp b) {
-    memcpy(rhead, b, FRAME_BUFFER_SIZE);
-    rhead += REPLAY_BUFFER_SAMPLE_COUNT;
-    if (rhead >= rend) rhead = rbuff;
+  inline void push(frameRecord & b) {
+    std::copy(std::begin(b), std::end(b), &replayBuffer[rhead]);
+    rhead += b.size();
+    if (rhead >= replayBuffer.size()) rhead = 0;
     rtail = rhead;
   }
 
   /// Retrieval of a chunk of PCM data from the replay buffer to send to the PCM device.
-  inline void get(buffp b) {
-    memcpy(b, rpos, FRAME_BUFFER_SIZE);
-    rpos += REPLAY_BUFFER_SAMPLE_COUNT;
-    if (rpos >= rend) rpos = rbuff;
+  inline void get(frameRecord & b) {
+    std::copy(&replayBuffer[rpos], &replayBuffer[rpos + b.size()], std::begin(b));
+    rpos += b.size();
+    if (rpos >= replayBuffer.size()) rpos = 0;
   }
 };
 

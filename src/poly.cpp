@@ -19,6 +19,12 @@
 pthread_cond_t  voiceCond  = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t voiceMutex = PTHREAD_MUTEX_INITIALIZER;
 
+void stopThreads()
+{
+  keepRunning = false;
+  pthread_cond_broadcast(&voiceCond);
+}
+
 //---- samplesFeeder() ----
 //
 // This function represent a thread responsible of reading
@@ -154,10 +160,6 @@ Poly::Poly()
   voices = voice;
 
   voiceCount = maxVoiceCount = 0;
-
-  tmpBuff = new sample_t[ FRAME_BUFFER_SAMPLE_COUNT];
-
-  std::fill(tmpBuff,   tmpBuff   + FRAME_BUFFER_SAMPLE_COUNT,  0.0f);
 }
 
 //---- ~Poly() ----
@@ -177,8 +179,6 @@ Poly::~Poly()
 
     voice = next;
   }
-
-  delete [] tmpBuff;
 
   logger.INFO("Max Nbr of Voices used: %d.\n", maxVoiceCount);
 }
@@ -342,13 +342,14 @@ void Poly::voicesSustainOff()
 
 # define MIX(a, b) (a + b)
 
-int Poly::mixer(buffp buff, int frameCount)
+int Poly::mixer(frameRecord & buff)
 {
   int maxFrameCount = 0; // Max number of frames that have been mixed
   int mixedCount = 0;    // Running counter on how many voices have beed
                          //   mixed so far in the loop
+  static frame_t zero = { 0.0f, 0.0f };
 
-  std::fill(buff, buff + frameCount + frameCount, 0.0f);
+  std::fill(std::begin(buff), std::end(buff), zero);
 
   Duration *duration = new Duration(); // TODO: Keep a duration object forever
 
@@ -356,40 +357,35 @@ int Poly::mixer(buffp buff, int frameCount)
 
   while (voice != NULL) {
 
-    buffp voiceBuff;
+    int16_t count;
+    sampleRecord & voiceBuff = voice->getBuffer(&count);
 
-    int count = voice->getBuffer(&voiceBuff);
+    if (count < 0) {
+      std::cout << '.' << std::flush;
+    }
+    else if (count > 0) {
 
-    if (voiceBuff != NULL) {
+      bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count);
 
-      if (count > 0) {
+      voice->releaseBuffer();
 
-        bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count);
-
-        voice->releaseBuffer();
-
-        // if endOfSound, we are at the end of the envelope sequence
-        // and will now get rid of the voice.
-        if (endOfSound) {
-          voice->BEGIN();
-            voice->inactivate();
-          voice->END();
-          voiceCount--;
-        }
-
-        maxFrameCount = MAX(maxFrameCount, count);
-      }
-      else {
-        // There is no more frames available so we desactivate the current voice.
+      // if endOfSound, we are at the end of the envelope sequence
+      // and will now get rid of the voice.
+      if (endOfSound) {
         voice->BEGIN();
           voice->inactivate();
         voice->END();
         voiceCount--;
       }
+
+      maxFrameCount = MAX(maxFrameCount, count);
     }
     else {
-    //   if (voice->isActive()) std::cout << "Voice buffer not ready!" << std::endl;
-      std::cout << '.' << std::flush;
+      // There is no more frames available so we desactivate the current voice.
+      voice->BEGIN();
+        voice->inactivate();
+      voice->END();
+      voiceCount--;
     }
 
     mixedCount += 1;

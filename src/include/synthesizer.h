@@ -47,20 +47,18 @@ private:
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
-  inline void toStereoAndAdd(buffp dst, buffp src, uint16_t length) 
+  inline void toStereoAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length) 
   {
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
-        buffp s = &src[length];
         do {
-          *s++ = 0.0f;
-          length++;
+          src[length++] = 0.0f;
         } while (length & 0x03);
       }
-      assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert(((length & 0x03) == 0) && (length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
     #else
-      assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
     #endif
 
 
@@ -70,18 +68,16 @@ private:
         float32x4_t   srcData;
 
         int count = length >> 2;
-        while (count--) {
-          __builtin_prefetch(dst);
-          __builtin_prefetch(src);
-          dstData = vld2q_f32(dst);
-          srcData = vld1q_f32(src);
-          dstData.val[0] = vaddq_f32(dstData.val[0], srcData);
-          vst2q_f32(dst, dstData);
-          src += 4;
-          dst += 8;
+        for (int i = 0; i < length; i += 4) {
+          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&src[i]);
+          dstData = vld2q_f32(&dst[i]);
+          srcData = vld1q_f32(&src[i]);
+          dstData.val[1] = vaddq_f32(dstData.val[1], srcData);
+          vst2q_f32(&dst[i], dstData);
         }
       #else
-        while (length--) { *dst += *src++; dst += 2; }
+        for (int i = 0; i < length; i++) dst[i].right += src[i];
       #endif
     }
     else if (pan <= -250) {
@@ -89,20 +85,16 @@ private:
         float32x4x2_t dstData;
         float32x4_t   srcData;
 
-        int count = length >> 2;
-        while (count--) {
-          __builtin_prefetch(dst);
-          __builtin_prefetch(src);
-          dstData = vld2q_f32(dst);
-          srcData = vld1q_f32(src);
-          dstData.val[1] = vaddq_f32(dstData.val[1], srcData);
-          vst2q_f32(dst, dstData);
-          src += 4;
-          dst += 8;
+        for (int i = 0; i < length; i += 4) {
+          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&src[i]);
+          dstData = vld2q_f32(&dst[i]);
+          srcData = vld1q_f32(&src[i]);
+          dstData.val[0] = vaddq_f32(dstData.val[0], srcData);
+          vst2q_f32(&dst[i], dstData);
         }
       #else
-        dst++;
-        while (length--) { *dst += *src++; dst += 2; }
+        for (int i = 0; i < length; i++) dst[i].left += src[i];
       #endif
     }
     else {
@@ -110,26 +102,21 @@ private:
         float32x4x2_t dstData;
         float32x4_t   srcData;
 
-        int count = length >> 2;
-        while (count--) {
-          __builtin_prefetch(dst);
-          __builtin_prefetch(src);
+        for (int i = 0; i < length; i += 4) {
+          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&src[i]);
+          dstData = vld2q_f32(&dst[i]);
+          srcData = vld1q_f32(&src[i]);
 
-          dstData = vld2q_f32(dst);
-          srcData = vld1q_f32(src);
+          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, left);
+          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, right);
 
-          dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, right);
-          dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, left);
-
-          vst2q_f32(dst, dstData);
-
-          src += 4;
-          dst += 8;
+          vst2q_f32(&dst[i], dstData);
         }
       #else
-        while (length--) {
-          *dst++ += *src   * right;
-          *dst++ += *src++ * left; 
+        for (int i = 0; i < length; i++) {
+          dst[i].left  += src[i] * left; 
+          dst[i].right += src[i] * right;
         }
       #endif
     }
@@ -146,8 +133,6 @@ public:
     setGens(gens, genCount, adjust);
   }
   void setDefaults(Sample * sample);
-
-  void process(buffp buff);
 
   void showStatus(int spaces);
   void completeParams(uint8_t note);
@@ -188,66 +173,58 @@ public:
   static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
-  inline void applyEnvelopeAndGain(buffp src, uint16_t length, float32_t gain) 
+  inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float32_t gain) 
   {
-    float amps[SAMPLE_BUFFER_SAMPLE_COUNT];
-    float * env;
+    sampleRecord amps;
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
-        buffp s = &src[length];
         do {
-          *s++ = 0.0f;
-          length++;
+          src[length++] = 0.0f;
         } while (length & 0x03);
       }
-      assert(((length & 0x03) == 0) && (length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert(((length & 0x03) == 0) && (length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
     #else
-      assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
     #endif
 
     endOfSound = volEnvelope.getAmplitudes(amps, length);
-
-    env = amps;
 
     #if USE_NEON_INTRINSICS
       float32x4_t   srcData;
       float32x4_t   envData;
 
-      int count = length >> 2;
-      while (count--) {
-        __builtin_prefetch(env);
-        __builtin_prefetch(src);
-        envData = vld1q_f32(env);
-        srcData = vld1q_f32(src);
+      for (int i = 0; i < length; i += 4) {
+        __builtin_prefetch(&amps[i]);
+        __builtin_prefetch(&src[i]);
+        envData = vld1q_f32(&amps[i]);
+        srcData = vld1q_f32(&src[i]);
         envData = vmulq_n_f32(envData, gain);
         srcData = vmulq_f32(srcData, envData);
-        vst1q_f32(src, srcData);
-        src += 4;
-        env += 4;
+        vst1q_f32(&src[i], srcData);
       }
     #else
-      while (length--) { *src++ *= gain * *env++; }
+      for (uint16_t i = 0; i < length; i++) { 
+        src[i] *= gain * amps[i]; 
+      }
     #endif
   }
 
-  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length)
+  inline bool transformAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length)
   {
     //biQuad.filter(src, length);
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
-        buffp s = &src[length];
         do {
-          *s++ = 0.0f;
-          length++;
+          src[length++] = 0.0f;
         } while (length & 0x03);
       }
     #endif
 
-    assert(length <= SAMPLE_BUFFER_SAMPLE_COUNT);
+    assert(length <= BUFFER_SAMPLE_COUNT);
 
     toStereoAndAdd(dst, src, length);
 

@@ -93,11 +93,11 @@ bool Sample::load()
   return true;
 }
 
-uint16_t Sample::getData(buffp buff, uint32_t pos, Synthesizer & synth)
+uint16_t Sample::getData(sampleRecord & buff, uint32_t pos, Synthesizer & synth)
 {
-  int16_t tmpBuffer[SAMPLE_BUFFER_SAMPLE_COUNT];
+  int16_t tmpBuffer[BUFFER_SAMPLE_COUNT];
 
-  uint16_t qty = SAMPLE_BUFFER_SAMPLE_COUNT;
+  uint16_t qty = BUFFER_SAMPLE_COUNT;
 
   int16_t * iBuff = tmpBuffer;
 

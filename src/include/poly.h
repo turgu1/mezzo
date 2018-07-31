@@ -11,8 +11,6 @@ class Poly : public NewHandlerSupport<Poly> {
   voicep       voices;
   volatile int voiceCount;
   volatile int maxVoiceCount;
-  buffp        tmpBuff;
-  buffp        voiceBuff;
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 
@@ -20,7 +18,7 @@ class Poly : public NewHandlerSupport<Poly> {
    Poly();
   ~Poly();
 
-  int mixer(buffp buf, int frameCount);
+  int mixer(frameRecord & buff);
 
   void   inactivateAllVoices();
   void   showState();
@@ -43,6 +41,7 @@ class Poly : public NewHandlerSupport<Poly> {
   bool showVoicePlayingState() { return Voice::togglePlayingState(); };
 };
 
+void   stopThreads();
 void * samplesFeeder(void * args);
 void * voicesFeeder1(void * args);
 void * voicesFeeder2(void * args);

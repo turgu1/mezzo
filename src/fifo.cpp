@@ -17,7 +17,6 @@ Fifo::Fifo()
   stateLock = 0;
 
   for (int i = 0; i < FIFO_BUFFER_COUNT; i++) {
-    buff[i] = new sample_t[SAMPLE_BUFFER_SAMPLE_COUNT];
     sampleCount[i] = 0;
   }
 }
@@ -26,9 +25,6 @@ Fifo::Fifo()
 
 Fifo::~Fifo()
 {
-  for (int i = 0; i < FIFO_BUFFER_COUNT; i++) {
-    delete [] buff[i];
-  }
 }
 
 //----- outOfMemory() ----

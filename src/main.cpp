@@ -25,12 +25,12 @@ void sigfpeHandler(int dummy)
 
 /// The sigintHanfler() function receives control when a signal is sent to the application. The
 /// current behaviour is to start a rundown of Mezzo, setting the keepRunning boolean value
-/// to false.
+/// to false and broadcasting to threads.
 
 void sigintHandler(int dummy)
 {
   (void) dummy;
-  keepRunning = false;
+  stopThreads();
 }
 
 //---- MAIN ----
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   if (config.interactive) {
     InteractiveMode im;
     im.menu();
-    keepRunning = false;
+    stopThreads();
   }
 
   // Here we wait until the two threads have been stopped

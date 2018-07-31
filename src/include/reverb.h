@@ -141,7 +141,7 @@ class Reverb : public NewHandlerSupport<Reverb> {
   inline void setWidth(float value)    { width = value;    }
   inline void setDryWet(float value)   { dryWet = value;   }
 
-  void process(buffp buff, int frame_count);
+  void process(frameRecord & buff);
   void interactiveAdjust();
 };
 

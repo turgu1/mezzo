@@ -10,6 +10,7 @@
 #include "mezzo.h"
 #include "sound.h"
 
+#define show(v) std::cout << v << std::endl << std::flush
 
 int soundCallback(void *               outputBuffer,
                   void *               inputBuffer,
@@ -18,9 +19,10 @@ int soundCallback(void *               outputBuffer,
                   RtAudioStreamStatus  status,
                   void *               userData)
 {
-  buffp buff = (buffp) outputBuffer;
+  static frameRecord buff;
 
   (void) inputBuffer; /* Prevent "unused variable" warnings. */
+  (void) nBufferFrames;
   (void) userData;
   (void) streamTime;
 
@@ -30,15 +32,17 @@ int soundCallback(void *               outputBuffer,
     sound->get(buff);
   }
   else if (sound->holding()) {
-    std::fill(buff, buff + nBufferFrames + nBufferFrames, 0.0f);
+    static frame_t zero = { 0.0f, 0.0f };
+    std::fill(std::begin(buff), std::end(buff), zero);
+    std::copy(std::begin(buff), std::end(buff), (frame_t *) outputBuffer);
   }
   else {
-    poly->mixer(buff, nBufferFrames);
-    reverb->process(buff, nBufferFrames);
+    poly->mixer(buff);
+    reverb->process(buff);
     //equalizer->process(buff, nBufferFrames);
     //if (config.replayEnabled) sound->push(buff);
 
-    Utils::clip(buff, nBufferFrames << 1);
+    Utils::clip((buffp) outputBuffer, buff);
   }
 
   //binFile.write((char *)buff, nBufferFrames * 8);
@@ -117,12 +121,10 @@ Sound::Sound()
   if (config.interactive) devNbr = selectDevice(devNbr);
 
   // Initialize replay buffer
-  rbuff = new sample_t[REPLAY_BUFFER_SAMPLE_COUNT];
+  static frame_t zeroFrame = { 0.0f, 0.0f };
+  std::fill(std::begin(replayBuffer), std::end(replayBuffer), zeroFrame);
 
-  std::fill(rbuff, rbuff + REPLAY_BUFFER_SAMPLE_COUNT, 0.0f);
-
-  rhead = rtail = rbuff;
-  rend  = &rbuff[REPLAY_BUFFER_SAMPLE_COUNT];
+  rhead = rtail = 0;
 
   openPort(devNbr);
 }
@@ -131,8 +133,6 @@ Sound::~Sound()
 {
   dac.abortStream();
   if (dac.isStreamOpen()) dac.closeStream();
-
-  delete [] rbuff;
 }
 
 void Sound::outOfMemory()

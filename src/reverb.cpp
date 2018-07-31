@@ -133,7 +133,7 @@ Reverb::~Reverb()
   }
 }
 
-void Reverb::process(buffp buff, int frame_count)
+void Reverb::process(frameRecord & buff)
 {
   float        dry = dryWet;
   float        wet = 1.0f - dryWet;
@@ -155,7 +155,7 @@ void Reverb::process(buffp buff, int frame_count)
   std::fill(outr, outr + BUFFER_FRAME_COUNT,  0.0f);
 
   for (fr = 0, o_l = outl, o_r = outr;
-       fr < frame_count;
+       fr < BUFFER_FRAME_COUNT;
        fr += 4, o_l += 4, o_r += 4) {
 
     fifop lc = leftCombs;
@@ -175,7 +175,7 @@ void Reverb::process(buffp buff, int frame_count)
 
     yn_1 = vld1q_f32(&leftLast[0]);
 
-    buffIn = b = &buff[fr << 1];
+    buffIn = b = &buff[fr].left;
     o = o_l;
 
     LOAD_YN_M(lc);
@@ -232,8 +232,8 @@ void Reverb::process(buffp buff, int frame_count)
 
   //buffIn = b;
 
-  for (fr = 0, buffIn = buff, o_l = outl, o_r = outr;
-       fr < (frame_count >> 2);
+  for (fr = 0, buffIn = &buff[0], o_l = outl, o_r = outr;
+       fr < (BUFFER_FRAME_COUNT >> 2);
        fr++, buffIn += 8, o_l += 4, o_r += 4) {
 
     float32x4_t left, right;
@@ -276,12 +276,12 @@ void Reverb::process(buffp buff, int frame_count)
 
 #else
 
-  for (int fr = 0; fr < frame_count; fr++) {
+  for (int fr = 0; fr < BUFFER_FRAME_COUNT; fr++) {
     int i;
     fifop lc, rc;
     fifop lap, rap;
 
-    float input = (buff[0] + buff[1]) * 0.015f;
+    float input = (buff[fr].left + buff[fr].right) * 0.015f;
 
     float outl = 0.0f;
     float outr = 0.0f;
@@ -329,8 +329,8 @@ void Reverb::process(buffp buff, int frame_count)
       outr = -vn + vn_m * apGainPlus;
     }
 
-    *buff = (*buff * dry) + (outl * wet); buff++;  // left
-    *buff = (*buff * dry) + (outr * wet); buff++;  // right
+    buff[fr].left = (buff[fr].left * dry) + (outl * wet);  // left
+    buff[fr].right = (buff[fr].right * dry) + (outr * wet);  // right
   }
 #endif
 
@@ -349,32 +349,27 @@ void Reverb::adjustValue(char ch)
   case 'q':
   case 'a':
     apGain += ch == 'q' ? 0.05f : -0.05f;
-    if (apGain > 1.0f) apGain = 1.0f;
-    if (apGain < 0.0f) apGain = 0.0f;
+    apGain = MIN(MAX(apGain, 0.0f), 1.0f);
     break;
   case 'w':
   case 's':
     roomSize += ch == 'w' ? 0.05f : -0.05f;
-    if (roomSize > 1.0f) roomSize = 1.0f;
-    if (roomSize < 0.0f) roomSize = 0.0f;
+    roomSize = MIN(MAX(roomSize, 0.0f), 1.0f);
     break;
   case 'e':
   case 'd':
     damping += ch == 'e' ? 0.05f : -0.05f;
-    if (damping > 1.0f) damping = 1.0f;
-    if (damping < 0.0f) damping = 0.0f;
+    damping = MIN(MAX(damping, 0.0f), 1.0f);
     break;
   case 'r':
   case 'f':
     width += ch == 'r' ? 0.05f : -0.05f;
-    if (width > 1.0f) width = 1.0f;
-    if (width < 0.0f) width = 0.0f;
+    width = MIN(MAX(width, 0.0f), 1.0f);
     break;
   case 't':
   case 'g':
     dryWet += ch == 't' ? 0.05f : -0.05f;
-    if (dryWet > 1.0f) dryWet = 1.0f;
-    if (dryWet < 0.0f) dryWet = 0.0f;
+    dryWet = MIN(MAX(dryWet, 0.0f), 1.0f);
     break;
   }
 }

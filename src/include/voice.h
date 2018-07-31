@@ -10,6 +10,8 @@ typedef enum { DORMANT, ALIVE } voiceState;
 
 typedef class Voice * voicep;
 
+typedef std::array<sample_t, BUFFER_SAMPLE_COUNT + 4> scaleRecord;
+
 /// Class Voice represents a sample that is currently playing through
 /// the PCM device. (Class Sample represents the static portion of a
 /// sample.)  Mezzo, at launch time, pre-allocates 512 voices that will
@@ -38,14 +40,14 @@ class Voice : public NewHandlerSupport<Voice> {
   float       gain;          ///< Gain to apply to this sample (depends on how the key was struck by the player)
   uint32_t    outputPos;     ///< Position in the scaled (or not) processed stream of samples
   Fifo      * fifo;          ///< Fifo for samples retrieved through threading
-  buffp       scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
+  scaleRecord scaleBuff;     ///< Used when scaling must be done (voice note != sample note)
   uint32_t    scaleBuffPos;
   uint16_t    scaleBuffSize;
   uint32_t    fifoLoadPos;
   float       factor;
 
-  buffp       buffer;
-  int         bufferSize;
+  sampleRecord  buffer;
+  int           bufferSize;
   volatile bool bufferReady;
   
   Synthesizer synth;
@@ -73,12 +75,12 @@ class Voice : public NewHandlerSupport<Voice> {
   /// This method returns the next bundle of samples required by the
   /// mixer. The will be found in the associated fifo (first in, first out)
   /// buffer pre-loaded by the second thread.
-  int retrieveFifoSamples(buffp buff);
+  int retrieveFifoSamples(scaleRecord & buff, int pos);
 
   /// This method returns the next scaled bundle of samples required by
   /// the mixer. The data is resample in accordance with the shifted pitch (if requires)
   /// the Sample rate (in regard of the audio-out targetted sampling rate) and modulations. 
-  int getBuffer(buffp *buff);
+  sampleRecord & getBuffer(int16_t * count);
   void releaseBuffer(bool resetPos = false);
 
   /// Lock a multithreading resource that needs to be modified
@@ -105,9 +107,6 @@ class Voice : public NewHandlerSupport<Voice> {
   inline int16_t  getPan() { return synth.getPan(); }
   inline uint32_t getSeq() { return seq; }
 
-  inline buffp   getBuffer() { return buffer; }
-  inline int     getBufferSize() { return bufferSize; }
-
   static float getScaleFactor(int16_t diff);
 
   /// This method is used by the SampleFeeder thread to read new data
@@ -131,7 +130,7 @@ class Voice : public NewHandlerSupport<Voice> {
   inline bool noteOff()   { keyIsOn = noteIsOn = false;
                             return synth.keyHasBeenReleased(); }
 
-  inline bool transformAndAdd(buffp dst, buffp src, uint16_t length) {
+  inline bool transformAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length) {
     return synth.transformAndAdd(dst, src, length); }
 };
 

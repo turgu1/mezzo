@@ -21,31 +21,27 @@
 #define centibelToRatio(x)    powf(_200TH_ROOT_OF_10, x)
 #define centsToRatio(x)       powf(_1200TH_ROOT_OF_2, x)
 #define centsToFreq(x)        (centsToRatio(x) * 8.176f)   // in Hz
-#define centsToFreqRatio(x)   (1 / centsToFreq(x))        // in seconds
+#define centsToFreqRatio(x)   (1 / centsToFreq(x))         // in seconds
 #define centsToSampleCount(x) (centsToRatio(x) * config.samplingRate)
 #define noteFrequency(x)      (NOTE_FACTOR * powf(_12TH_ROOT_OF_2, x - 12))
 
-
 class Utils {
 public:
-  inline static buffp shortToFloatNormalize(buffp dst, int16_t * src, int length)
+  inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, int16_t * src, int length)
   {
     const float32_t norm = 1.0 / 32768.0;
 
-    assert(dst != NULL);
     assert(src != NULL);
-    assert((length >= 1) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+    assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
-        int16_t * s = &src[length];
         do {
-          *s++ = 0;
-          length++;
+          src[length++] = 0;
         } while (length & 0x03);
       }
-      assert((length >= 4) && (length <= SAMPLE_BUFFER_SAMPLE_COUNT));
+      assert((length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
 
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);
@@ -63,44 +59,29 @@ public:
     return dst;
   }
 
-  static inline void clip(buffp buff, int length)
+  static inline void clip(buffp dst, frameRecord & buff)
   {
     const float minusOne = -1.0f;
     const float one      =  1.0f;
 
-    assert((length >= 1) && (length <= (SAMPLE_BUFFER_SAMPLE_COUNT << 1)));
-
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
-      if (length & 0x03) {
-        float * s = &buff[length];
-        do {
-          *s++ = 0.0f;
-          length++;
-        } while (length & 0x03);
-      }
-      assert((length >= 4) && (length <= (SAMPLE_BUFFER_SAMPLE_COUNT << 1)));
-
       float32x4_t minusOnes = vld1q_dup_f32(&minusOne);
       float32x4_t ones = vld1q_dup_f32(&one);
 
-      for (; length > 0; length -= 4) {
-        float32x4_t data = vld1q_f32(buff);
+      for (int i = 0; i < length; i += 2) {
+        float32x4_t data = vld1q_f32(&buff[i]);
         data = vminq_f32(vmaxq_f32(data, minusOnes), ones);
-        vst1q_f32(buff, data);
-        buff += 4;
+        vst1q_f32(dst, data);
+        dst += 4;
       }
     #else
-      while (length--) {
-        *buff = MIN(MAX(*buff, minusOne), one);
-        buff++;
+      for (auto & element : buff) {
+        *dst++  = MIN(MAX(element.left, minusOne), one);
+        *dst++  = MIN(MAX(element.right, minusOne), one);
       }
     #endif
   }
-
-  static buffp          merge(buffp dst, buffp src,     int   len);
-  static buffp mergeAndMultBy(buffp dst, buffp src,     float ampl,     int len);
-  static buffp     interleave(buffp dst, buffp srcLeft, buffp srcRight, int len);
 
   static bool fileExists(const char * name);
 
