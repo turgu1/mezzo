@@ -67,14 +67,13 @@ private:
         float32x4x2_t dstData;
         float32x4_t   srcData;
 
-        int count = length >> 2;
         for (int i = 0; i < length; i += 4) {
-          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&dst[i].left);
           __builtin_prefetch(&src[i]);
-          dstData = vld2q_f32(&dst[i]);
+          dstData = vld2q_f32(&dst[i].left);
           srcData = vld1q_f32(&src[i]);
           dstData.val[1] = vaddq_f32(dstData.val[1], srcData);
-          vst2q_f32(&dst[i], dstData);
+          vst2q_f32(&dst[i].left, dstData);
         }
       #else
         for (int i = 0; i < length; i++) dst[i].right += src[i];
@@ -86,12 +85,12 @@ private:
         float32x4_t   srcData;
 
         for (int i = 0; i < length; i += 4) {
-          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&dst[i].left);
           __builtin_prefetch(&src[i]);
-          dstData = vld2q_f32(&dst[i]);
+          dstData = vld2q_f32(&dst[i].left);
           srcData = vld1q_f32(&src[i]);
           dstData.val[0] = vaddq_f32(dstData.val[0], srcData);
-          vst2q_f32(&dst[i], dstData);
+          vst2q_f32(&dst[i].left, dstData);
         }
       #else
         for (int i = 0; i < length; i++) dst[i].left += src[i];
@@ -103,15 +102,15 @@ private:
         float32x4_t   srcData;
 
         for (int i = 0; i < length; i += 4) {
-          __builtin_prefetch(&dst[i]);
+          __builtin_prefetch(&dst[i].left);
           __builtin_prefetch(&src[i]);
-          dstData = vld2q_f32(&dst[i]);
+          dstData = vld2q_f32(&dst[i].left);
           srcData = vld1q_f32(&src[i]);
 
           dstData.val[0] = vmlaq_n_f32(dstData.val[0], srcData, left);
           dstData.val[1] = vmlaq_n_f32(dstData.val[1], srcData, right);
 
-          vst2q_f32(&dst[i], dstData);
+          vst2q_f32(&dst[i].left, dstData);
         }
       #else
         for (int i = 0; i < length; i++) {
