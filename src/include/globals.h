@@ -102,7 +102,7 @@ typedef struct {
 
 #define KEY_NOT_USED 59999u
 
-#define MAX_VOICES 512      ///< Maximum number of voices at any time
+#define MAX_VOICES 620      ///< Maximum number of voices at any time
 
 #define PRIVATE             static
 
