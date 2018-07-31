@@ -232,7 +232,7 @@ void Reverb::process(frameRecord & buff)
 
   //buffIn = b;
 
-  for (fr = 0, buffIn = &buff[0], o_l = outl, o_r = outr;
+  for (fr = 0, buffIn = &buff[0].left, o_l = outl, o_r = outr;
        fr < (BUFFER_FRAME_COUNT >> 2);
        fr++, buffIn += 8, o_l += 4, o_r += 4) {
 

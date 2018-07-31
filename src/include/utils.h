@@ -69,7 +69,7 @@ public:
       float32x4_t minusOnes = vld1q_dup_f32(&minusOne);
       float32x4_t ones = vld1q_dup_f32(&one);
 
-      for (int i = 0; i < buff.size(); i += 2) {
+      for (uint16_t i = 0; i < buff.size(); i += 2) {
         float32x4_t data = vld1q_f32(&buff[i].left);
         data = vminq_f32(vmaxq_f32(data, minusOnes), ones);
         vst1q_f32(dst, data);
