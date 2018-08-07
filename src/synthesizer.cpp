@@ -48,6 +48,8 @@
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
+  Synthesizer & me = *this;
+
   while (genCount--) {
     SFGenerator op = gens->sfGenOper;
     switch (op) {
@@ -110,7 +112,7 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_decayVolEnv:         SetOrAdd(op, volEnvelope, Decay        );
       case  sfGenOper_releaseVolEnv:       SetOrAdd(op, volEnvelope, Release      );
       case  sfGenOper_sustainVolEnv:       SetOrAdd(op, volEnvelope, Sustain      );
-      case  sfGenOper_initialAttenuation:  SetOrAdd(op, volEnvelope, Attenuation  );
+      case  sfGenOper_initialAttenuation:  SetOrAdd(op, me,          Attenuation  );
       case  sfGenOper_keynumToVolEnvHold:  SetOrAdd(op, volEnvelope, KeynumToHold );
       case  sfGenOper_keynumToVolEnvDecay: SetOrAdd(op, volEnvelope, KeynumToDecay);
 
@@ -184,6 +186,7 @@ void Synthesizer::setDefaults(Sample * sample)
   keynum           =    -1;
   transpose        =     0;
   fineTune         =     0;
+  attenuation      =  1.0f;
 }
 
 void Synthesizer::completeParams(uint8_t note)
@@ -234,7 +237,7 @@ void Synthesizer::showStatus(int spaces)
        << " sizeSample:"  << sizeSample
        << " sizeLoop:"    << sizeLoop
        << " correction:"  << fixed << setw(7) << setprecision(5) << correctionFactor
-       << "]" << endl;
+       << " Att:"         << fixed << setw(7) << setprecision(5) << attenuation << "]" << endl;
 
   volEnvelope.showStatus(spaces + 4);
           vib.showStatus(spaces + 4);

@@ -46,10 +46,9 @@ void Envelope::showStatus(int spaces)
   cout 
     << setw(spaces) << ' ' << "Envelope: " << (allActive ? "Active" : "Inactive")
     << " [Delay:"   << delay
-    << " Attack:"   << attack  << "(rate="  << attackRate << ")"
+    << " Attack:"   << attack
     << " Hold:"     << hold 
-    << " Decay:"    << decay   << "(rate="  << decayRate  << ")"
+    << " Decay:"    << decay
     << " Sustain:"  << sustain 
-    << " Release:"  << release << "(rate="  << releaseRate  << ")"
-    << "] Att:"     << fixed   << setw(7)   << setprecision(5) << attenuation << endl;
+    << " Release:"  << release << endl;
 }

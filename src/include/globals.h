@@ -112,6 +112,7 @@ typedef struct {
 
 typedef std::array<sample_t, BUFFER_SAMPLE_COUNT> sampleRecord;
 typedef std::array<frame_t,  BUFFER_FRAME_COUNT > frameRecord;
+typedef std::array<int16_t,  BUFFER_SAMPLE_COUNT> rawSampleRecord;
 
 PUBLIC volatile bool keepRunning;
 

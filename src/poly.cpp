@@ -306,7 +306,7 @@ void Poly::addVoice(samplep       sample,
                     uint16_t presetZoneIdx)
 {
   voicep voice;
-  bool unblockThreads = (voiceCount == 0);
+  // bool unblockThreads = (voiceCount == 0);
 
   //noteOff(note, false);
 
@@ -327,9 +327,14 @@ void Poly::addVoice(samplep       sample,
 
   voice->setup(sample, note, gain, synth, preset, presetZoneIdx);
 
-  if (unblockThreads) {
-    pthread_cond_broadcast(&voiceCond);
-  }
+  // if (unblockThreads) {
+  //   pthread_cond_broadcast(&voiceCond);
+  // }
+}
+
+void Poly::UnblockVoiceThreads()
+{
+  pthread_cond_broadcast(&voiceCond);
 }
 
 //---- noteOff() ----

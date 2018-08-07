@@ -402,6 +402,9 @@ void Instrument::playNote(uint8_t note,
 {
   uint16_t zoneIdx = keys[note];
 
+  bool unblock = poly->getVoiceCount() == 0;
+  bool someNote = false;
+
   if (zoneIdx == KEY_NOT_USED) return;
 
   for (; zoneIdx < zoneCount; zoneIdx++) {
@@ -411,6 +414,7 @@ void Instrument::playNote(uint8_t note,
         (velocity <= zones[zoneIdx].velocities.byHi)) {
       assert(zones[zoneIdx].sampleIndex < (int16_t) soundFont->samples.size());
       assert(soundFont->samples[zones[zoneIdx].sampleIndex] != NULL);
+      someNote = true;
       poly->addVoice(
         soundFont->samples[zones[zoneIdx].sampleIndex],
         note, velocity / 127.0f,
@@ -418,6 +422,8 @@ void Instrument::playNote(uint8_t note,
         preset, presetZoneIdx);
     }
   }
+
+  if (someNote && unblock) poly->UnblockVoiceThreads();
 }
 
 void Instrument::stopNote(uint8_t note)

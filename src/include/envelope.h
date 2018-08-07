@@ -64,16 +64,13 @@ private:
   int16_t  keynumToHold;
   int16_t  keynumToDecay;
 
-  float    rate;
+  float    ratio;
+  float    coef;
+  float    base;
   uint32_t ticks;
-
-  float attackRate;
-  float decayRate;
-  float releaseRate;
 
   float amplitude;
   float sustain;
-  float attenuation;
 
   volatile bool keyReleased;
 
@@ -90,10 +87,12 @@ public:
     keynumToHold  = 
     keynumToDecay = 0;
 
-    amplitude = 0.0f;
+    ratio       = 
+    base        =
+    amplitude   = 0.0f;
 
-    sustain     = 
-    attenuation = 1.0f;
+    coef        =
+    sustain     = 1.0f;
     
     release     = centsToSampleCount(-3600); 
 
@@ -123,9 +122,6 @@ public:
 
   inline void setKeynumToDecay  (int16_t k) { keynumToDecay  = k; }
   inline void addToKeynumToDecay(int16_t k) { keynumToDecay += k; }
-
-  inline void setAttenuation  (int16_t a) { attenuation  = centibelToRatio(- (a >> 1)); }
-  inline void addToAttenuation(int16_t a) { attenuation *= centibelToRatio(- (a >> 1)); }
 
   // This is the decrease in level, expressed in centibels, to which the Volume 
   // Envelope value ramps during the decay phase. For the Volume Envelope, the 
@@ -162,9 +158,9 @@ public:
     }
   }
 
-  inline float computeRate(float startLevel, float endLevel, uint32_t lengthInSamples) 
+  inline float computeCoef(float ratio, uint32_t ticks)
   {
-    return 1.0f + (log(endLevel) - log(startLevel)) / (lengthInSamples);
+    return exp(-log((1.0f + ratio) / ratio) / ticks);
   }
 
   inline void setup(uint8_t note) 
@@ -172,12 +168,6 @@ public:
     (void) note;
 
     keyReleased   = false;
-
-    attackRate    = attack == 0 ? (attenuation) : 
-                                  computeRate(0.0001f, attenuation, attack);
-    decayRate     = decay  == 0 ? (attenuation) : 
-                                  computeRate(attenuation, attenuation * sustain, decay);
-    rate = 0;
   }
 
   inline bool keyIsReleased() { return keyReleased; }
@@ -191,7 +181,6 @@ public:
     if (!allActive) return true; // This will fake the end of the sound
 
     release     = quick ? 8000 : release;
-    releaseRate = release == 0 ? 0.0f : computeRate(amplitude, 0.0001f, release);
     keyReleased = true;
 
     return false;
@@ -204,7 +193,8 @@ public:
         if (delay > 0) {
           ticks     = delay;
           amplitude = 0.0f;
-          rate      = 0.0f;
+          base      = 0.0f;
+          coef      = 0.0f;
           break;
         }
         state     = ATTACK;
@@ -212,18 +202,20 @@ public:
       case ATTACK:
         if (attack > 0) {
           amplitude = 0.0001f;
+          ratio     = 0.03;
           ticks     = attack;
-          rate      = attackRate;
+          coef      = computeCoef(ratio, ticks);
+          base      = (1.0f + ratio) * (1.0f - coef);
           break;
         }
         state = HOLD;
-        amplitude = attenuation;
+        amplitude = 1.0f;
 
       case HOLD:
         if (hold > 0) {
           ticks     = hold;
-          amplitude = attenuation;
-          rate      = 1.0f;
+          base      = 0.0f;
+          coef      = 1.0f;
           break;
         }
         state = DECAY;
@@ -231,14 +223,18 @@ public:
       case DECAY:
         if (decay > 0) {
           ticks     = decay;
-          rate      = decayRate;
+          ratio     = 0.0001f;
+          coef      = computeCoef(ratio, ticks);
+          base      = (sustain - ratio) * (1.0f - coef);
           break;
         }
         state = SUSTAIN;
+        amplitude = sustain;
 
       case SUSTAIN:
         ticks = 0xFFFFFFFFU;
-        rate  = 1.0f;
+        base      = 0;
+        coef      = 1.0f;
         break;
 
       case RELEASE:
@@ -247,7 +243,8 @@ public:
       default:
         state     = OFF;
         amplitude = 0.0f;
-        rate      = 0.0f;
+        base      = 0.0f;
+        coef      = 0.0f;
         break;
     }
   }
@@ -265,42 +262,64 @@ public:
 
     if (keyReleased && (state < RELEASE)) {
       state = release == 0 ? OFF : RELEASE;
-      rate  = releaseRate;
       ticks = release;
+      ratio = 0.0001;
+      coef  = computeCoef(ratio, ticks);
+      base  = (- ratio) * (1.0f - coef);
       
       if (state >= OFF) return true;
     }
 
     #if USE_NEON_INTRINSICS
+
       assert(((length & 0x03) == 0) && (length >= 4));
 
-      const float zero = 0.0f;
+      float bases[4];
+      float coefs[4];
+      static const float zero = 0.0f;
+      static const float one  = 1.0f;
 
-      float rates[4];
-      rates[0] = rate;
-      rates[1] = rate * rate;
-      rates[2] = rates[1] * rate;
-      rates[3] = rates[2] * rate;
-      __builtin_prefetch(rates);
-      float32x4_t zeros = vld1q_dup_f32(&zero);
-      float32x4_t attenuations = vld1q_dup_f32(&attenuation);
-      float32x4_t rts = vld1q_f32(rates);
+      coefs[0] = coef;
+      coefs[1] = coef * coef;
+      coefs[2] = coefs[1] * coef;
+      coefs[3] = coefs[2] * coef;
+
+      bases[0] = base;
+      bases[1] = base + (base * coef);
+      bases[2] = bases[1] + (base * coefs[1]);
+      bases[3] = bases[2] + (base * coefs[2]);
+
+      float32x4_t vcoefs = vld1q_f32(coefs);
+      float32x4_t vbases = vld1q_f32(bases);
+
+      float32x4_t vzeros = vld1q_dup_f32(&zero);
+      float32x4_t vones  = vld1q_dup_f32(&one);
 
       for (int i = 0; i < length; i += 4) {
-        float32x4_t amplitudes = vld1q_dup_f32(&amplitude);
-        amplitudes = vmulq_f32(amplitudes, rts);
-        amplitudes = vminq_f32(amplitudes, attenuations);
-        amplitudes = vmaxq_f32(amplitudes, zeros);
-        vst1q_f32(&amps[i], amplitudes);
+
+        float32x4_t vamplitudes = vld1q_dup_f32(&amplitude);
+        float32x4_t vres        = vmlaq_f32(vbases, vamplitudes, vcoefs);
+        vres                    = vminq_f32(vres, vones);
+        vres                    = vmaxq_f32(vres, vzeros);
+
+        vst1q_f32(&amps[i], vres);
         amplitude = amps[i + 3];
+
         if (ticks <= 4) {
           nextState();
-          rates[0] = rate;
-          rates[1] = rate * rate;
-          rates[2] = rates[1] * rate;
-          rates[3] = rates[2] * rate;
-          __builtin_prefetch(rates);
-          rts = vld1q_f32(rates);
+
+          coefs[0] = coef;
+          coefs[1] = coef     * coef;
+          coefs[2] = coefs[1] * coef;
+          coefs[3] = coefs[2] * coef;
+
+          bases[0] = base;
+          bases[1] = base + (base * coef);
+          bases[2] = bases[1] + (base * coefs[1]);
+          bases[3] = bases[2] + (base * coefs[2]);
+
+          vcoefs = vld1q_f32(coefs);
+          vbases = vld1q_f32(bases);
         }
         else {
           ticks -= 4;
@@ -309,10 +328,10 @@ public:
     #else
       for (int i = 0; i < length; i++) {
         if (ticks-- == 0) nextState();
-        amplitude = MAX(MIN(attenuation, amplitude * rate), 0.0f);
-        amps[i] = amplitude;
+        amps[i] = amplitude = MAX(MIN(1.0f, base + amplitude * coef), 0.0f);
       }
     #endif
+
 
     return state == OFF;
   }

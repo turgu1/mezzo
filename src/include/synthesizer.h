@@ -75,6 +75,8 @@ private:
   bool      endOfSound;
   int16_t   lastValue;
 
+  float attenuation;
+
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
@@ -152,7 +154,11 @@ private:
     }
   }
 
+  inline void setAttenuation  (int16_t a) { attenuation  = centibelToRatio(- (a >> 1)); }
+  inline void addToAttenuation(int16_t a) { attenuation *= centibelToRatio(- (a >> 1)); }
+
 public:
+
   inline void initGens(sfGenList * gens, uint8_t genCount) {
     setGens(gens, genCount, init);
   }
@@ -203,7 +209,7 @@ public:
   static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
-  inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float32_t gain) 
+  inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float gain) 
   {
     sampleRecord amps;
 
@@ -219,6 +225,8 @@ public:
       assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
     #endif
 
+    float32_t attGain = gain * attenuation;
+
     endOfSound = volEnvelope.getAmplitudes(amps, length);
 
     #if USE_NEON_INTRINSICS
@@ -230,7 +238,7 @@ public:
         __builtin_prefetch(&src[i]);
         envData = vld1q_f32(&amps[i]);
         srcData = vld1q_f32(&src[i]);
-        envData = vmulq_n_f32(envData, gain);
+        envData = vmulq_n_f32(envData, attGain);
         srcData = vmulq_f32(srcData, envData);
         vst1q_f32(&src[i], srcData);
       }
@@ -243,7 +251,7 @@ public:
 
   inline bool transformAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length)
   {
-    //biQuad.filter(src, length);
+    biQuad.filter(src, length);
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4

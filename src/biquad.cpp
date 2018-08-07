@@ -68,20 +68,20 @@ void BiQuad::setup()
   gain = 1.0f / sqrt(initialQ);
 }
 
-void BiQuad::filter(buffp src, uint16_t length) 
+void BiQuad::filter(sampleRecord & src, uint16_t length) 
 {
   if (allActive && active) {
-    while (length--) {
+    for (int i = 0; i < length; i++) {
 
       // y[n] = (b0/a0)*x[n] + (b1/a0)*x[n-1] + (b2/a0)*x[n-2]
       //                     - (a1/a0)*y[n-1] - (a2/a0)*y[n-2]
 
-      float val = (b0 * *src) + (b1 * x1) + (b0 * x2) - (a1 * y1) - (a2 * y2);
+      float val = (b0 * src[i]) + (b1 * x1) + (b0 * x2) - (a1 * y1) - (a2 * y2);
 
-      x2 = x1; x1 = *src;
+      x2 = x1; x1 = src[i];
       y2 = y1; y1 =  val;
 
-      *src++ = val * gain;
+      src[i] = val * gain;
     }
   }
 }

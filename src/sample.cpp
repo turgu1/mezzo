@@ -127,13 +127,27 @@ bool Sample::load()
   return true;
 }
 
+// static bool first = true;
+// static bool getIt = false;
+// static Sample * theSample = NULL;
+// const uint32_t thePos = 256 * 10;
+
 uint16_t Sample::getData(sampleRecord & buff, uint32_t pos, Synthesizer & synth)
 {
-  int16_t tmpBuffer[BUFFER_SAMPLE_COUNT];
+  // if (first) {
+  //   theSample = this;
+  //   first = false;
+  // }
+
+  // if ((theSample == this) && (pos == thePos)) {
+  //   getIt = true;
+  // }
+
+  rawSampleRecord tmpBuffer;
 
   uint16_t qty = BUFFER_SAMPLE_COUNT;
 
-  int16_t * iBuff = tmpBuffer;
+  int16_t * iBuff = &tmpBuffer[0];
 
   const uint32_t offset         = (synth.getStart() - start);
   const uint32_t sizeFirstBlock = synth.isLooping() ? MIN(this->sizeFirstBlock - offset, synth.getEndLoop()) :
@@ -194,6 +208,11 @@ uint16_t Sample::getData(sampleRecord & buff, uint32_t pos, Synthesizer & synth)
   synth.setLastValue(tmpBuffer[count - 1]);
 
   Utils::shortToFloatNormalize(buff, tmpBuffer, count);
+
+  // if (getIt) {
+  //   getIt = false;
+  //   binFile.write((const char *) &buff, count * 4);
+  // }
 
   assert(qty == 0);
   return count;

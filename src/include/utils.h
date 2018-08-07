@@ -46,9 +46,9 @@
 
 #define NOTE_FACTOR       16.3515978312874f
 
-#define _12TH_ROOT_OF_2   1.0594630943593f
-#define _1200TH_ROOT_OF_2 1.000577789506555f
-#define _200TH_ROOT_OF_10 1.011579454259899f
+#define _12TH_ROOT_OF_2    1.0594630943593f
+#define _1200TH_ROOT_OF_2  1.000577789506555f
+#define _200TH_ROOT_OF_10  1.011579454259899f
 
 #define centibelToRatio(x)    powf(_200TH_ROOT_OF_10, x)
 #define centsToRatio(x)       powf(_1200TH_ROOT_OF_2, x)
@@ -59,7 +59,7 @@
 
 class Utils {
 public:
-  inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, int16_t * src, int length)
+  inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, rawSampleRecord & src, int length)
   {
     const float32_t norm = 1.0 / 32768.0;
 
@@ -91,6 +91,11 @@ public:
     return dst;
   }
 
+  // This method clips values to be between -1.0 and 1.0 .
+  // The destination buffer is the one supplied by the
+  // Audio function (rtAudio). This to mitigate the need to copy
+  // the content, as we use std::array internally in this
+  // application, but rtAudio requires an C array of floats.
   static inline void clip(buffp dst, frameRecord & buff)
   {
     const float minusOne = -1.0f;

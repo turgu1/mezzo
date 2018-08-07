@@ -74,6 +74,8 @@ class Poly : public NewHandlerSupport<Poly> {
   inline void   decVoiceCount() { voiceCount--; }
   inline int    getVoiceCount() { return voiceCount; }
 
+  void UnblockVoiceThreads();
+
   bool showVoicePlayingState() { return Voice::togglePlayingState(); };
 };
 

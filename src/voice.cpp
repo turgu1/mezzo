@@ -89,7 +89,7 @@ void Voice::feedFifo()
 void Voice::prepareFifo()
 {
   fifo.clear();
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 4; i++)
   {
     uint16_t count = sample->getData(
       fifo.getTail(),

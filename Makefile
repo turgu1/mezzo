@@ -49,7 +49,7 @@ CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native
                -DNDEBUG=1 \
                -Wno-char-subscripts -Wno-unused-function -Wno-deprecated-declarations \
                -Wno-unknown-attributes -Wno-unused-variable -Wno-unused-parameter \
-               -O3 -pthread
+               -O3 -msse -msse2 -msse3 -pthread
 else
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
                -DNDEBUG=1 \

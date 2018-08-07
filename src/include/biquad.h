@@ -56,7 +56,6 @@
 // Not sure if the end-state of it is the right one. Seems to be
 // similar to the one used in the Polyphone program.
 
-
 class BiQuad
 {
 private:
@@ -88,7 +87,7 @@ public:
   static bool areAllActive   () { return allActive;              }
 
   void setup();
-  void filter(buffp src, uint16_t length);
+  void filter(sampleRecord & src, uint16_t length);
   void showStatus(int spaces);
 };
 
