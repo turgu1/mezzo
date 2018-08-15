@@ -39,9 +39,6 @@
 #ifndef _ENVELOPE_
 #define _ENVELOPE_
 
-#include <iostream>
-#include <iomanip>
-
 #include "mezzo.h"
 
 class Envelope
@@ -78,44 +75,44 @@ public:
 
   Envelope() 
   { 
-    ticks  = 
-    delay  = 
-    attack = 
-    hold   = 
-    decay  = 0;
+    ticks         = 
+    delay         = 
+    attack        = 
+    hold          = 
+    decay         = 0;
 
     keynumToHold  = 
     keynumToDecay = 0;
 
-    ratio       = 
-    base        =
-    amplitude   = 0.0f;
+    ratio         = 
+    base          =
+    amplitude     = 0.0f;
 
-    coef        =
-    sustain     = 1.0f;
+    coef          =
+    sustain       = 1.0f;
     
-    release     = centsToSampleCount(-3600); 
+    release       = centsToSampleCount(-3600); 
 
-    state = START;
+    state         = START;
   }
 
   static bool toggleAllActive() { return allActive = !allActive; }
-  static bool areAllActive() { return allActive; }
+  static bool    areAllActive() { return allActive;              }
 
   inline void setDelay    (int16_t d) { delay    = (d == -32768) ? 0 : centsToSampleCount(Utils::checkRange(d, -12000, 5000, 0)); }
-  inline void addToDelay  (int16_t d) { delay   *= (d == -32768) ? 1 : centsToRatio(Utils::checkRange(d, -12000, 5000, 0)); }
+  inline void addToDelay  (int16_t d) { delay   *= (d == -32768) ? 1 :       centsToRatio(Utils::checkRange(d, -12000, 5000, 0)); }
 
   inline void setAttack   (int16_t a) { attack   = (a == -32768) ? 0 : centsToSampleCount(Utils::checkRange(a, -12000, 8000, 0)); }
-  inline void addToAttack (int16_t a) { attack  *= (a == -32768) ? 1 : centsToRatio(Utils::checkRange(a, -12000, 8000, 0)); }
+  inline void addToAttack (int16_t a) { attack  *= (a == -32768) ? 1 :       centsToRatio(Utils::checkRange(a, -12000, 8000, 0)); }
 
   inline void setHold     (int16_t h) { hold     = (h == -32768) ? 0 : centsToSampleCount(Utils::checkRange(h, -12000, 5000, 0)); }
-  inline void addToHold   (int16_t h) { hold    *= (h == -32768) ? 1 : centsToRatio(Utils::checkRange(h, -12000, 5000, 0)); }
+  inline void addToHold   (int16_t h) { hold    *= (h == -32768) ? 1 :       centsToRatio(Utils::checkRange(h, -12000, 5000, 0)); }
 
   inline void setDecay    (int16_t d) { decay    = (d == -32768) ? 0 : centsToSampleCount(Utils::checkRange(d, -12000, 8000, 0)); }
-  inline void addToDecay  (int16_t d) { decay   *= (d == -32768) ? 1 : centsToRatio(Utils::checkRange(d, -12000, 8000, 0)); }
+  inline void addToDecay  (int16_t d) { decay   *= (d == -32768) ? 1 :       centsToRatio(Utils::checkRange(d, -12000, 8000, 0)); }
 
   inline void setRelease  (int16_t r) { release  = (r == -32768) ? 0 : centsToSampleCount(Utils::checkRange(r, -12000, 8000, 0)); }
-  inline void addToRelease(int16_t r) { release *= (r == -32768) ? 1 : centsToRatio(Utils::checkRange(r, -12000, 8000, 0)); }
+  inline void addToRelease(int16_t r) { release *= (r == -32768) ? 1 :       centsToRatio(Utils::checkRange(r, -12000, 8000, 0)); }
 
   inline void setKeynumToHold  (int16_t k) { keynumToHold  = k; }
   inline void addToKeynumToHold(int16_t k) { keynumToHold += k; }

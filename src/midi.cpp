@@ -124,7 +124,7 @@ void midiCallBack (double timeStamp,
                    std::vector<unsigned char> * message,
                    void * userData)
 {
-  //DEBUG("midiCallBack() ...\n");
+  //std::cout << "midiCallBack() ..." << std::endl;
 
   (void) timeStamp;
   (void) userData;
@@ -190,8 +190,8 @@ void midiCallBack (double timeStamp,
       }
       break;
     default:
-        //logger.WARNING("Midi: Ignored Event: %02xh %d %d.\n",
-        //             command, data1, data2);
+        // logger.WARNING("Midi: Ignored Event: %02xh %d %d.\n",
+        //              command, data1, data2);
       break;
     }
   }
@@ -211,6 +211,11 @@ void midiCallBack (double timeStamp,
     }
     cout << endl << flush;
   }
+}
+
+void midiErrorCallback(RtMidiError::Type type, const std::string &errorText, void *userData)
+{
+  std::cout << "Midi Error: " << errorText << std::endl;
 }
 
 //---- showDevices() ----
@@ -267,8 +272,6 @@ int Midi::selectDevice(int defaultNbr)
     }
   }
 
-  cout << "MIDI Device Selected: " << devNbr << endl;
-
   return devNbr;
 }
 
@@ -279,28 +282,15 @@ int Midi::findDeviceNbr()
   int devCount;
   int devNbr = -1;
 
-  try {
-    midiPort = new RtMidiIn();
-  }
-  catch (RtMidiError &error) {
-    logger.FATAL("Unable to Initialize Midi: %s.", error.what());
-  }
-
   devCount = midiPort->getPortCount();
-
-  if (devCount == 0) {
-    logger.FATAL("No midi device found.");
-  }
 
   for (int i = 0; i < devCount; i++) {
     //cout << i << ": " << midiPort->getPortName(i) << endl;
-    if ((devNbr == -1) &&
-        (strcasestr(midiPort->getPortName(i).c_str(), config.midiDeviceName.c_str()) != NULL)) {
+    if (strcasestr(midiPort->getPortName(i).c_str(), config.midiDeviceName.c_str()) != NULL) {
       devNbr = i;
+      break;
     }
   }
-
-  devNbr = config.midiDeviceNbr == -1 ? devNbr : config.midiDeviceNbr;
 
   return devNbr;
 }
@@ -324,17 +314,29 @@ Midi::Midi()
 
   int devNbr = findDeviceNbr();
 
-  if (config.interactive) devNbr = selectDevice(devNbr);
-
-  openPort(devNbr);
+  if (config.interactive) {
+    devNbr = selectDevice(devNbr);
+  }
+  else {
+    if (!config.silent) {
+      showDevices(midiPort->getPortCount());
+    }
+    while (devNbr == -1) {
+      sleep(1);
+      devNbr = findDeviceNbr();
+    }
+  }
 
   try {
-    midiPort->setCallback(&midiCallBack);
-  }
+    openPort(devNbr);
 
-  catch (RtMidiError &error) {
-    logger.FATAL("Unable to set Midi CallBack: %s.", error.what());
-  }
+    midiPort->setErrorCallback(&midiErrorCallback);
+    midiPort->setCallback(&midiCallBack);
+    
+    logger.INFO("MIDI Device Selected: (%d) %s.", devNbr, midiPort->getPortName(devNbr).c_str());
+  } catch (RtMidiError &error) {
+    logger.FATAL("Unable to set MIDI Callbacks: %s.", error.what());
+  }  
 
   if (config.midiChannel == -1) {
     logger.INFO("Listening to all MIDI channels.");
@@ -363,7 +365,7 @@ Midi::Midi()
 
 void Midi::setNoteOn(char note, char velocity)
 {
-  //DEBUG("Note ON %d (%d)\n", note, velocity);
+  //logger.DEBUG("Note ON %d (%d)\n", note, velocity);
 
   if (config.replayEnabled && (note == 108)) {
     sound->toggleReplay();
@@ -382,7 +384,7 @@ void Midi::setNoteOn(char note, char velocity)
 
 void Midi::setNoteOff(char note, char velocity)
 {
-  //DEBUG("Note OFF %d (%d)\n", note, velocity);
+  //logger.DEBUG("Note OFF %d (%d)\n", note, velocity);
 
   (void) velocity;
 
@@ -393,7 +395,7 @@ void Midi::setNoteOff(char note, char velocity)
 
 void Midi::setSustainOn()
 {
-  //DEBUG("Sustain ON\n");
+  //logger.DEBUG("Sustain ON\n");
 
   sustainOn = true;
 }
@@ -402,7 +404,7 @@ void Midi::setSustainOn()
 
 void Midi::setSustainOff()
 {
-  //DEBUG("Sustain OFF\n");
+  //logger.DEBUG("Sustain OFF\n");
 
   if (sustainOn) {
     sustainOn = false;
@@ -418,6 +420,7 @@ void Midi::openPort(int devNbr)
 
   try {
     midiPort->openPort(devNbr, "Mezzo Midi Port");
+    completeMidiPortName = midiPort->getPortName(devNbr);
   }
   catch (RtMidiError &error) {
     logger.FATAL("Unable to open MIDI Device: %s.", error.what());
@@ -489,4 +492,44 @@ void Midi::transposeAdjust()
   }
 
   config.midiTranspose = value;
+}
+
+//---- checkPort() ----
+//
+// This is called at interval of MONITOR_WAIT_COUNT seconds (see portMonitor() 
+// in poly.cpp) to check if the midi controller is still available. 
+// If not, it will then looks for it every second to 
+// reconnect it with the rtMidi class once it is back on.
+
+void Midi::checkPort()
+{
+  bool found = false;
+  int devNbr;
+  int devCount = midiPort->getPortCount();
+
+  for (devNbr = 0; (devNbr < devCount) && !found; devNbr++) {
+    found = midiPort->getPortName(devNbr) == completeMidiPortName;
+  }
+
+  if (!found) {
+    std::cout << "Midi Port Not Available." << std::endl;
+
+    while (!found && keepRunning) {
+      sleep(1);
+
+      if (!keepRunning) return;
+
+      devCount = midiPort->getPortCount();
+
+      for (devNbr = 0; devNbr < devCount; devNbr++) {
+        found = midiPort->getPortName(devNbr) == completeMidiPortName;
+        if (found) break;
+      }
+    }
+
+    if (found) {
+      std::cout << "Midi Port Is Back!" << std::endl;
+      openPort(devNbr);
+    }
+  }
 }

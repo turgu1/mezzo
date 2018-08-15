@@ -83,5 +83,7 @@ void   stopThreads();
 void * samplesFeeder(void * args);
 void * voicesFeeder1(void * args);
 void * voicesFeeder2(void * args);
+void *   portMonitor(void * args);
+void    monitorPorts();
 
 #endif // POLY_H

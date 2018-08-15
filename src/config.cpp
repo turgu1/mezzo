@@ -122,14 +122,10 @@ bool Configuration::loadConfig(int argc, char **argv)
                                   "keep last part of song for replay")
       ("sf2-folder,d",            po::value<std::string>(&sf2Folder),
                                   "set folder to find sf2 libraries")
-      ("pcm-device-nbr",          po::value<int>(&pcmDeviceNbr)->default_value(-1),
-                                  "PCM Output Device Nbr")
       ("pcm-device-name",         po::value<std::string>(&pcmDeviceName),
                                   "PCM Output Device Name")
       ("midi-channel",            po::value<int>(&midiChannel),
                                   "Midi Channel or -1 for omni")
-      ("midi-device-nbr",         po::value<int>(&midiDeviceNbr)->default_value(-1),
-                                  "Midi Input Device Nbr")
       ("midi-device-name",        po::value<std::string>(&midiDeviceName),
                                   "Midi Input Device Name")
       ("midi-sustain-treshold",   po::value<int>(&midiSustainTreshold),

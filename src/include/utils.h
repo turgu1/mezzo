@@ -122,10 +122,71 @@ public:
 
   static bool fileExists(const char * name);
 
+  // Read a line from the standard input. Returns true if
+  // a 5 seconds timeout occurs. A line can be empty.
+  static bool readStdIn(std::string & value);
+
+  // Read a positive number from the standard input. Returns true if
+  // a 5 seconds timeout occurs. If no number entered (empty line),
+  // value will get -1.
+  static bool getNumber(int16_t & value);
+
   inline static int16_t checkRange(int16_t value, int16_t min, int16_t max, int16_t defValue) {
     if ((value < min) || (value > max)) return defValue;
     return value;
   }
+
+  // Trigo methods
+  // From: http://lab.polygonal.de/2007/07/18/fast-and-accurate-sinecosine-approximation/
+
+  // Low Precision sine/cosine
+  // Error < 0.06
+
+  // 1.27323954  = 4/pi
+  // 0.405284735 =-4/(pi^2)
+
+  inline static float lowSin(float x) {
+    while (x < -3.14159265) x += 6.28318531;
+    while (x >  3.14159265) x -= 6.28318531;
+
+    if (x < 0) {
+      return 1.27323954 * x + 0.405284735 * x * x;
+    }
+    else {
+      return 1.27323954 * x - 0.405284735 * x * x;
+    }
+  }
+
+  inline static float lowCos(float x) { return lowSin(x + 1.57079632); }
+
+  // High Precision sine/cosine
+  // (error < 0.0008)
+
+  inline static float highSin(float x) {
+    while (x < -3.14159265) x += 6.28318531;
+    while (x >  3.14159265) x -= 6.28318531;
+
+    if (x < 0) {
+      float tmp = (1.27323954 * x) + (0.405284735 * x * x);
+
+      if (tmp < 0) {
+        return (.225 * ((tmp * -tmp) - tmp)) + tmp;
+      }
+      else {
+        return (.225 * ((tmp *  tmp) - tmp)) + tmp;
+      }
+    }
+    else {
+      float tmp = 1.27323954 * x - 0.405284735 * x * x;
+
+      if (tmp < 0)
+        return (.225 * ((tmp * -tmp) - tmp)) + tmp;
+      else
+        return (.225 * ((tmp *  tmp) - tmp)) + tmp;
+    }
+  }
+
+  inline static float highCos(float x) { return highSin(x + 1.57079632); }
 };
 
 #endif

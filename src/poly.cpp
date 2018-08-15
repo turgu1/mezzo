@@ -149,6 +149,38 @@ void * voicesFeeder2(void * args)
   pthread_exit(NULL);
 }
 
+#define MONITOR_WAIT_COUNT 5
+
+void monitorPorts()
+{
+   midi->checkPort();
+  sound->checkPort();
+}
+
+// ---- portMonitor() ----
+//
+// If not in interactive mode, this function monitor ports for reconnection every
+// 5 seconds. It must be run within the main application thread. For some reason,
+// running it in a pthread doesn't work.
+//
+// The function signature is the same as for a pthread, but is not used as such.
+
+void * portMonitor(void * args)
+{
+  int count = MONITOR_WAIT_COUNT;
+
+  while (keepRunning) {
+    sleep(1);
+    if (keepRunning && (count-- <= 0)) {
+      count = MONITOR_WAIT_COUNT;
+      monitorPorts();
+    }
+  }
+
+  return NULL;
+  // pthread_exit(NULL);
+}
+
 void Poly::showState()
 {
   voicep voice = voices;
@@ -401,7 +433,7 @@ int Poly::mixer(frameRecord & buff)
     }
     else if (count > 0) {
 
-      bool endOfSound = voice->transformAndAdd(buff, voiceBuff, count);
+      bool endOfSound = voice->transformAndMix(buff, voiceBuff, count);
 
       voice->releaseBuffer();
 

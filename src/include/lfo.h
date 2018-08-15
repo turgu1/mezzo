@@ -47,10 +47,10 @@
 class Lfo
 {
 private:
-  float    frequency;
-  float    phase;
-  float    currentPhase;
-  float    increment;
+  float frequency;
+  float phase;
+  float currentPhase;
+  float increment;
 
   void setup() { increment    = (frequency * 2 * M_PI) / config.samplingRate;
                  currentPhase = phase; }
@@ -69,7 +69,7 @@ public:
   {
     if (frequency == 0.0f) return 0.0f;
 
-    float value = sin(currentPhase);
+    float value = Utils::lowSin(currentPhase);
     currentPhase += increment;
     if (currentPhase >= (M_PI * 2)) currentPhase -= (M_PI * 2);
 

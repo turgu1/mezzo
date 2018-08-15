@@ -41,14 +41,12 @@
 
 #include <string>
 #include <cassert>
-#include "copyright.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
-
 #include <cstddef>
 #include <new>
 
-#include "new_handler_support.h"
 #include "log.h"
 #include "config.h"
 

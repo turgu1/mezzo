@@ -47,8 +47,7 @@
 class InteractiveMode {
 
  private:
-  char showMenuGetSelection();
-  int16_t getNumber();
+  char showMenuGetSelection(bool showMenu);
   
  public:
    InteractiveMode();

@@ -42,6 +42,7 @@
 #include "globals.h"
 #include "utils.h"
 
+#include "new_handler_support.h"
 #include "sf2.h"
 
 #include "lfo.h"

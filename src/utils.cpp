@@ -38,6 +38,9 @@
 
 #include <sys/stat.h>
 #include <cmath>
+#include <poll.h>
+#include <unistd.h>
+#include <iostream>
 
 #include "mezzo.h"
 
@@ -45,4 +48,41 @@ bool Utils::fileExists(const char * name) {
   struct stat buffer;
   return (stat (name, &buffer) == 0);
 }
+
+bool Utils::readStdIn(std::string & value)
+{
+  struct pollfd pfd = { STDIN_FILENO, POLLIN, 0 };
+
+  monitorPorts();
+
+  int ret = poll(&pfd, 1, 5000);  // timeout of 5000ms
+  if (!keepRunning) return true;
+
+  if (ret == 1) {             // there is something to read
+    std::getline(std::cin, value);
+    return false;
+  }
+  else if (ret == -1) {
+    std::cout << "Error: " << strerror(errno) << std::endl;
+  }
+
+  return true;
+}
+
+bool Utils::getNumber(int16_t & value)
+{
+  std::string str;
+  value = -1;
+  
+  bool timeout = Utils::readStdIn(str);
+
+  if (timeout || !keepRunning) return false;
+  if (str.empty())             return false;
+
+  std::istringstream iss(str);
+  iss >> value;
+  
+  return true;
+}
+
 

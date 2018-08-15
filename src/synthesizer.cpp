@@ -116,6 +116,15 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
       case  sfGenOper_keynumToVolEnvHold:  SetOrAdd(op, volEnvelope, KeynumToHold );
       case  sfGenOper_keynumToVolEnvDecay: SetOrAdd(op, volEnvelope, KeynumToDecay);
 
+      case  sfGenOper_delayModEnv:         SetOrAdd(op, modEnvelope, Delay        );
+      case  sfGenOper_attackModEnv:        SetOrAdd(op, modEnvelope, Attack       );
+      case  sfGenOper_holdModEnv:          SetOrAdd(op, modEnvelope, Hold         );
+      case  sfGenOper_decayModEnv:         SetOrAdd(op, modEnvelope, Decay        );
+      case  sfGenOper_sustainModEnv:       SetOrAdd(op, modEnvelope, Sustain      );
+      case  sfGenOper_releaseModEnv:       SetOrAdd(op, modEnvelope, Release      );
+      case  sfGenOper_keynumToModEnvHold:  SetOrAdd(op, modEnvelope, KeynumToHold );
+      case  sfGenOper_keynumToModEnvDecay: SetOrAdd(op, modEnvelope, KeynumToDecay);
+
       // Low-Pass BiQuad Filter
       case  sfGenOper_initialFilterFc:     SetOrAdd(op, biQuad, InitialFc);
       case  sfGenOper_initialFilterQ:      SetOrAdd(op, biQuad, InitialQ );
@@ -133,14 +142,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
       case  sfGenOper_modEnvToPitch:
       case  sfGenOper_modEnvToFilterFc:
-      case  sfGenOper_delayModEnv:
-      case  sfGenOper_attackModEnv:
-      case  sfGenOper_holdModEnv:
-      case  sfGenOper_decayModEnv:
-      case  sfGenOper_sustainModEnv:
-      case  sfGenOper_releaseModEnv:
-      case  sfGenOper_keynumToModEnvHold:
-      case  sfGenOper_keynumToModEnvDecay:
 
       case  sfGenOper_chorusEffectsSend:
       case  sfGenOper_reverbEffectsSend:
@@ -203,8 +204,9 @@ void Synthesizer::completeParams(uint8_t note)
   sizeLoop  = endLoop - startLoop;
 
   volEnvelope.setup(note);
+  modEnvelope.setup(note);
   vib.setup(note);
-  biQuad.setup();
+  //biQuad.setup();
 
   correctionFactor *= centsToRatio(fineTune);
 
@@ -217,8 +219,8 @@ void Synthesizer::completeParams(uint8_t note)
   const float prop  = M_SQRT2 * 0.5f;
   const float angle = ((float) fpan) * M_PI;
 
-  left  = prop * (cos(angle) - sin(angle));
-  right = prop * (cos(angle) + sin(angle));
+  left  = prop * (Utils::lowCos(angle) - Utils::lowSin(angle));
+  right = prop * (Utils::lowCos(angle) + Utils::lowSin(angle));
 }
 
 void Synthesizer::showStatus(int spaces)

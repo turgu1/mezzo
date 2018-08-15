@@ -66,8 +66,11 @@ class Midi {
   int selectDevice(int defaultNbr);
   void openPort(int devNbr);
 
+  void checkPort();
+
  private:
   RtMidiIn * midiPort;  ///< RTMidiIn instance
+  std::string completeMidiPortName;
   bool monitoring;      ///< True if monitoring midi in interactive mode
   bool sustainOn;       ///< True if the sustain pedal is depressed by the user
   int  channelMask;     ///< Mask of channels being listened by Midi

@@ -163,8 +163,8 @@ class Voice {
   inline bool noteOff()   { keyIsOn = noteIsOn = false;
                             return synth.keyHasBeenReleased(); }
 
-  inline bool transformAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length) {
-    return synth.transformAndAdd(dst, src, length); }
+  inline bool transformAndMix(frameRecord & dst, sampleRecord & src, uint16_t length) {
+    return synth.transformAndMix(dst, src, length); }
 };
 
 #endif

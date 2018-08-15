@@ -90,6 +90,7 @@ int main(int argc, char **argv)
   pthread_t smplFeeder;
   pthread_t vFeeder1;
   pthread_t vFeeder2;
+  // pthread_t prtMonitor;
 
   if (pthread_create(&smplFeeder, NULL, samplesFeeder, NULL)) {
     logger.FATAL("Unable to start samplesFeeder thread.");
@@ -103,17 +104,25 @@ int main(int argc, char **argv)
     logger.FATAL("Unable to start voicesFeeder2 thread.");
   }
 
+  // if (pthread_create(&prtMonitor, NULL, portMonitor, NULL)) {
+  //   logger.FATAL("Unable to start portMonitor thread.");
+  // }
+
   if (config.interactive) {
     InteractiveMode im;
     im.menu();
     stopThreads();
   }
+  else {
+    portMonitor(NULL);
+  }
 
   // Here we wait until the two threads have been stopped
 
   pthread_join(smplFeeder, NULL);
-  pthread_join(vFeeder1, NULL);
-  pthread_join(vFeeder2, NULL);
+  pthread_join(vFeeder1,   NULL);
+  pthread_join(vFeeder2,   NULL);
+  // pthread_join(prtMonitor, NULL);
 
   // Leave gracefully
 

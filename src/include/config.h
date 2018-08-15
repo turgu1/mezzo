@@ -87,7 +87,6 @@ public:
 
   std::string midiDeviceName;
   int         midiChannel;
-  int         midiDeviceNbr;
   int         midiSustainTreshold;
   int         midiTranspose;
 
@@ -98,7 +97,6 @@ public:
   float reverbApGain;
 
   std::string pcmDeviceName;
-  int         pcmDeviceNbr;
 
   uint16_t    volume;
   float       masterVolume;

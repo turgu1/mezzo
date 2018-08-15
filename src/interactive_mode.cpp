@@ -38,7 +38,6 @@
 
 #include <iomanip>
 #include <iostream>
-#include <iomanip>
 #include <sstream>
 
 #include "mezzo.h"
@@ -51,49 +50,35 @@ InteractiveMode::~InteractiveMode()
 {
 }
 
-char InteractiveMode::showMenuGetSelection()
-{
-  using namespace std;
-  char answer[6];
-
-  cout <<            endl
-       << "Menu:" << endl 
-       << "----"  << endl
-       << "P : Select Preset            A : Monitor active voice count"      << endl
-       << "+ : Next Preset              B : Monitor midi messages"           << endl
-       << "- : Previous Preset          E : Equalizer adjusments "           << endl
-       << "T : Transpose                R : Reverb adjusments"               << endl
-       << "S : Sound device selection   V : Show Voices state while playing" << endl
-       << "M : Midi device selection    p : Show Preset Zones"               << endl
-       << "f : toggle low-pass filter   i : Show Instruments Zones"          << endl
-       << "e : toggle envelope" << endl
-       << "v : toggle vibrato"  << endl
-       // << "l - dump sample Library"        << endl
-       // << "c - show Config read from file" << endl
-       << "x : eXit                     ? : Show this menu"                  << endl << endl;
-
-  cout << "Your choice > ";
-  cin >> setw(5) >> answer;
-
-  return answer[0];
-}
-
-int16_t InteractiveMode::getNumber()
+char InteractiveMode::showMenuGetSelection(bool showMenu)
 {
   using namespace std;
 
-  string str;
-  uint16_t nbr;
+  if (showMenu) {
+      cout          << endl
+         << "Menu:" << endl 
+         << "----"  << endl
+         << "P : Select Preset            A : Monitor active voice count"      << endl
+         << "+ : Next Preset              B : Monitor midi messages"           << endl
+         << "- : Previous Preset          E : Equalizer adjusments "           << endl
+         << "T : Transpose                R : Reverb adjusments"               << endl
+         << "S : Sound device selection   V : Show Voices state while playing" << endl
+         << "M : Midi device selection    p : Show Preset Zones"               << endl
+         << "f : toggle low-pass filter   i : Show Instruments Zones"          << endl
+         << "e : toggle envelope" << endl
+         << "v : toggle vibrato"  << endl
+         // << "l - dump sample Library"        << endl
+         // << "c - show Config read from file" << endl
+         << "x : eXit                     ? : Show this menu"                  << endl << endl;
 
-  cin.clear();
-  cin.sync();
+    cout << "Your choice > " << flush;
+  }
 
-  cin >> str;
-  if (str.empty()) return -1;
-  istringstream iss(str);
-  iss >> nbr;
-  
-  return nbr;
+  string answer;
+
+  bool timeout = Utils::readStdIn(answer);
+
+  return timeout ? -1 : answer[0];
 }
 
 void InteractiveMode::menu()
@@ -102,8 +87,12 @@ void InteractiveMode::menu()
   Preset * p;
   int16_t nbr;
 
+  bool showIt = true;
+
   while (true) {
-    char ch = showMenuGetSelection();
+
+    char ch = showMenuGetSelection(showIt);
+    if (!keepRunning) break;
 
     switch (ch) {
     case 'x': return;
@@ -143,9 +132,10 @@ void InteractiveMode::menu()
       {
         std::vector<uint16_t> theList = soundFont->showMidiPresetList();
         while (true) {
-          cout << endl << "Please enter preset index > ";
-          nbr = getNumber();
-          if (nbr < 0) break;
+          cout << endl << "Please enter preset index > " << flush;
+          do {
+            Utils::getNumber(nbr);
+          } while (nbr < 0);
 
           if ((nbr >= 1) && (((uint16_t) nbr) <= theList.size())) {
             soundFont->loadPreset(theList[nbr - 1]);
@@ -171,10 +161,11 @@ void InteractiveMode::menu()
         for (unsigned i = 0; i < pi.size(); i++) {
           cout << i << " : " << pi[i]->name << endl;
         }
-        cout << "Please enter instrument index > ";
+        cout << "Please enter instrument index > " << flush;
 
-        nbr = getNumber();
-        if (nbr < 0) break;
+        do {
+          Utils::getNumber(nbr);
+        } while (nbr < 0);
 
         if ((nbr >= 0) && (((uint16_t) nbr) < pi.size())) {
           Instrument * inst = soundFont->getInstrument(pi[((uint16_t) nbr)]->index);
@@ -207,10 +198,19 @@ void InteractiveMode::menu()
 
     case '?': break;
 
+    case -1: // Timeout happened
+      showIt = false;
+      continue;
+
+    case 0:
+      break;
+
     default:
-      cout << "Bad entry!" 
+      cout << "Bad entry! (" << +ch << ")"
            << endl;
       break;
     }
+
+    showIt = true;
   }
 }

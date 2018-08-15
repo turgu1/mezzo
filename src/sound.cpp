@@ -89,6 +89,8 @@ void Sound::openPort(int devNbr)
 {
   RtAudio::StreamParameters params;
 
+  if (dac.isStreamOpen()) dac.closeStream();
+
   params.deviceId     = devNbr;
   params.nChannels    = 2;
   params.firstChannel = 0;
@@ -100,6 +102,9 @@ void Sound::openPort(int devNbr)
     dac.openStream(&params, NULL, RTAUDIO_FLOAT32,
                     config.samplingRate, &bufferFrames, &soundCallback);
     dac.startStream();
+
+    RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
+    completeAudioPortName       = devInfo.name;
   }
   catch (RtAudioError& e) {
     e.printMessage();
@@ -111,32 +116,27 @@ int Sound::findDeviceNbr()
   int devCount;
 
   RtAudio::DeviceInfo devInfo;
-  int devNbr = config.pcmDeviceNbr;
+  int devNbr = -1;
 
-  if ((devCount = dac.getDeviceCount()) < 1) {
-    logger.FATAL("No audio device found");
-  }
+  if ((devCount = dac.getDeviceCount()) >= 1) {
 
-  if (!config.silent && !config.interactive) showDevices(devCount);
+    if (!config.silent && !config.interactive) showDevices(devCount);
 
-  if (config.pcmDeviceName.size() > 0) {
-    for (int i = 0; i < devCount; i++) {
-      devInfo = dac.getDeviceInfo(i);
+    if (config.pcmDeviceName.size() > 0) {
+      for (int i = 0; i < devCount; i++) {
+        devInfo = dac.getDeviceInfo(i);
 
-      if ((devNbr == -1) && devInfo.probed &&
-          (strcasestr(devInfo.name.c_str(), config.pcmDeviceName.c_str()) != NULL)) {
-        devNbr = i;
-        break;
+        if ((devNbr == -1) && devInfo.probed &&
+            (strcasestr(devInfo.name.c_str(), config.pcmDeviceName.c_str()) != NULL)) {
+          devNbr = i;
+          break;
+        }
       }
     }
-  }
 
-  if (devNbr == -1) {
-    devNbr = dac.getDefaultOutputDevice();
-    logger.INFO("Default PCM Device (%d) selected.", devNbr);
-  }
-  else {
-    logger.INFO("PCM Device Selected: %d.", devNbr);
+    if (devNbr == -1) {
+      devNbr = dac.getDefaultOutputDevice();
+    }
   }
 
   return devNbr;
@@ -162,6 +162,11 @@ Sound::Sound()
   rhead = rtail = 0;
 
   openPort(devNbr);
+
+  RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
+  if (!config.interactive) {
+    logger.INFO("PCM Device selected (%d): %s.", devNbr, devInfo.name.c_str());
+  }
 }
 
 Sound::~Sound()
@@ -238,4 +243,47 @@ int Sound::selectDevice(int defaultNbr)
   cout << "PCM Device Selected: " << devNbr << endl;
 
   return devNbr;
+}
+
+//---- checkPort() ----
+//
+// This is called at interval of MONITOR_WAIT_COUNT seconds (see portMonitor() 
+// in poly.cpp) to check if the midi controller is still available. 
+// If not, it will then looks for it every second to 
+// reconnect it with the rtMidi class once it is back on.
+
+void Sound::checkPort()
+{
+  RtAudio::DeviceInfo devInfo;
+  bool found = false;
+  int devNbr;
+  int devCount = dac.getDeviceCount();
+
+  for (devNbr = 0; (devNbr < devCount) && !found; devNbr++) {
+    devInfo = dac.getDeviceInfo(devNbr);
+    found   = devInfo.probed && (devInfo.name == completeAudioPortName);
+  }
+
+  if (!found) {
+    std::cout << "Audio Port Not Available." << std::endl;
+
+    while (!found && keepRunning) {
+      sleep(1);
+
+      if (!keepRunning) return;
+
+      devCount = dac.getDeviceCount();
+
+      for (devNbr = 0; devNbr < devCount; devNbr++) {
+        devInfo = dac.getDeviceInfo(devNbr);
+        found   = devInfo.probed && (devInfo.name == completeAudioPortName);
+        if (found) break;
+      }
+    }
+
+    if (found) {
+      std::cout << "Audio Port Is Back!" << std::endl;
+      openPort(devNbr);
+    }
+  }
 }

@@ -64,7 +64,7 @@ private:
 
   float initialFc;
   float initialQ;
-  float a1, a2, b0, b1;
+  float a1, a2, b0, b1, b2;
   float x1, x2, y1, y2;
   float gain;
 
@@ -87,6 +87,7 @@ public:
   static bool areAllActive   () { return allActive;              }
 
   void setup();
+  void        computeParams (float freq, float Q);
   void filter(sampleRecord & src, uint16_t length);
   void showStatus(int spaces);
 };

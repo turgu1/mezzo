@@ -53,6 +53,7 @@ class Synthesizer {
 private:
   Vibrato   vib;
   Envelope  volEnvelope;
+  Envelope  modEnvelope;
   BiQuad    biQuad;
 
   uint32_t  pos;
@@ -80,7 +81,7 @@ private:
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
-  inline void toStereoAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length) 
+  inline void toStereoAndMix(frameRecord & dst, sampleRecord & src, uint16_t length) 
   {
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
@@ -189,6 +190,7 @@ public:
   inline int8_t     getTranspose()   { return transpose;         }
   inline int16_t    getFineTune()    { return fineTune;          }
   inline Envelope * getVolEnvelope() { return &volEnvelope;      }
+  inline Envelope * getModEnvelope() { return &modEnvelope;      }
 
   inline void     setEndOfSound(bool val) { endOfSound = val;  }
 
@@ -201,12 +203,12 @@ public:
 
   inline float vibrato(uint32_t pos) { return vib.nextValue(pos); }
 
-  static bool areAllFilterActive()   { return BiQuad::areAllActive();   }
-  static bool areAllVibratoActive()  { return Vibrato::areAllActive();  }
+  static bool areAllFilterActive()   { return   BiQuad::areAllActive(); }
+  static bool areAllVibratoActive()  { return  Vibrato::areAllActive(); }
   static bool areAllEnvelopeActive() { return Envelope::areAllActive(); }
 
-  static bool toggleFilter()     { return BiQuad::toggleAllActive();   }
-  static bool toggleVibrato()    { return Vibrato::toggleAllActive();  }
+  static bool toggleFilter()     { return   BiQuad::toggleAllActive(); }
+  static bool toggleVibrato()    { return  Vibrato::toggleAllActive(); }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
   inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float gain) 
@@ -249,9 +251,9 @@ public:
     #endif
   }
 
-  inline bool transformAndAdd(frameRecord & dst, sampleRecord & src, uint16_t length)
+  inline bool transformAndMix(frameRecord & dst, sampleRecord & src, uint16_t length)
   {
-    biQuad.filter(src, length);
+    //biQuad.filter(src, length);
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
@@ -264,7 +266,7 @@ public:
 
     assert(length <= BUFFER_SAMPLE_COUNT);
 
-    toStereoAndAdd(dst, src, length);
+    toStereoAndMix(dst, src, length);
 
     pos += length;
 

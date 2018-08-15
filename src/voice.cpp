@@ -318,21 +318,21 @@ void Voice::feedBuffer(bool bypass)
     }
 
     if (count > 0) {
-        #if USE_NEON_INTRINSICS
-          while (count & 0x03) {
-            y1[count] = y2[count] = frac[count] = 0;
-            count++;
-          }
-          for (int i = 0; i < count; i += 4) {
-            __builtin_prefetch(&y2[i]);
-            __builtin_prefetch(&y1[i]);
-            __builtin_prefetch(&frac[i]);
-            float32x4_t vy2   = vld1q_f32(&y2[i]);
-            float32x4_t vy1   = vld1q_f32(&y1[i]);
-            float32x4_t vfrac = vld1q_f32(&frac[i]);
-            vst1q_f32(&buffer[i], vmlaq_f32(vy1, vsubq_f32(vy2, vy1), vfrac));
-          }
-        #endif
+      #if USE_NEON_INTRINSICS
+        while (count & 0x03) {
+          y1[count] = y2[count] = frac[count] = 0;
+          count++;
+        }
+        for (int i = 0; i < count; i += 4) {
+          __builtin_prefetch(&y2[i]);
+          __builtin_prefetch(&y1[i]);
+          __builtin_prefetch(&frac[i]);
+          float32x4_t vy2   = vld1q_f32(&y2[i]);
+          float32x4_t vy1   = vld1q_f32(&y1[i]);
+          float32x4_t vfrac = vld1q_f32(&frac[i]);
+          vst1q_f32(&buffer[i], vmlaq_f32(vy1, vsubq_f32(vy2, vy1), vfrac));
+        }
+      #endif
 
       synth.applyEnvelopeAndGain(buffer, count, gain * config.masterVolume);
     }

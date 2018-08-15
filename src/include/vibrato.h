@@ -61,7 +61,6 @@ public:
     // The chosen phase is to get a smooth transition at the beginning of the vibrato integration.
     lfo = Lfo(frequency, 3.0f * M_PI / 2.0f);
     pitchSamples = log2(noteFrequency(note) * pitch / 100.0f);
-    // showStatus();
   }
 
   static bool toggleAllActive() { return allActive = !allActive; }

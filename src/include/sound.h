@@ -77,6 +77,8 @@ class Sound : public NewHandlerSupport<Sound> {
   uint32_t rtail; ///< Tail Pointer on the replay buffer
   uint32_t rpos;  ///< Current replay position
 
+  std::string completeAudioPortName;
+
   static void outOfMemory(); ///< New operation handler when out of memory occurs
 
   /// This is the callback function that will retrieve and process PCM data to be
@@ -113,6 +115,8 @@ class Sound : public NewHandlerSupport<Sound> {
 
   /// Interactive device selection
   int selectDevice(int defaultNbr);
+
+  void checkPort();
 
   bool holding() { return hold; }
 
