@@ -91,7 +91,7 @@ void InteractiveMode::menu()
 
   while (true) {
 
-    char ch = showMenuGetSelection(showIt);
+    signed char ch = showMenuGetSelection(showIt);
     if (!keepRunning) break;
 
     switch (ch) {
@@ -202,7 +202,7 @@ void InteractiveMode::menu()
       showIt = false;
       continue;
 
-    case 0:
+    case 0:  // Empty string
       break;
 
     default:
