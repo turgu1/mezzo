@@ -98,13 +98,14 @@ void Sound::openPort(int devNbr)
 
   dac.showWarnings(false);
 
+  RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
+  completeAudioPortName.assign(devInfo.name);
+
+  // std::cout << "Complete Audio Port Name: " << completeAudioPortName << std::endl << std::flush;
+
   try {
     dac.openStream(&params, NULL, RTAUDIO_FLOAT32,
                     config.samplingRate, &bufferFrames, &soundCallback);
-    dac.startStream();
-
-    RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
-    completeAudioPortName       = devInfo.name;
   }
   catch (RtAudioError& e) {
     e.printMessage();
@@ -163,9 +164,8 @@ Sound::Sound()
 
   openPort(devNbr);
 
-  RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
   if (!config.interactive) {
-    logger.INFO("PCM Device selected (%d): %s.", devNbr, devInfo.name.c_str());
+    logger.INFO("PCM Device selected (%d): %s.", devNbr, completeAudioPortName.c_str());
   }
 }
 
@@ -259,12 +259,17 @@ void Sound::checkPort()
   int devNbr;
   int devCount = dac.getDeviceCount();
 
+  //std::cout << "Audio Device Count: " << devCount << std::endl;
+
   for (devNbr = 0; (devNbr < devCount) && !found; devNbr++) {
     devInfo = dac.getDeviceInfo(devNbr);
-    found   = devInfo.probed && (devInfo.name == completeAudioPortName);
+    found   = devInfo.probed && (devInfo.name.compare(completeAudioPortName) == 0);
+    //std::cout << "[" << devInfo.name << "] vs [" << completeAudioPortName << "] found: " << (found ? "YES" : "NO") << std::endl;
   }
 
   if (!found) {
+    wait();
+
     std::cout << "Audio Port Not Available." << std::endl;
 
     while (!found && keepRunning) {
@@ -276,7 +281,7 @@ void Sound::checkPort()
 
       for (devNbr = 0; devNbr < devCount; devNbr++) {
         devInfo = dac.getDeviceInfo(devNbr);
-        found   = devInfo.probed && (devInfo.name == completeAudioPortName);
+        found   = devInfo.probed && (devInfo.name.compare(completeAudioPortName) == 0);
         if (found) break;
       }
     }

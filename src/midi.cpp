@@ -420,7 +420,7 @@ void Midi::openPort(int devNbr)
 
   try {
     midiPort->openPort(devNbr, "Mezzo Midi Port");
-    completeMidiPortName = midiPort->getPortName(devNbr);
+    completeMidiPortName.assign(midiPort->getPortName(devNbr));
   }
   catch (RtMidiError &error) {
     logger.FATAL("Unable to open MIDI Device: %s.", error.what());
@@ -508,7 +508,7 @@ void Midi::checkPort()
   int devCount = midiPort->getPortCount();
 
   for (devNbr = 0; (devNbr < devCount) && !found; devNbr++) {
-    found = midiPort->getPortName(devNbr) == completeMidiPortName;
+    found = midiPort->getPortName(devNbr).compare(completeMidiPortName) == 0;
   }
 
   if (!found) {
@@ -522,7 +522,7 @@ void Midi::checkPort()
       devCount = midiPort->getPortCount();
 
       for (devNbr = 0; devNbr < devCount; devNbr++) {
-        found = midiPort->getPortName(devNbr) == completeMidiPortName;
+        found = midiPort->getPortName(devNbr).compare(completeMidiPortName) == 0;
         if (found) break;
       }
     }

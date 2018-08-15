@@ -121,10 +121,16 @@ class Sound : public NewHandlerSupport<Sound> {
   bool holding() { return hold; }
 
   /// Put sound on hold waiting for a new sample library to be loaded from disk
-  void wait() { hold = true; }
+  void wait() {
+    dac.stopStream(); 
+    hold = true;
+  }
 
   /// Restart sound, the new library has been loaded
-  void conti() { hold = false; }
+  void conti() {
+    dac.startStream(); 
+    hold = false;
+  }
 
   /// This is called when starting a replay process. The rpos pointer is adjusted to the
   /// tail of the FIFO buffer.
