@@ -48,7 +48,6 @@ Fifo::Fifo()
 
   head = tail = 0;
   count = 0;
-  stateLock = 0;
 
   for (int i = 0; i < FIFO_BUFFER_COUNT; i++) {
     sampleCount[i] = 0;

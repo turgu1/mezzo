@@ -243,7 +243,8 @@ Poly::~Poly()
     voice = next;
   }
 
-  logger.INFO("Max Nbr of Voices used: %d.\n", maxVoiceCount);
+  int maxCount = maxVoiceCount;
+  logger.INFO("Max Nbr of Voices used: %d.\n", maxCount);
 }
 
 //----- outOfMemory() ----
@@ -355,7 +356,8 @@ void Poly::addVoice(samplep       sample,
 
   // Adjust Number of active voices
   voiceCount++;
-  if (voiceCount > maxVoiceCount) maxVoiceCount = voiceCount;
+  int theCount = voiceCount;
+  if (theCount > maxVoiceCount) maxVoiceCount = theCount;
 
   voice->setup(sample, note, gain, synth, preset, presetZoneIdx);
 

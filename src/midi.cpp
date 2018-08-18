@@ -333,7 +333,7 @@ Midi::Midi()
     midiPort->setErrorCallback(&midiErrorCallback);
     midiPort->setCallback(&midiCallBack);
     
-    logger.INFO("MIDI Device Selected: (%d) %s.", devNbr, midiPort->getPortName(devNbr).c_str());
+    logger.INFO("MIDI Device Selected (%d): %s.", devNbr, midiPort->getPortName(devNbr).c_str());
   } catch (RtMidiError &error) {
     logger.FATAL("Unable to set MIDI Callbacks: %s.", error.what());
   }  

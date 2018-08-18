@@ -60,9 +60,8 @@ class Voice {
   voicep  next;              ///< Next voice available in the list
 
   uint32_t seq;
-  static  uint32_t nextSeq;
-
-  static bool showPlayingState;
+  static uint32_t nextSeq;
+  static bool     showPlayingState;
 
   volatile voiceState state; ///< This is the state of this voice, as described in the comments above
   volatile bool  active;     ///< This voice is active and is being played
@@ -85,7 +84,7 @@ class Voice {
   int           bufferSize;
   volatile bool bufferReady;
   
-  Synthesizer synth;
+  Synthesizer   synth;
 
  public:
    Voice();
@@ -133,12 +132,12 @@ class Voice {
   inline void activate()   { if (isInactive()) setState(ALIVE);   active = true;  }
   inline void inactivate() { if (isActive())   setState(DORMANT); active = false; clearFifo(); }
 
-  inline void    setNext(voicep n) { next = n; }
-  inline voicep  getNext() { return next; }
-  inline int8_t  getNote() { return note; }
-  inline float   getGain() { return gain; }
-  inline int16_t  getPan() { return synth.getPan(); }
-  inline uint32_t getSeq() { return seq; }
+  inline void    setNext(voicep n) { next = n;    }
+  inline voicep  getNext()         { return next; }
+  inline int8_t  getNote()         { return note; }
+  inline float   getGain()         { return gain; }
+  inline int16_t  getPan()         { return synth.getPan(); }
+  inline uint32_t getSeq()         { return seq;  }
 
   static float getScaleFactor(int16_t diff);
 
@@ -156,7 +155,7 @@ class Voice {
   /// This is used to preload the fifo bewfor activiating the voice.
   void prepareFifo();
 
-  inline void clearFifo() { fifo.clear();        }
+  inline void clearFifo() { fifo.clear();         }
   inline void keyOff()    { keyIsOn = false;      }
   inline bool isKeyOn()   { return keyIsOn;       }
   inline bool isNoteOn()  { return noteIsOn;      }
@@ -164,7 +163,8 @@ class Voice {
                             return synth.keyHasBeenReleased(); }
 
   inline bool transformAndMix(frameRecord & dst, sampleRecord & src, uint16_t length) {
-    return synth.transformAndMix(dst, src, length); }
+    return synth.transformAndMix(dst, src, length);
+  }
 };
 
 #endif

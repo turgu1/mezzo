@@ -47,6 +47,8 @@
 #include <cstddef>
 #include <new>
 
+#include <atomic>
+
 #include "log.h"
 #include "config.h"
 
@@ -112,7 +114,7 @@ typedef std::array<sample_t, BUFFER_SAMPLE_COUNT> sampleRecord;
 typedef std::array<frame_t,  BUFFER_FRAME_COUNT > frameRecord;
 typedef std::array<int16_t,  BUFFER_SAMPLE_COUNT> rawSampleRecord;
 
-PUBLIC volatile bool keepRunning;
+PUBLIC std::atomic<bool> keepRunning;
 
 // Statistics
 

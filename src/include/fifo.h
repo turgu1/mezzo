@@ -39,21 +39,9 @@
 #ifndef _FIFO_
 #define _FIFO_
 
-#include <sched.h>
+#include <atomic>
 
 #define FIFO_BUFFER_COUNT 6
-
-#define __INC while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count += 1;                                                  \
-  __sync_lock_release(&stateLock);
-
-#define __DEC while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count -= 1;                                                  \
-  __sync_lock_release(&stateLock);
-
-#define __CLR while (__sync_lock_test_and_set(&stateLock, 1)); \
-  count = 0;                                                   \
-  __sync_lock_release(&stateLock);
 
 class Fifo : public NewHandlerSupport<Fifo> {
 
@@ -62,8 +50,7 @@ class Fifo : public NewHandlerSupport<Fifo> {
   int   sampleCount[FIFO_BUFFER_COUNT];
 
   volatile int head, tail;
-  volatile int count;
-  volatile int stateLock;
+  std::atomic<int> count;
 
   static void outOfMemory();
 
@@ -76,8 +63,8 @@ class Fifo : public NewHandlerSupport<Fifo> {
   inline sampleRecord & getHead() { return buff[head]; }
   inline sampleRecord & getTail() { return buff[tail]; }
 
-  inline void  pop() { if (++head >= FIFO_BUFFER_COUNT) head = 0; __DEC }
-  inline void push() { if (++tail >= FIFO_BUFFER_COUNT) tail = 0; __INC }
+  inline void  pop() { if (++head >= FIFO_BUFFER_COUNT) head = 0; count--; }
+  inline void push() { if (++tail >= FIFO_BUFFER_COUNT) tail = 0; count++; }
 
   inline bool isFull()  { return count == FIFO_BUFFER_COUNT; }
   inline bool isEmpty() { return count == 0; }
@@ -85,7 +72,7 @@ class Fifo : public NewHandlerSupport<Fifo> {
   inline void setSampleCount(int count) { sampleCount[tail] = count; }
   inline int  getSampleCount() { return sampleCount[head]; }
 
-  inline void clear() { head = tail = 0; __CLR }
+  inline void clear() { head = tail = 0; count = 0; }
 };
 
 #undef __DEC

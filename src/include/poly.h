@@ -39,14 +39,16 @@
 #ifndef _POLY_
 #define _POLY_
 
+#include <atomic>
+
 #include "mezzo.h"
 
 class Poly : public NewHandlerSupport<Poly> {
 
  private:
-  voicep       voices;
-  volatile int voiceCount;
-  volatile int maxVoiceCount;
+  voicep           voices;
+  std::atomic<int> voiceCount;
+  std::atomic<int> maxVoiceCount;
 
   static void  outOfMemory();  ///< New operation handler when out of memory occurs
 

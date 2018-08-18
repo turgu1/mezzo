@@ -251,6 +251,10 @@ int Sound::selectDevice(int defaultNbr)
 // in poly.cpp) to check if the midi controller is still available. 
 // If not, it will then looks for it every second to 
 // reconnect it with the rtMidi class once it is back on.
+//
+// This is working fine under OSX (CoreAudio). Under Linux ALSA, the
+// RtAudio library doen't behave properly as we can't discover that the
+// device was disconnected (getDeviceInfo() returns a cached structure).
 
 void Sound::checkPort()
 {
