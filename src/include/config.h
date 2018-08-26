@@ -77,6 +77,10 @@ public:
   bool interactive;
   bool silent;
   
+  bool metEnabled;
+  int  metBeatsPerSecond;
+  int  metBeatsPerMeasure;
+
   float equalizer_v60;
   float equalizer_v150;
   float equalizer_v400;

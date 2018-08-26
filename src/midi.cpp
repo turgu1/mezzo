@@ -370,6 +370,35 @@ void Midi::setNoteOn(char note, char velocity)
   if (config.replayEnabled && (note == 108)) {
     sound->toggleReplay();
   }
+  else if (config.metEnabled && (note >= 105)) {
+    if (note == 106) {
+      metronome->isActive() ? metronome->stop() : metronome->start();
+    }
+    else if (metronome->isActive()) {
+      if (note == 105) {
+        if (metronome->getBeatsPerSecond() > 2) {
+          metronome->setBeatsPerSecond(metronome->getBeatsPerSecond() - 2);
+        }
+      }
+      else if (note == 107) {
+        if (metronome->getBeatsPerSecond() < 249) {
+          metronome->setBeatsPerSecond(metronome->getBeatsPerSecond() + 2);
+        }
+      }
+    } 
+    else {
+      if (note == 105) {
+        if (metronome->getBeatsPerMeasure() > 2) {
+          metronome->setBeatsPerMeasure(metronome->getBeatsPerMeasure() - 1);
+        }
+      }
+      else if (note == 107) {
+        if (metronome->getBeatsPerMeasure() < 30) {
+          metronome->setBeatsPerMeasure(metronome->getBeatsPerMeasure() + 1);
+        }
+      }
+    }
+  }
   else {
     if (velocity == 0) {
       poly->noteOff(note, sustainOn);

@@ -57,9 +57,9 @@ Mezzo::Mezzo()
   show("equalizer"); equalizer = new Equalizer();
   show("sound");     sound     = new Sound();
   show("midi");      midi      = new Midi();
-
-  show("conti");     
-  sound->conti();
+  show("metronome"); metronome = new Metronome();
+  
+  show("conti");     sound->conti();
 
   binFile.open("data.bin", std::ios::out | std::ios::binary);
   

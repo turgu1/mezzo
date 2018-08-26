@@ -50,7 +50,7 @@
 #include "vibrato.h"
 #include "envelope.h"
 #include "fifo.h"
-
+#include "metronome.h"
 #include "sample.h"
 #include "synthesizer.h"
 #include "preset.h"

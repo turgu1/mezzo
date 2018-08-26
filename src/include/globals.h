@@ -86,6 +86,7 @@ class Reverb;
 class Equalizer;
 class Poly;
 class Midi;
+class Metronome;
 
 #define MEZZO_VERSION  "MEZZO Version 1.0 - SF2 Sampling Synthesizer"
 
@@ -131,6 +132,7 @@ PUBLIC Equalizer  * equalizer;
 PUBLIC Reverb     * reverb;
 PUBLIC Poly       * poly;
 PUBLIC Midi       * midi;
+PUBLIC Metronome  * metronome;
 
 PUBLIC Log logger;
 

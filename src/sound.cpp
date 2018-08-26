@@ -76,7 +76,7 @@ int soundCallback(void *               outputBuffer,
     reverb->process(buff);
     //equalizer->process(buff, nBufferFrames);
     //if (config.replayEnabled) sound->push(buff);
-
+    metronome->process(buff);
     Utils::clip((buffp) outputBuffer, buff);
   }
 

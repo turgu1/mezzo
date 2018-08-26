@@ -124,6 +124,12 @@ bool Configuration::loadConfig(int argc, char **argv)
                                   "set folder to find sf2 libraries")
       ("pcm-device-name",         po::value<std::string>(&pcmDeviceName),
                                   "PCM Output Device Name")
+      ("metronome,m",             po::value<bool>(&metEnabled)->default_value(true),
+                                  "metronome enabled")
+      ("beats-per-second,b",      po::value<int>(&metBeatsPerSecond)->default_value(80),
+                                  "metronome starting beats per second")
+      ("beats-per-measure,B",      po::value<int>(&metBeatsPerMeasure)->default_value(4),
+                                  "metronome starting beats per measure")
       ("midi-channel",            po::value<int>(&midiChannel),
                                   "Midi Channel or -1 for omni")
       ("midi-device-name",        po::value<std::string>(&midiDeviceName),

@@ -65,8 +65,9 @@ char InteractiveMode::showMenuGetSelection(bool showMenu)
          << "S : Sound device selection   V : Show Voices state while playing" << endl
          << "M : Midi device selection    p : Show Preset Zones"               << endl
          << "f : toggle low-pass filter   i : Show Instruments Zones"          << endl
-         << "e : toggle envelope" << endl
-         << "v : toggle vibrato"  << endl
+         << "e : toggle envelope"  << endl
+         << "v : toggle vibrato"   << endl
+         << "m : toggle metronome         b : Beats per second"                << endl
          // << "l - dump sample Library"        << endl
          // << "c - show Config read from file" << endl
          << "x : eXit                     ? : Show this menu"                  << endl << endl;
@@ -113,7 +114,7 @@ void InteractiveMode::menu()
     case 'V': 
       poly->showVoicePlayingState();   
       cout << "Voice State while playing is now "
-           << (Voice::isPlayingStateActive() ? "Active" : "Inactive")
+           << (Voice::isPlayingStateActive() ? "Active." : "Inactive.")
            << endl;
       break;
     // case 'c': config->showState();          break;
@@ -178,22 +179,49 @@ void InteractiveMode::menu()
     case 'f':
       Synthesizer::toggleFilter();
       cout << "Low-Pass Filters are now "
-           << (Synthesizer::areAllFilterActive() ? "Active" : "Inactive") 
+           << (Synthesizer::areAllFilterActive() ? "Active." : "Inactive.") 
            << endl;
       break;
       
     case 'e':
       Synthesizer::toggleEnvelope();
       cout << "Envelopes are now "
-           << (Synthesizer::areAllEnvelopeActive() ? "Active" : "Inactive") 
+           << (Synthesizer::areAllEnvelopeActive() ? "Active." : "Inactive.") 
            << endl;
       break;
 
     case 'v':
       Synthesizer::toggleVibrato();
       cout << "Vibratos are now "
-           << (Synthesizer::areAllVibratoActive() ? "Active" : "Inactive") 
+           << (Synthesizer::areAllVibratoActive() ? "Active." : "Inactive.") 
            << endl;
+      break;
+
+    case 'm':
+      metronome->isActive() ? metronome->stop() : metronome->start();
+      cout << "Metronome is now "
+           << (metronome->isActive() ? "Active." : "Inactive.") 
+           << endl;
+      break;
+
+    case 'b':
+      {
+        while (true) {
+          cout << endl << "Please enter beats per second > " << flush;
+          do {
+            Utils::getNumber(nbr);
+          } while (nbr <= 0);
+
+          if ((nbr >= 1) && (((uint16_t) nbr) <= 250)) {
+            metronome->setBeatsPerSecond(nbr);
+            break;
+          }
+          else {
+            cout << "Beats per second must be between 1 and 250! Please Try Again." << endl;
+          }
+        }
+
+      }
       break;
 
     case '?': break;
