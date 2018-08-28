@@ -65,6 +65,7 @@ int soundCallback(void *               outputBuffer,
 
   if (config.replayEnabled && sound->isReplaying()) {
     sound->get(buff);
+    binFile.write((char *)buff.data(), nBufferFrames * 8);
   }
   else if (sound->holding()) {
     static frame_t zero = { 0.0f, 0.0f };
@@ -75,12 +76,11 @@ int soundCallback(void *               outputBuffer,
     poly->mixer(buff);
     reverb->process(buff);
     //equalizer->process(buff, nBufferFrames);
-    //if (config.replayEnabled) sound->push(buff);
     metronome->process(buff);
-    Utils::clip((buffp) outputBuffer, buff);
+    if (config.replayEnabled) sound->push(buff);
   }
-
-  //binFile.write((char *)buff, nBufferFrames * 8);
+  
+  Utils::clip((buffp) outputBuffer, buff);
 
   return 0;
 }
