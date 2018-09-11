@@ -124,10 +124,12 @@ bool Configuration::loadConfig(int argc, char **argv)
                                   "set folder to find sf2 libraries")
       ("pcm-device-name",         po::value<std::string>(&pcmDeviceName),
                                   "PCM Output Device Name")
+      ("lcd-keypad-device-name",  po::value<std::string>(&lcdKeypadDeviceName)->default_value(""),
+                                  "LCD Keypad Device Name")
       ("metronome,m",             po::value<bool>(&metEnabled)->default_value(true),
                                   "metronome enabled")
-      ("beats-per-second,b",      po::value<int>(&metBeatsPerSecond)->default_value(80),
-                                  "metronome starting beats per second")
+      ("beats-per-minute,b",      po::value<int>(&metBeatsPerMinute)->default_value(80),
+                                  "metronome starting beats per minute")
       ("beats-per-measure,B",      po::value<int>(&metBeatsPerMeasure)->default_value(4),
                                   "metronome starting beats per measure")
       ("midi-channel",            po::value<int>(&midiChannel),

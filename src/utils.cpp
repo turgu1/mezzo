@@ -53,8 +53,6 @@ bool Utils::readStdIn(std::string & value)
 {
   struct pollfd pfd = { STDIN_FILENO, POLLIN, 0 };
 
-  monitorPorts();
-
   int ret = poll(&pfd, 1, 5000);  // timeout of 5000ms
   if (!keepRunning) return true;
 

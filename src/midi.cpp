@@ -174,6 +174,7 @@ void midiCallBack (double timeStamp,
         break;
       case 0x4A:
         config.masterVolume = data2 / 127.0f;
+        config.volume = 100 * data2 / 127;
         break;
       default:
           //logger.WARNING("Midi: Ignored Control: %02xh %d.\n",
@@ -376,13 +377,13 @@ void Midi::setNoteOn(char note, char velocity)
     }
     else if (metronome->isActive()) {
       if (note == 105) {
-        if (metronome->getBeatsPerSecond() > 2) {
-          metronome->setBeatsPerSecond(metronome->getBeatsPerSecond() - 2);
+        if (metronome->getBeatsPerMinute() > 2) {
+          metronome->setBeatsPerMinute(metronome->getBeatsPerMinute() - 2);
         }
       }
       else if (note == 107) {
-        if (metronome->getBeatsPerSecond() < 249) {
-          metronome->setBeatsPerSecond(metronome->getBeatsPerSecond() + 2);
+        if (metronome->getBeatsPerMinute() < 249) {
+          metronome->setBeatsPerMinute(metronome->getBeatsPerMinute() + 2);
         }
       }
     } 

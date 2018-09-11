@@ -88,157 +88,153 @@ void InteractiveMode::menu()
   Preset * p;
   int16_t nbr;
 
-  bool showIt = true;
+  static bool showIt = true;
 
-  while (true) {
+  signed char ch = showMenuGetSelection(showIt);
+  if (!keepRunning) return;
+  showIt = true;
 
-    signed char ch = showMenuGetSelection(showIt);
-    if (!keepRunning) break;
-
-    switch (ch) {
-    case 'x': return;
-    case 'A': poly->monitorCount();            break;
-    case 'B': midi->monitorMessages();         break;
-    case 'E': equalizer->interactiveAdjust();  break;
-    case 'R': reverb->interactiveAdjust();     break;
-    case 'S': {
-      int devNbr = sound->selectDevice(-1);
-      sound->openPort(devNbr); }
-      break;
-    case 'M': {
-      int devNbr = midi->selectDevice(-1);
-      midi->openPort(devNbr); }
-      break;
-    case 'T': midi->transposeAdjust();         break;
-    // case 'l': samples->showNotes();         break;
-    case 'V': 
-      poly->showVoicePlayingState();   
-      cout << "Voice State while playing is now "
-           << (Voice::isPlayingStateActive() ? "Active." : "Inactive.")
-           << endl;
-      break;
-    // case 'c': config->showState();          break;
-    
-    case '+': 
-      soundFont->loadNextPreset();
-      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
-      break;  
-          
-    case '-': 
-      soundFont->loadPreviousPreset(); 
-      cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
-      break;
-    
-    case 'P': 
-      {
-        std::vector<uint16_t> theList = soundFont->showMidiPresetList();
-        while (true) {
-          cout << endl << "Please enter preset index > " << flush;
-          do {
-            Utils::getNumber(nbr);
-          } while (nbr < 0);
-
-          if ((nbr >= 1) && (((uint16_t) nbr) <= theList.size())) {
-            soundFont->loadPreset(theList[nbr - 1]);
-            cout << "=====> " << soundFont->getCurrentPreset()->getName() << " Selected. <=====" << endl;
-            break;
-          }
-          else {
-            cout << "Index out of range! Please Try Again." << endl;
-          }
-        }
-      }
-      break;      
-      
-    case 'p':
-      p = soundFont->getCurrentPreset();
-      if (p != NULL) p->showZones();
-      break;
-      
-    case 'i':
-      p = soundFont->getCurrentPreset();
-      if (p != NULL) {
-        vector<presetInstrument *> & pi = p->getInstrumentsList();
-        for (unsigned i = 0; i < pi.size(); i++) {
-          cout << i << " : " << pi[i]->name << endl;
-        }
-        cout << "Please enter instrument index > " << flush;
-
+  switch (ch) {
+  case 'x': return;
+  case 'A': poly->monitorCount();            break;
+  case 'B': midi->monitorMessages();         break;
+  case 'E': equalizer->interactiveAdjust();  break;
+  case 'R': reverb->interactiveAdjust();     break;
+  case 'S': {
+    int devNbr = sound->selectDevice(-1);
+    sound->openPort(devNbr); }
+    break;
+  case 'M': {
+    int devNbr = midi->selectDevice(-1);
+    midi->openPort(devNbr); }
+    break;
+  case 'T': midi->transposeAdjust();         break;
+  // case 'l': samples->showNotes();         break;
+  case 'V': 
+    poly->showVoicePlayingState();   
+    cout << "Voice State while playing is now "
+         << (Voice::isPlayingStateActive() ? "Active." : "Inactive.")
+         << endl;
+    break;
+  // case 'c': config->showState();          break;
+  
+  case '+': 
+    soundFont->loadNextPreset();
+    cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
+    break;  
+        
+  case '-': 
+    soundFont->loadPreviousPreset(); 
+    cout << soundFont->getCurrentPreset()->getName() << " Selected." << endl;
+    break;
+  
+  case 'P': 
+    {
+      std::vector<uint16_t> theList = soundFont->showMidiPresetList();
+      while (true) {
+        cout << endl << "Please enter preset index > " << flush;
         do {
           Utils::getNumber(nbr);
         } while (nbr < 0);
 
-        if ((nbr >= 0) && (((uint16_t) nbr) < pi.size())) {
-          Instrument * inst = soundFont->getInstrument(pi[((uint16_t) nbr)]->index);
-          assert(inst != NULL);
-          inst->showZones();
+        if ((nbr >= 1) && (((uint16_t) nbr) <= theList.size())) {
+          soundFont->loadPreset(theList[nbr - 1]);
+          cout << "=====> " << soundFont->getCurrentPreset()->getName() << " Selected. <=====" << endl;
+          break;
+        }
+        else {
+          cout << "Index out of range! Please Try Again." << endl;
         }
       }
-      break;
-
-    case 'f':
-      Synthesizer::toggleFilter();
-      cout << "Low-Pass Filters are now "
-           << (Synthesizer::areAllFilterActive() ? "Active." : "Inactive.") 
-           << endl;
-      break;
-      
-    case 'e':
-      Synthesizer::toggleEnvelope();
-      cout << "Envelopes are now "
-           << (Synthesizer::areAllEnvelopeActive() ? "Active." : "Inactive.") 
-           << endl;
-      break;
-
-    case 'v':
-      Synthesizer::toggleVibrato();
-      cout << "Vibratos are now "
-           << (Synthesizer::areAllVibratoActive() ? "Active." : "Inactive.") 
-           << endl;
-      break;
-
-    case 'm':
-      metronome->isActive() ? metronome->stop() : metronome->start();
-      cout << "Metronome is now "
-           << (metronome->isActive() ? "Active." : "Inactive.") 
-           << endl;
-      break;
-
-    case 'b':
-      {
-        while (true) {
-          cout << endl << "Please enter beats per second > " << flush;
-          do {
-            Utils::getNumber(nbr);
-          } while (nbr <= 0);
-
-          if ((nbr >= 1) && (((uint16_t) nbr) <= 250)) {
-            metronome->setBeatsPerSecond(nbr);
-            break;
-          }
-          else {
-            cout << "Beats per second must be between 1 and 250! Please Try Again." << endl;
-          }
-        }
-
-      }
-      break;
-
-    case '?': break;
-
-    case -1: // Timeout happened
-      showIt = false;
-      continue;
-
-    case 0:  // Empty string
-      break;
-
-    default:
-      cout << "Bad entry! (" << +ch << ")"
-           << endl;
-      break;
     }
+    break;      
+    
+  case 'p':
+    p = soundFont->getCurrentPreset();
+    if (p != NULL) p->showZones();
+    break;
+    
+  case 'i':
+    p = soundFont->getCurrentPreset();
+    if (p != NULL) {
+      vector<presetInstrument *> & pi = p->getInstrumentsList();
+      for (unsigned i = 0; i < pi.size(); i++) {
+        cout << i << " : " << pi[i]->name << endl;
+      }
+      cout << "Please enter instrument index > " << flush;
 
-    showIt = true;
+      do {
+        Utils::getNumber(nbr);
+      } while (nbr < 0);
+
+      if ((nbr >= 0) && (((uint16_t) nbr) < pi.size())) {
+        Instrument * inst = soundFont->getInstrument(pi[((uint16_t) nbr)]->index);
+        assert(inst != NULL);
+        inst->showZones();
+      }
+    }
+    break;
+
+  case 'f':
+    Synthesizer::toggleFilter();
+    cout << "Low-Pass Filters are now "
+         << (Synthesizer::areAllFilterActive() ? "Active." : "Inactive.") 
+         << endl;
+    break;
+    
+  case 'e':
+    Synthesizer::toggleEnvelope();
+    cout << "Envelopes are now "
+         << (Synthesizer::areAllEnvelopeActive() ? "Active." : "Inactive.") 
+         << endl;
+    break;
+
+  case 'v':
+    Synthesizer::toggleVibrato();
+    cout << "Vibratos are now "
+         << (Synthesizer::areAllVibratoActive() ? "Active." : "Inactive.") 
+         << endl;
+    break;
+
+  case 'm':
+    metronome->isActive() ? metronome->stop() : metronome->start();
+    cout << "Metronome is now "
+         << (metronome->isActive() ? "Active." : "Inactive.") 
+         << endl;
+    break;
+
+  case 'b':
+    {
+      while (true) {
+        cout << endl << "Please enter beats per second > " << flush;
+        do {
+          Utils::getNumber(nbr);
+        } while (nbr <= 0);
+
+        if ((nbr >= 1) && (((uint16_t) nbr) <= 250)) {
+          metronome->setBeatsPerMinute(nbr);
+          break;
+        }
+        else {
+          cout << "Beats per second must be between 1 and 250! Please Try Again." << endl;
+        }
+      }
+
+    }
+    break;
+
+  case '?': break;
+
+  case -1: // Timeout happened
+    showIt = false;
+    break;
+
+  case 0:  // Empty string
+    break;
+
+  default:
+    cout << "Bad entry! (" << +ch << ")"
+         << endl;
+    break;
   }
 }

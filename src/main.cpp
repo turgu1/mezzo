@@ -42,6 +42,7 @@
 #include <pthread.h>
 
 #include "mezzo.h"
+#include "lcd_keypad.h"
 
 //---- sigfpeHandler ----
 
@@ -104,25 +105,31 @@ int main(int argc, char **argv)
     logger.FATAL("Unable to start voicesFeeder2 thread.");
   }
 
-  // if (pthread_create(&prtMonitor, NULL, portMonitor, NULL)) {
-  //   logger.FATAL("Unable to start portMonitor thread.");
-  // }
-
   if (config.interactive) {
     InteractiveMode im;
-    im.menu();
+    while (keepRunning) {
+      im.menu();
+      monitorPorts();
+    }
+    stopThreads();
+  }
+  else if (config.lcdKeypadDeviceName.size() > 0) {
+    LcdKeypad kp(config.lcdKeypadDeviceName);
+    while (keepRunning) {
+      kp.process();
+      monitorPorts();
+    }
     stopThreads();
   }
   else {
     portMonitor(NULL);
   }
 
-  // Here we wait until the two threads have been stopped
+  // Here we wait until the three threads have been stopped
 
   pthread_join(smplFeeder, NULL);
   pthread_join(vFeeder1,   NULL);
   pthread_join(vFeeder2,   NULL);
-  // pthread_join(prtMonitor, NULL);
 
   // Leave gracefully
 

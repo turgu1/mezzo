@@ -41,20 +41,20 @@
 
 class Metronome {
 private:
-  std::atomic<bool> active;
   std::atomic<bool> tickStart;
-  std::atomic<int>  beatsPerSecond;
   const float * sound;
   unsigned int soundSize;
   bool tickEnd;
-  int  beatsPerMeasure;
   int  tickCount;
   unsigned int pos;
 
 public:
   Metronome();
-  inline int  getBeatsPerSecond()      { return beatsPerSecond; }
-  void        setBeatsPerSecond(int b) { beatsPerSecond = b; }
+  volatile bool active;
+  volatile int  beatsPerMinute;
+  volatile int  beatsPerMeasure;
+  inline int  getBeatsPerMinute()      { return beatsPerMinute; }
+  void        setBeatsPerMinute(int b) { beatsPerMinute = b; }
   inline int getBeatsPerMeasure()      { return beatsPerMeasure; }
   void       setBeatsPerMeasure(int b) { beatsPerMeasure = b; }
 

@@ -78,7 +78,7 @@ public:
   bool silent;
   
   bool metEnabled;
-  int  metBeatsPerSecond;
+  int  metBeatsPerMinute;
   int  metBeatsPerMeasure;
 
   float equalizer_v60;
@@ -101,6 +101,7 @@ public:
   float reverbApGain;
 
   std::string pcmDeviceName;
+  std::string lcdKeypadDeviceName;
 
   uint16_t    volume;
   float       masterVolume;

@@ -47,7 +47,7 @@ static pthread_t ticker;
 void *   metTicker(void * args)
 {
   while (metronome->isActive()) {
-    usleep(60000000 / metronome->getBeatsPerSecond());
+    usleep(60000000 / metronome->getBeatsPerMinute());
     metronome->setTickStart(true);
   }
   
@@ -110,6 +110,6 @@ Metronome::Metronome()
   tickStart       = false;
   tickEnd         = true;
   tickCount       = 0;
-  beatsPerSecond  = config.metBeatsPerSecond;
+  beatsPerMinute  = config.metBeatsPerMinute;
   beatsPerMeasure = config.metBeatsPerMeasure;
 }
