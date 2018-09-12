@@ -39,9 +39,9 @@ OS_TYPE    = ${shell uname -s}
 BOOST_LIBS  := -lboost_iostreams -lboost_program_options
 
 ifeq (${OS_TYPE},Darwin)
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread -lrtmidi
 else
-LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lrtaudio -pthread -lrtmidi -lasound
+LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread -lrtmidi -lasound
 endif
 
 ifeq (${HOST_TYPE},x86_64)

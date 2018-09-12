@@ -65,8 +65,8 @@ char InteractiveMode::showMenuGetSelection(bool showMenu)
          << "S : Sound device selection   V : Show Voices state while playing" << endl
          << "M : Midi device selection    p : Show Preset Zones"               << endl
          << "f : toggle low-pass filter   i : Show Instruments Zones"          << endl
-         << "e : toggle envelope"  << endl
-         << "v : toggle vibrato"   << endl
+         << "e : toggle envelope"                                              << endl
+         << "v : toggle vibrato"                                               << endl
          << "m : toggle metronome         b : Beats per second"                << endl
          // << "l - dump sample Library"        << endl
          // << "c - show Config read from file" << endl
@@ -95,7 +95,7 @@ void InteractiveMode::menu()
   showIt = true;
 
   switch (ch) {
-  case 'x': return;
+  case 'x': keepRunning = false;             return;
   case 'A': poly->monitorCount();            break;
   case 'B': midi->monitorMessages();         break;
   case 'E': equalizer->interactiveAdjust();  break;

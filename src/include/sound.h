@@ -39,14 +39,10 @@
 #ifndef _SOUND_
 #define _SOUND_
 
-#ifdef __APPLE__
-  #include "RtAudio.h"
-#else
-  #include "rtaudio/RtAudio.h"
-#endif
+#include <portaudio.h>
 
 /// The Sound class is responsible of supplying the proper linkage
-/// with the PCM sound device. It uses the RtAudio library to
+/// with the PCM sound device. It uses the PortAudio library to
 /// get access to the ALSA API of the operating system. Through the configuration file,
 /// the user identify the PCM device to connect with. Once connected, the class setup
 /// a callback function that will be asynchronously requesting new PCM data from the
@@ -62,10 +58,13 @@
 /// mode, to select the targeted device and produce the data required in the configuration 
 /// file to properly setup the Sound class.
 
+#define CHKPA(stmt, msg) \
+  if ((err = stmt) < 0) { logger.FATAL(msg, Pa_GetErrorText(err)); }
+
 class Sound : public NewHandlerSupport<Sound> {
 
  private:
-  RtAudio dac;  ///< The connection to the RtAudio stream
+  PaStream *dac;  ///< The connection to the PortAudio stream
   
   #define REPLAY_FRAME_COUNT (860 * BUFFER_FRAME_COUNT) ///< Replay buffer size in frames
 
@@ -92,12 +91,12 @@ class Sound : public NewHandlerSupport<Sound> {
   /// that could mess up the system like calling memory allocation functions that would
   /// disrupt the data structure involved.
 
-  friend int soundCallback(void *              outputBuffer,
-                           void *              inputBuffer,
-                           unsigned int        nBufferFrames,
-                           double              streamTime,
-                           RtAudioStreamStatus status,
-                           void *              userData);
+  friend int soundCallback(const void *                     inputBuffer,
+                           void *                           outputBuffer,
+                           unsigned long                    framesPerBuffer,
+                           const PaStreamCallbackTimeInfo * timeInfo,
+                           PaStreamCallbackFlags            statusFlags,
+                           void *                           userData);
  public:
   /// This method selects which PCM device to connect to, establish the connection and
   /// setup the callback function.
@@ -116,19 +115,23 @@ class Sound : public NewHandlerSupport<Sound> {
   /// Interactive device selection
   int selectDevice(int defaultNbr);
 
-  void checkPort();
+  // void checkPort(); // Not working.
 
   bool holding() { return hold; }
 
   /// Put sound on hold waiting for a new sample library to be loaded from disk
   void wait() {
-    dac.stopStream(); 
+    int err;
+
     hold = true;
+    CHKPA(Pa_StopStream(dac), "Unable to stop PortAudio Stream: %s"); 
   }
 
   /// Restart sound, the new library has been loaded
   void conti() {
-    dac.startStream(); 
+    int err;
+
+    CHKPA(Pa_StartStream(dac), "Unable to start PortAudio Stream: %s"); 
     hold = false;
   }
 

@@ -154,7 +154,7 @@ void * voicesFeeder2(void * args)
 void monitorPorts()
 {
    midi->checkPort();
-  sound->checkPort();
+  //sound->checkPort(); // Not working
 }
 
 // ---- portMonitor() ----

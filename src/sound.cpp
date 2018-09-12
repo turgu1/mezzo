@@ -47,25 +47,25 @@
 
 #define show(v) std::cout << v << std::endl << std::flush
 
-int soundCallback(void *               outputBuffer,
-                  void *               inputBuffer,
-                  unsigned int         nBufferFrames,
-                  double               streamTime,
-                  RtAudioStreamStatus  status,
-                  void *               userData)
+int soundCallback(const void *                     inputBuffer,
+                  void *                           outputBuffer,
+                  unsigned long                    framesPerBuffer,
+                  const PaStreamCallbackTimeInfo * timeInfo,
+                  PaStreamCallbackFlags            statusFlags,
+                  void *                           userData)
 {
   static frameRecord buff;
 
   (void) inputBuffer; /* Prevent "unused variable" warnings. */
-  (void) nBufferFrames;
+  (void) framesPerBuffer;
   (void) userData;
-  (void) streamTime;
+  (void) timeInfo;
 
-  if (status) std::cout << "Stream RtAudio Underflow Detected." << std::endl;
+  if ((statusFlags & paOutputUnderflow) && !sound->holding()) std::cout << "PortAudio Stream Underflow Detected." << std::endl;
 
   if (config.replayEnabled && sound->isReplaying()) {
     sound->get(buff);
-    binFile.write((char *)buff.data(), nBufferFrames * 8);
+    binFile.write((char *)buff.data(), framesPerBuffer * 8);
   }
   else if (sound->holding()) {
     static frame_t zero = { 0.0f, 0.0f };
@@ -87,48 +87,52 @@ int soundCallback(void *               outputBuffer,
 
 void Sound::openPort(int devNbr)
 {
-  RtAudio::StreamParameters params;
+  int err;
 
-  if (dac.isStreamOpen()) dac.closeStream();
+  PaStreamParameters params;
+  PaStreamFlags      flags;
 
-  params.deviceId     = devNbr;
-  params.nChannels    = 2;
-  params.firstChannel = 0;
-  unsigned int bufferFrames = BUFFER_FRAME_COUNT;
+  if ((dac != NULL) && Pa_IsStreamActive(dac)) {
+    CHKPA(Pa_CloseStream(dac), "Unable to close PortAudio stream: %s");
+  }
 
-  dac.showWarnings(false);
+  params.device           = devNbr;
+  params.channelCount     = 2;
+  params.sampleFormat     = paFloat32;
+  params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
+  params.hostApiSpecificStreamInfo = NULL;
 
-  RtAudio::DeviceInfo devInfo = dac.getDeviceInfo(devNbr);
-  completeAudioPortName.assign(devInfo.name);
+  flags = 0;
+
+  CHKPA(Pa_OpenStream(&dac,
+                      NULL, &params, config.samplingRate,
+                      BUFFER_FRAME_COUNT, flags, &soundCallback, NULL),
+        "Unable to open PortAudio Stream: %s");
+
+  const PaDeviceInfo *devInfo = Pa_GetDeviceInfo(devNbr);
+  completeAudioPortName.assign(devInfo->name);
 
   // std::cout << "Complete Audio Port Name: " << completeAudioPortName << std::endl << std::flush;
 
-  try {
-    dac.openStream(&params, NULL, RTAUDIO_FLOAT32,
-                    config.samplingRate, &bufferFrames, &soundCallback);
-  }
-  catch (RtAudioError& e) {
-    e.printMessage();
-  }
 }
 
 int Sound::findDeviceNbr()
 {
   int devCount;
 
-  RtAudio::DeviceInfo devInfo;
+  const PaDeviceInfo *devInfo;
   int devNbr = -1;
 
-  if ((devCount = dac.getDeviceCount()) >= 1) {
+  if ((devCount = Pa_GetDeviceCount()) >= 1) {
 
     if (!config.silent && !config.interactive) showDevices(devCount);
 
     if (config.pcmDeviceName.size() > 0) {
       for (int i = 0; i < devCount; i++) {
-        devInfo = dac.getDeviceInfo(i);
+        devInfo = Pa_GetDeviceInfo(i);
 
-        if ((devNbr == -1) && devInfo.probed &&
-            (strcasestr(devInfo.name.c_str(), config.pcmDeviceName.c_str()) != NULL)) {
+        if ((devNbr == -1) &&
+            (strcasestr(devInfo->name, config.pcmDeviceName.c_str()) != NULL)) {
           devNbr = i;
           break;
         }
@@ -136,7 +140,7 @@ int Sound::findDeviceNbr()
     }
 
     if (devNbr == -1) {
-      devNbr = dac.getDefaultOutputDevice();
+      devNbr = Pa_GetDefaultOutputDevice();
     }
   }
 
@@ -145,12 +149,20 @@ int Sound::findDeviceNbr()
 
 Sound::Sound()
 {
+  int err;
+
   setNewHandler(outOfMemory);
 
   using namespace std;
 
   replay = false;
   hold = true;
+
+  dac = NULL;
+
+  CHKPA(Pa_Initialize(), "Unable to initialize PortAudio: %s");
+
+  std::cout << Pa_GetVersionText() << std::endl;
 
   int devNbr = findDeviceNbr();
 
@@ -171,8 +183,12 @@ Sound::Sound()
 
 Sound::~Sound()
 {
-  dac.abortStream();
-  if (dac.isStreamOpen()) dac.closeStream();
+  int err;
+
+  if (dac != NULL) {
+    CHKPA(Pa_CloseStream(dac), "Unable to close PortAudio stream: %s");
+  }
+  CHKPA(Pa_Terminate(), "Unable to terminate PortAudio: %s");
 }
 
 void Sound::outOfMemory()
@@ -184,18 +200,18 @@ void Sound::showDevices(int devCount)
 {
   using namespace std;
 
-  RtAudio::DeviceInfo devInfo;
+  const PaDeviceInfo *devInfo;
 
   cout << endl << endl;
   cout << "PCM Device list:" << endl;
   cout << "---------------"  << endl;
 
   for (int i = 0; i < devCount; i++) {
-    devInfo = dac.getDeviceInfo(i);
+    devInfo = Pa_GetDeviceInfo(i);
 
-    if (devInfo.outputChannels > 0) {
-      cout << "Device " << i << ": " << devInfo.name
-           << ((devInfo.outputChannels > 0) ? " (out)" : " (in)")
+    if (devInfo->maxOutputChannels > 0) {
+      cout << "Device " << i << ": " << devInfo->name
+           << ((devInfo->maxOutputChannels > 0) ? " (out)" : " (in)")
            << endl;
     }
   }
@@ -211,7 +227,7 @@ int Sound::selectDevice(int defaultNbr)
 
   int devNbr = -1;
 
-  if ((devCount = dac.getDeviceCount()) < 1) {
+  if ((devCount = Pa_GetDeviceCount()) < 1) {
     logger.ERROR("No audio device found.");
   }
 
@@ -247,6 +263,8 @@ int Sound::selectDevice(int defaultNbr)
 
 //---- checkPort() ----
 //
+// This code is *not* in a working condition as PortAudio lack the HotPlug mechanism.
+//  
 // This is called at interval of MONITOR_WAIT_COUNT seconds (see portMonitor() 
 // in poly.cpp) to check if the midi controller is still available. 
 // If not, it will then looks for it every second to 
@@ -256,19 +274,22 @@ int Sound::selectDevice(int defaultNbr)
 // RtAudio library doen't behave properly as we can't discover that the
 // device was disconnected (getDeviceInfo() returns a cached structure).
 
+#if 0
 void Sound::checkPort()
 {
-  RtAudio::DeviceInfo devInfo;
+  const PaDeviceInfo *devInfo;
   bool found = false;
   int devNbr;
-  int devCount = dac.getDeviceCount();
+  int devCount = Pa_GetDeviceCount();
 
   //std::cout << "Audio Device Count: " << devCount << std::endl;
 
+  std::cout << "Stream active? " << (Pa_IsStreamActive(dac) ? "YES" : "NO") << std::endl;
+
   for (devNbr = 0; (devNbr < devCount) && !found; devNbr++) {
-    devInfo = dac.getDeviceInfo(devNbr);
-    found   = devInfo.probed && (devInfo.name.compare(completeAudioPortName) == 0);
-    //std::cout << "[" << devInfo.name << "] vs [" << completeAudioPortName << "] found: " << (found ? "YES" : "NO") << std::endl;
+    devInfo = Pa_GetDeviceInfo(devNbr);
+    found   = completeAudioPortName.compare(devInfo->name) == 0;
+    std::cout << "[" << devInfo->name << "] vs [" << completeAudioPortName << "] found: " << (found ? "YES" : "NO") << std::endl;
   }
 
   if (!found) {
@@ -281,11 +302,11 @@ void Sound::checkPort()
 
       if (!keepRunning) return;
 
-      devCount = dac.getDeviceCount();
+      devCount = Pa_GetDeviceCount();
 
       for (devNbr = 0; devNbr < devCount; devNbr++) {
-        devInfo = dac.getDeviceInfo(devNbr);
-        found   = devInfo.probed && (devInfo.name.compare(completeAudioPortName) == 0);
+        devInfo = Pa_GetDeviceInfo(devNbr);
+        found   = (completeAudioPortName.compare(devInfo->name) == 0);
         if (found) break;
       }
     }
@@ -296,3 +317,4 @@ void Sound::checkPort()
     }
   }
 }
+#endif

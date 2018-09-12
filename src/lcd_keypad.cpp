@@ -77,7 +77,7 @@ void setMetActive(int v) {
 }
 
 int  getMetEnabled()      { return config.metEnabled;                }
-int  setMetEnabled(int v) {        config.metEnabled = v; if (!v) metronome->stop(); }
+void setMetEnabled(int v) {        config.metEnabled = v; if (!v) metronome->stop(); }
 int   getMetActive()      { return metronome->isActive();            }
 int    getMetBPMin()      { return metronome->getBeatsPerMinute();   }
 void   setMetBPMin(int v) {        metronome->setBeatsPerMinute(v);  }
@@ -405,7 +405,7 @@ char LcdKeypad::getNextKey()
 
     char line[6];
     struct timeval timeout;
-    struct fd_set  set, set2;
+    fd_set  set, set2;
 
     timeout.tv_sec  = 1;
     timeout.tv_usec = 0;
