@@ -219,8 +219,8 @@ void Synthesizer::completeParams(uint8_t note)
   const float prop  = M_SQRT2 * 0.5f;
   const float angle = ((float) fpan) * M_PI;
 
-  left  = prop * (Utils::lowCos(angle) - Utils::lowSin(angle));
-  right = prop * (Utils::lowCos(angle) + Utils::lowSin(angle));
+  left  = prop * (Utils::lowCos(angle) - Utils::lowSin(angle)).toFloat();
+  right = prop * (Utils::lowCos(angle) + Utils::lowSin(angle)).toFloat();
 }
 
 void Synthesizer::showStatus(int spaces)

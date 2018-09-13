@@ -144,7 +144,7 @@ class Reverb : public NewHandlerSupport<Reverb> {
     }
 
     inline void GET(fifop ptr, float &v) {
-      v = *(ptr->head++);
+      v = (ptr->head++)->toFloat();   // Fixed Point
       if (ptr->head >= ptr->end) ptr->head = ptr->buff;
     }
 

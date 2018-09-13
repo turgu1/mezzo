@@ -255,8 +255,6 @@ void Voice::feedBuffer(bool bypass)
 
     int count;
 
-    assert(scaleBuff != NULL);
-
     // outputPos is the postion where we are in the output as a number
     // of samples since the start of the note. scaledPos is where we need to
     // get someting from the sample, taking into account pitch changes, resampling
@@ -309,7 +307,7 @@ void Voice::feedBuffer(bool bypass)
         y2[count]   = scaleBuff[buffIndex + 5];
         frac[count] = fractionalPart;
       #else
-        float * y = &scaleBuff[buffIndex - 1 + 4];
+        Fixed * y = &scaleBuff[buffIndex - 1 + 4];
 
         buffer[count++] = y[1] + (y[2] - y[1]) * fractionalPart;
       #endif

@@ -133,7 +133,7 @@ void Equalizer::process(buffp buff, int frameCount)
   for (int i = 0; i < frameCount; i++) {
 
     // Left
-    float sigIn = *buff;
+    float sigIn = buff->toFloat();
     float sigOut = sigIn;
     for (int j = 0; j < BAND_COUNT; j++) {
       sigOut += gain[j] * iirFilter2(sigIn, bpf[j], leftHist[j]);
@@ -141,7 +141,7 @@ void Equalizer::process(buffp buff, int frameCount)
     *buff++ = sigOut;
 
     // Right
-    sigIn = *buff;
+    sigIn = buff->toFloat();
     sigOut = sigIn;
     for (int j = 0; j < BAND_COUNT; j++) {
       sigOut += gain[j] * iirFilter2(sigIn, bpf[j], rightHist[j]);

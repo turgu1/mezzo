@@ -110,7 +110,7 @@ private:
           vst2q_f32(&dst[i].left, dstData);
         }
       #else
-        for (int i = 0; i < length; i++) dst[i].right += src[i];
+        for (int i = 0; i < length; i++) dst[i].left += src[i];
       #endif
     }
     else if (pan <= -250) {
@@ -127,7 +127,7 @@ private:
           vst2q_f32(&dst[i].left, dstData);
         }
       #else
-        for (int i = 0; i < length; i++) dst[i].left += src[i];
+        for (int i = 0; i < length; i++) dst[i].right += src[i];
       #endif
     }
     else {
@@ -246,7 +246,7 @@ public:
       }
     #else
       for (uint16_t i = 0; i < length; i++) { 
-        src[i] *= gain * amps[i]; 
+        src[i] *= amps[i] * attGain; 
       }
     #endif
   }

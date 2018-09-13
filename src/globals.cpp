@@ -38,5 +38,6 @@
 
 #define GLOBALS 1
 
+#include "fixed.h"
 #include "globals.h"
 

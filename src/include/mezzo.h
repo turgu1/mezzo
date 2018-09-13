@@ -39,6 +39,7 @@
 #ifndef _MEZZO_
 #define _MEZZO_
 
+#include "fixed.h"
 #include "globals.h"
 #include "utils.h"
 

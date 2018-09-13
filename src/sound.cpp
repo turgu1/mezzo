@@ -80,7 +80,7 @@ int soundCallback(const void *                     inputBuffer,
     if (config.replayEnabled) sound->push(buff);
   }
   
-  Utils::clip((buffp) outputBuffer, buff);
+  Utils::clip((float *) outputBuffer, buff);
 
   return 0;
 }

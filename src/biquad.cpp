@@ -55,14 +55,14 @@ void BiQuad::computeParams(float freq, float Q)
   }
   else {
     float d = 1. / initialQ;
-    float dTmp = d * Utils::highSin(theta) / 2.;
+    float dTmp = d * Utils::highSin(theta).toFloat() / 2.;
     if (dTmp == -1) {
       active = false;
     }
     else {
       active = true;
       float  beta = 0.5 * (1. - dTmp) / (1. + dTmp);
-      float gamma = (0.5 + beta) * Utils::highCos(theta);
+      float gamma = (0.5 + beta) * Utils::highCos(theta).toFloat();
       b0 = (0.5 + beta - gamma) / 2.;
       b1 = 2. * b0;
       b2 = b0;
@@ -108,9 +108,9 @@ void BiQuad::filter(sampleRecord & src, uint16_t length)
       // y[n] = (b0/a0)*x[n] + (b1/a0)*x[n-1] + (b2/a0)*x[n-2]
       //                     - (a1/a0)*y[n-1] - (a2/a0)*y[n-2]
 
-      float val = (b0 * src[i]) + (b1 * x1) + (b2 * x2) - (a1 * y1) - (a2 * y2);
+      float val = (src[i].toFloat() * b0) + (b1 * x1) + (b2 * x2) - (a1 * y1) - (a2 * y2);
 
-      x2 = x1; x1 = src[i];
+      x2 = x1; x1 = src[i].toFloat();
       y2 = y1; y1 =  val;
 
       src[i] = val * gain;

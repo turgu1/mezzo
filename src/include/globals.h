@@ -62,12 +62,14 @@
 // Compiling on an Intel x86 processor is possible using the translation from NEON to SSE probivided
 // by the neon_2_sse.h include file. See https://github.com/intel/ARM_NEON_2_x86_SSE
 
+#if 0
 #if __ARM_FEATURE_DSP
   #define USE_NEON_INTRINSICS 1
   #include <arm_neon.h>
 #else
   #define USE_NEON_INTRINSICS 1
   #include <neon_2_sse.h>
+#endif
 #endif
 
 // if you ever wants to not used DSP intrinsics, the float32_t definition is required
@@ -94,7 +96,7 @@ class Metronome;
 /// The Poly class retrieves buffers of samples from voices and build frames to
 ///    send back to the Sound output class
 
-typedef float sample_t;     ///< A single sample
+typedef Fixed sample_t;     ///< A single sample
 typedef sample_t * buffp;   ///< A pointer on a sample or a frame buffer, depending on context
 typedef struct {
   sample_t left;

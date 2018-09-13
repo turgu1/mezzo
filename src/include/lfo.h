@@ -69,7 +69,7 @@ public:
   {
     if (frequency == 0.0f) return 0.0f;
 
-    float value = Utils::lowSin(currentPhase);
+    float value = Utils::lowSin(currentPhase).toFloat();
     currentPhase += increment;
     if (currentPhase >= (M_PI * 2)) currentPhase -= (M_PI * 2);
 

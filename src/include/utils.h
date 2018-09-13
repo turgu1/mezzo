@@ -61,9 +61,8 @@ class Utils {
 public:
   inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, rawSampleRecord & src, int length)
   {
-    const float32_t norm = 1.0 / 32768.0;
+    const float norm = 1.0 / 32768.0;
 
-    assert(src != NULL);
     assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
 
     #if USE_NEON_INTRINSICS
@@ -85,7 +84,7 @@ public:
       }
     #else
       for (int i = 0; i < length; i++) {
-        dst[i] = src[i] * norm;
+        dst[i] = norm * src[i];
       }
     #endif
     return dst;
@@ -96,10 +95,10 @@ public:
   // Audio function (rtAudio). This to mitigate the need to copy
   // the content, as we use std::array internally in this
   // application, but rtAudio requires an C array of floats.
-  static inline void clip(buffp dst, frameRecord & buff)
+  static inline void clip(float * dst, frameRecord & buff)
   {
-    const float minusOne = -1.0f;
-    const float one      =  1.0f;
+    const Fixed minusOne = -1.0f;
+    const Fixed one      =  1.0f;
 
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
@@ -114,8 +113,8 @@ public:
       }
     #else
       for (auto & element : buff) {
-        *dst++  = MIN(MAX(element.left, minusOne), one);
-        *dst++  = MIN(MAX(element.right, minusOne), one);
+        *dst++  = element.left.max(minusOne).min(one).toFloat();
+        *dst++  = element.right.max(minusOne).min(one).toFloat();
       }
     #endif
   }
@@ -145,48 +144,48 @@ public:
   // 1.27323954  = 4/pi
   // 0.405284735 =-4/(pi^2)
 
-  inline static float lowSin(float x) {
-    while (x < -3.14159265) x += 6.28318531;
-    while (x >  3.14159265) x -= 6.28318531;
+  inline static Fixed lowSin(Fixed x) {
+    while (x < Fixed(-3.14159265)) x += Fixed(6.28318531);
+    while (x >  Fixed(3.14159265)) x -= Fixed(6.28318531);
 
     if (x < 0) {
-      return 1.27323954 * x + 0.405284735 * x * x;
+      return Fixed(1.27323954) * x + Fixed(0.405284735) * x * x;
     }
     else {
-      return 1.27323954 * x - 0.405284735 * x * x;
+      return Fixed(1.27323954) * x - Fixed(0.405284735) * x * x;
     }
   }
 
-  inline static float lowCos(float x) { return lowSin(x + 1.57079632); }
+  inline static Fixed lowCos(Fixed x) { return lowSin(x + Fixed(1.57079632)); }
 
   // High Precision sine/cosine
   // (error < 0.0008)
 
-  inline static float highSin(float x) {
-    while (x < -3.14159265) x += 6.28318531;
-    while (x >  3.14159265) x -= 6.28318531;
+  inline static Fixed highSin(Fixed x) {
+    while (x < Fixed(-3.14159265)) x += Fixed(6.28318531);
+    while (x >  Fixed(3.14159265)) x -= Fixed(6.28318531);
 
-    if (x < 0) {
-      float tmp = (1.27323954 * x) + (0.405284735 * x * x);
+    if (x < Fixed(0)) {
+      Fixed tmp = (Fixed(1.27323954) * x) + (Fixed(0.405284735) * x * x);
 
-      if (tmp < 0) {
-        return (.225 * ((tmp * -tmp) - tmp)) + tmp;
+      if (tmp < Fixed(0)) {
+        return (Fixed(.225) * ((tmp * -tmp) - tmp)) + tmp;
       }
       else {
-        return (.225 * ((tmp *  tmp) - tmp)) + tmp;
+        return (Fixed(.225) * ((tmp *  tmp) - tmp)) + tmp;
       }
     }
     else {
-      float tmp = 1.27323954 * x - 0.405284735 * x * x;
+      Fixed tmp = Fixed(1.27323954) * x - Fixed(0.405284735) * x * x;
 
-      if (tmp < 0)
-        return (.225 * ((tmp * -tmp) - tmp)) + tmp;
+      if (tmp < Fixed(0))
+        return (Fixed(.225) * ((tmp * -tmp) - tmp)) + tmp;
       else
-        return (.225 * ((tmp *  tmp) - tmp)) + tmp;
+        return (Fixed(.225) * ((tmp *  tmp) - tmp)) + tmp;
     }
   }
 
-  inline static float highCos(float x) { return highSin(x + 1.57079632); }
+  inline static Fixed highCos(Fixed x) { return highSin(x + Fixed(1.57079632)); }
 };
 
 #endif

@@ -316,7 +316,7 @@ void Reverb::process(frameRecord & buff)
     fifop lc, rc;
     fifop lap, rap;
 
-    float input = (buff[fr].left + buff[fr].right) * 0.015f;
+    float input = (buff[fr].left + buff[fr].right).toFloat() * 0.015f;
 
     float outl = 0.0f;
     float outr = 0.0f;
