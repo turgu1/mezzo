@@ -54,9 +54,9 @@ Two methods are available to install Mezzo:
 
 The suite of GNU C++ compiler and libraries is required to build the application. Also, the following libraries have been used to supply interfaces to external resources:
 
-* RtAudio - For ALSA based PCM audio device access
-* RtMidi  - Midi ALSA input device interaction (already part of Mezzo source code)
-* Boost   - C++ libraries to support some algorithms design
+* PortAudio - For ALSA based PCM audio device access
+* RtMidi    - Midi ALSA input device interaction (already part of Mezzo source code)
+* Boost     - C++ libraries to support some algorithms design
 
 Raspbian is already containing the GNU C++ suite of tools. What remains to be install are some external libraries. The following subsections give commands to be executed in a teminal shell.
 
@@ -67,7 +67,7 @@ Starting from a plain vanilla Raspbian distribution, you will need to install th
 ```bash
 sudo apt-get update
 sudo apt-get upgrade
-sudo apt-get install git librtmidi-dev librtaudio-dev libboost1.62-all-dev libasound2-dev
+sudo apt-get install git librtmidi-dev libportaudio-dev libboost1.62-all-dev libasound2-dev
 ```
 
 ## Retrieving and compiling Mezzo
