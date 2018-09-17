@@ -40,7 +40,9 @@
 #define _MEZZO_
 
 #include "fixed.h"
+#include "big_fixed.h"
 #include "globals.h"
+#include "duration.h"
 #include "utils.h"
 
 #include "new_handler_support.h"
@@ -65,7 +67,6 @@
 #include "equalizer.h"
 #include "reverb.h"
 #include "interactive_mode.h"
-#include "duration.h"
 
 class Mezzo   : public NewHandlerSupport<Mezzo> {
 

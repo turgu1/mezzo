@@ -207,7 +207,7 @@ uint16_t Sample::getData(sampleRecord & buff, uint32_t pos, Synthesizer & synth)
 
   synth.setLastValue(tmpBuffer[count - 1]);
 
-  Utils::shortToFloatNormalize(buff, tmpBuffer, count);
+  Utils::rawToSampleRecord(buff, tmpBuffer, count);
 
   // if (getIt) {
   //   getIt = false;

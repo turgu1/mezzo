@@ -57,9 +57,8 @@ private:
   static const int32_t minValue     = 0x80000000;
   static const int32_t maxValue     = 0x7FFFFFFF;
 
-  int32_t v;
-
 public:
+  int32_t v;
   Fixed() : v(0) { }
   Fixed(const Fixed & b) { v = b.v; }
   Fixed(const int i, const int f) : v((i << scale) + f) { assert((i >= -128   ) && (i <= 127         ));
@@ -67,6 +66,17 @@ public:
   Fixed(int32_t x) : v(x << scale)                      { assert((x >= -128   ) && (x <= 127         )); }
   Fixed(float   x) : v(x * (float)(1 << scale))         { assert((x >= -128.0f) && (x <= 127.9999f   )); }
   Fixed(double  x) : v(x * (double)(1 << scale))        { assert((x >= -128.0 ) && (x <= 127.9999    )); }
+  
+  // Transform a 16 bit signed number to a fixpoint value between -1.0 and 1.0
+  inline static Fixed normalize(int16_t x) { 
+    Fixed a; 
+    a.v = ((int32_t) x) << 9; 
+    return a;
+  }
+
+  inline int32_t clip() const {
+    return (v >> 9);
+  }
 
   inline int32_t   toInt() const { return v >> scale;                         }
   inline float   toFloat() const { return (float )(v) / (float )(1 << scale); }

@@ -174,7 +174,7 @@ void Reverb::process(frameRecord & buff)
   float        wet = 1.0f - dryWet;
   float apGainPlus = 1.0f + apGain;
 
-  Duration * duration = new Duration;
+  Duration duration;
 
 #if USE_NEON_INTRINSICS
 
@@ -369,11 +369,9 @@ void Reverb::process(frameRecord & buff)
   }
 #endif
 
-  long dur = duration->getElapse();
-  reverbMinDuration = reverbMinDuration == 0 ? dur : MIN(reverbMinDuration, dur);
+  long dur = duration.getElapse();
+  reverbMinDuration = (reverbMinDuration == 0) ? dur : MIN(reverbMinDuration, dur);
   reverbMaxDuration = MAX(reverbMaxDuration, dur);
-
-  delete duration;
 }
 
 //---- adjustValue() ----

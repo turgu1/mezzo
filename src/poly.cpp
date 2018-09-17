@@ -421,7 +421,7 @@ int Poly::mixer(frameRecord & buff)
 
   std::fill(std::begin(buff), std::end(buff), zero);
 
-  Duration *duration = new Duration(); // TODO: Keep a duration object forever
+  Duration duration;
 
   voicep voice = firstVoice();
 
@@ -465,10 +465,9 @@ int Poly::mixer(frameRecord & buff)
 
   maxVoicesMixed = MAX(maxVoicesMixed, mixedCount);
 
-  long dur = duration->getElapse();
+  long dur = duration.getElapse();
 
   mixerDuration = MAX(mixerDuration, dur);
-  delete duration;
 
   return maxFrameCount;
 }

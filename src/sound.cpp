@@ -80,7 +80,7 @@ int soundCallback(const void *                     inputBuffer,
     if (config.replayEnabled) sound->push(buff);
   }
   
-  Utils::clip((float *) outputBuffer, buff);
+  Utils::clip((int16_t *) outputBuffer, buff);
 
   return 0;
 }
@@ -98,7 +98,7 @@ void Sound::openPort(int devNbr)
 
   params.device           = devNbr;
   params.channelCount     = 2;
-  params.sampleFormat     = paFloat32;
+  params.sampleFormat     = paInt16; //paFloat32;
   params.suggestedLatency = Pa_GetDeviceInfo(params.device)->defaultLowOutputLatency;
   params.hostApiSpecificStreamInfo = NULL;
 

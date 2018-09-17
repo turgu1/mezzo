@@ -247,7 +247,7 @@ void Voice::releaseBuffer(bool resetPos)
 
 void Voice::feedBuffer(bool bypass)
 {
-  #if USE_NEON_INTRINSICS
+  #if USE_NEON_INTRINSICS_NEW
     sampleRecord y1, y2, frac;
   #endif
 
@@ -261,18 +261,23 @@ void Voice::feedBuffer(bool bypass)
     // and modulation of all kind. buffIndex is the specific index in the
     // retrieved buffer.
 
-    float scaledPos1 = ((float) outputPos) * factor;
+    Duration duration;
+
+    BigFixed scaledPos1 = ((float) outputPos) * factor;
+    Fixed fact = factor;
 
     for (count = 0; count < BUFFER_SAMPLE_COUNT; count++) {
 
-      float scaledPos = scaledPos1 + synth.vibrato(outputPos);
+      BigFixed scaledPos = scaledPos1 + synth.vibrato(outputPos);
 
-      scaledPos1 += factor;
+      scaledPos1 += fact;
 
       // The following is working as scaledPos is a positive number...
 
-      uint32_t integralPart = scaledPos;
-      float  fractionalPart = scaledPos - integralPart;
+      uint32_t integralPart = scaledPos.toInt();
+      Fixed fractionalPart;
+
+      fractionalPart.v = scaledPos.fraction().v;
 
       int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 2;
 
@@ -288,8 +293,8 @@ void Voice::feedBuffer(bool bypass)
         // method.
 
         #if USE_NEON_INTRINSICS
-          float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
-          vst1q_f32(&scaleBuff[0], f);
+          int32x4_t f = vld1q_s32(&scaleBuff[scaleBuffSize]);
+          vst1q_s32(&scaleBuff[0], f);
         #else
           std::copy(&scaleBuff[scaleBuffSize], &scaleBuff[scaleBuffSize + 4], &scaleBuff[0]);
         #endif
@@ -302,33 +307,37 @@ void Voice::feedBuffer(bool bypass)
 
       assert(buffIndex >= -2);
 
-      #if USE_NEON_INTRINSICS
+      #if USE_NEON_INTRINSICS_NEW
         y1[count]   = scaleBuff[buffIndex + 4];
         y2[count]   = scaleBuff[buffIndex + 5];
         frac[count] = fractionalPart;
       #else
-        Fixed * y = &scaleBuff[buffIndex - 1 + 4];
+        Fixed * y = &scaleBuff[buffIndex + 4];
 
-        buffer[count++] = y[1] + (y[2] - y[1]) * fractionalPart;
+        buffer[count++] = y[0] + ((y[1] - y[0]) * fractionalPart);
       #endif
 
       outputPos++;
     }
 
     if (count > 0) {
-      #if USE_NEON_INTRINSICS
-        while (count & 0x03) {
+      #if USE_NEON_INTRINSICS_NEW
+        if (count & 0x01) {
           y1[count] = y2[count] = frac[count] = 0;
           count++;
         }
-        for (int i = 0; i < count; i += 4) {
+        for (int i = 0; i < count; i += 2) {
           __builtin_prefetch(&y2[i]);
           __builtin_prefetch(&y1[i]);
           __builtin_prefetch(&frac[i]);
-          float32x4_t vy2   = vld1q_f32(&y2[i]);
-          float32x4_t vy1   = vld1q_f32(&y1[i]);
-          float32x4_t vfrac = vld1q_f32(&frac[i]);
-          vst1q_f32(&buffer[i], vmlaq_f32(vy1, vsubq_f32(vy2, vy1), vfrac));
+          int32x2_t vy1   = vld1_s32(&y1[i]);
+          int32x2_t vy2   = vld1_s32(&y2[i]);
+          int64x2_t res1  = vshll_n_s32(vy1, 24);
+          int32x2_t vfrac = vld1_s32(&frac[i]);
+          int32x2_t diff  = vsub_s32(vy2, vy1);
+                    res1  = vmlal_s32(res1, diff, vfrac);
+          int32x2_t res2  = vqshrn_n_s64(res1, 24);
+          vst1_s32(&buffer[i], res2);
         }
       #endif
 
@@ -337,6 +346,11 @@ void Voice::feedBuffer(bool bypass)
 
     bufferSize = count;
     bufferReady = true;
+
+    long dur = duration.getElapse();
+
+    testMax = MAX(testMax, dur);
+    testMin = (testMin == -1) ? dur : MIN(testMin, dur);
   }
 }
 

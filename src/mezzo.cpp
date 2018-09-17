@@ -47,6 +47,9 @@ Mezzo::Mezzo()
 {
   setNewHandler(outOfMemory);
 
+  testMin = -1;
+  testMax =  0;
+  
   if (soundFont) delete soundFont;
   soundFont = new SoundFont2(config.soundFontFilename);
 
@@ -88,6 +91,10 @@ Mezzo::~Mezzo()
               reverbMinDuration, 1000000000.0 / reverbMinDuration);
   logger.INFO("Max duration of reverb function: %ld nsec (%.0f Hz).",
               reverbMaxDuration, 1000000000.0 / reverbMaxDuration);
+  logger.INFO("Min test duration: %ld nsec (%.0f Hz).",
+              testMin, 1000000000.0 / testMin);
+  logger.INFO("Max test duration: %ld nsec (%.0f Hz).",
+              testMax, 1000000000.0 / testMax);
 }
 
 void Mezzo::outOfMemory()

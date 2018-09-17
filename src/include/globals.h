@@ -72,9 +72,19 @@
 #endif
 #endif
 
+#if 1
+#if __ARM_FEATURE_DSP
+  #define USE_NEON_INTRINSICS_NEW 1
+  #include <arm_neon.h>
+#else
+  #define USE_NEON_INTRINSICS_NEW 1
+  #include <neon_2_sse.h>
+#endif
+#endif
+
 // if you ever wants to not used DSP intrinsics, the float32_t definition is required
 
-#if !USE_NEON_INTRINSICS
+#if !(USE_NEON_INTRINSICS || USE_NEON_INTRINSICS_NEW)
   typedef float float32_t;
 #endif
 
@@ -125,6 +135,8 @@ PUBLIC int      maxVoicesMixed;     ///< Maximum number of voices that have been
 PUBLIC long     mixerDuration;      ///< Maximum duration of the mixer function during play (nanoseconds)
 PUBLIC long     reverbMinDuration;  ///< Minimum duration of the reverb process
 PUBLIC long     reverbMaxDuration;  ///< Maximim duration of the reverb process
+PUBLIC long     testMin;
+PUBLIC long     testMax;
 PUBLIC sample_t maxVolume;          ///< Maximum gain used un mixing voices
 
 PUBLIC Mezzo      * mezzo;

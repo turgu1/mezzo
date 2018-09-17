@@ -59,13 +59,13 @@
 
 class Utils {
 public:
-  inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, rawSampleRecord & src, int length)
+  inline static sampleRecord & rawToSampleRecord(sampleRecord & dst, rawSampleRecord & src, int length)
   {
-    const float norm = 1.0 / 32768.0;
-
     assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
 
-    #if USE_NEON_INTRINSICS
+    // Duration duration;
+
+    #if USE_NEON_INTRINSICS_NEW
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
         do {
@@ -74,49 +74,61 @@ public:
       }
       assert((length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
 
+      //int32x4_t  shift = vld1q_dup_s32(&nine);
+
       for (int i = 0; i < length; i += 4) {
-        __builtin_prefetch(&src[i]);
+        // __builtin_prefetch(&src[i]);
         int16x4_t   s16    = vld1_s16(&src[i]);
-        int32x4_t   s32    = vmovl_s16(s16);
-        float32x4_t f32    = vcvtq_f32_s32(s32);
-        float32x4_t result = vmulq_n_f32(f32, norm);
-        vst1q_f32(&dst[i], result);
+        int32x4_t   result = vshll_n_s16(s16, 9);
+        vst1q_s32(&dst[i], result);
       }
     #else
       for (int i = 0; i < length; i++) {
-        dst[i] = norm * src[i];
+        dst[i] = Fixed::normalize(src[i]);
       }
     #endif
+
+
     return dst;
   }
 
   // This method clips values to be between -1.0 and 1.0 .
   // The destination buffer is the one supplied by the
-  // Audio function (rtAudio). This to mitigate the need to copy
+  // Audio function (portaudio). This to mitigate the need to copy
   // the content, as we use std::array internally in this
-  // application, but rtAudio requires an C array of floats.
-  static inline void clip(float * dst, frameRecord & buff)
+  // application, but portaudio requires an C array of floats.
+  //
+  // Clipping algorithm is faster using NEON
+  static inline void clip(int16_t * dst, frameRecord & buff)
   {
-    const Fixed minusOne = -1.0f;
-    const Fixed one      =  1.0f;
+    const Fixed minusOne = -0.999f;
+    const Fixed one      =  0.99f;
 
-    #if USE_NEON_INTRINSICS
-      // If required, pad the buffer to be a multiple of 4
-      float32x4_t minusOnes = vld1q_dup_f32(&minusOne);
-      float32x4_t ones = vld1q_dup_f32(&one);
+    // Duration duration;
+
+    #if USE_NEON_INTRINSICS_NEW
+      int32x4_t minusOnes = vld1q_dup_s32(&minusOne.v);
+      int32x4_t ones      = vld1q_dup_s32(&one.v);
 
       for (uint16_t i = 0; i < buff.size(); i += 2) {
-        float32x4_t data = vld1q_f32(&buff[i].left);
-        data = vminq_f32(vmaxq_f32(data, minusOnes), ones);
-        vst1q_f32(dst, data);
+        int32x4_t data   = vld1q_s32(&buff[i].left);
+        int32x4_t data2  = vmaxq_s32(data, minusOnes);
+                  data   = vminq_s32(data2, ones);
+        int16x4_t result = vqshrn_n_s32(data, 9);
+        vst1_s16(dst, result);
         dst += 4;
       }
     #else
       for (auto & element : buff) {
-        *dst++  = element.left.max(minusOne).min(one).toFloat();
-        *dst++  = element.right.max(minusOne).min(one).toFloat();
+        *dst++  = element.left.max(minusOne).min(one).clip();
+        *dst++  = element.right.max(minusOne).min(one).clip();
       }
     #endif
+
+    // long dur = duration.getElapse();
+
+    // testMax = MAX(testMax, dur);
+    // testMin = (testMin == -1) ? dur : MIN(testMin, dur);
   }
 
   static bool fileExists(const char * name);
@@ -139,7 +151,7 @@ public:
   // From: http://lab.polygonal.de/2007/07/18/fast-and-accurate-sinecosine-approximation/
 
   // Low Precision sine/cosine
-  // Error < 0.06
+  // Error < ~0.06
 
   // 1.27323954  = 4/pi
   // 0.405284735 =-4/(pi^2)
@@ -159,7 +171,7 @@ public:
   inline static Fixed lowCos(Fixed x) { return lowSin(x + Fixed(1.57079632)); }
 
   // High Precision sine/cosine
-  // (error < 0.0008)
+  // (error < ~0.0008)
 
   inline static Fixed highSin(Fixed x) {
     while (x < Fixed(-3.14159265)) x += Fixed(6.28318531);
