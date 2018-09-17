@@ -247,7 +247,7 @@ void Voice::releaseBuffer(bool resetPos)
 
 void Voice::feedBuffer(bool bypass)
 {
-  #if USE_NEON_INTRINSICS_NEW
+  #if USE_NEON_INTRINSICS
     sampleRecord y1, y2, frac;
   #endif
 
@@ -261,7 +261,7 @@ void Voice::feedBuffer(bool bypass)
     // and modulation of all kind. buffIndex is the specific index in the
     // retrieved buffer.
 
-    Duration duration;
+    // Duration duration;
 
     BigFixed scaledPos1 = ((float) outputPos) * factor;
     Fixed fact = factor;
@@ -307,7 +307,7 @@ void Voice::feedBuffer(bool bypass)
 
       assert(buffIndex >= -2);
 
-      #if USE_NEON_INTRINSICS_NEW
+      #if USE_NEON_INTRINSICS
         y1[count]   = scaleBuff[buffIndex + 4];
         y2[count]   = scaleBuff[buffIndex + 5];
         frac[count] = fractionalPart;
@@ -321,7 +321,7 @@ void Voice::feedBuffer(bool bypass)
     }
 
     if (count > 0) {
-      #if USE_NEON_INTRINSICS_NEW
+      #if USE_NEON_INTRINSICS
         if (count & 0x01) {
           y1[count] = y2[count] = frac[count] = 0;
           count++;
@@ -330,14 +330,14 @@ void Voice::feedBuffer(bool bypass)
           __builtin_prefetch(&y2[i]);
           __builtin_prefetch(&y1[i]);
           __builtin_prefetch(&frac[i]);
-          int32x2_t vy1   = vld1_s32(&y1[i]);
-          int32x2_t vy2   = vld1_s32(&y2[i]);
+          int32x2_t vy1   = vld1_s32(&(y1[i].v));
+          int32x2_t vy2   = vld1_s32(&(y2[i].v));
           int64x2_t res1  = vshll_n_s32(vy1, 24);
-          int32x2_t vfrac = vld1_s32(&frac[i]);
+          int32x2_t vfrac = vld1_s32(&(frac[i].v));
           int32x2_t diff  = vsub_s32(vy2, vy1);
                     res1  = vmlal_s32(res1, diff, vfrac);
           int32x2_t res2  = vqshrn_n_s64(res1, 24);
-          vst1_s32(&buffer[i], res2);
+          vst1_s32(&(buffer[i].v), res2);
         }
       #endif
 
@@ -347,10 +347,10 @@ void Voice::feedBuffer(bool bypass)
     bufferSize = count;
     bufferReady = true;
 
-    long dur = duration.getElapse();
+    // long dur = duration.getElapse();
 
-    testMax = MAX(testMax, dur);
-    testMin = (testMin == -1) ? dur : MIN(testMin, dur);
+    // testMax = MAX(testMax, dur);
+    // testMin = (testMin == -1) ? dur : MIN(testMin, dur);
   }
 }
 

@@ -65,7 +65,7 @@ public:
 
     // Duration duration;
 
-    #if USE_NEON_INTRINSICS_NEW
+    #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
         do {
@@ -78,9 +78,9 @@ public:
 
       for (int i = 0; i < length; i += 4) {
         // __builtin_prefetch(&src[i]);
-        int16x4_t   s16    = vld1_s16(&src[i]);
+        int16x4_t   s16    = vld1_s16(&(src.data()[i]));
         int32x4_t   result = vshll_n_s16(s16, 9);
-        vst1q_s32(&dst[i], result);
+        vst1q_s32(&(dst.data()[i].v), result);
       }
     #else
       for (int i = 0; i < length; i++) {
@@ -88,6 +88,11 @@ public:
       }
     #endif
 
+
+    // long dur = duration.getElapse();
+
+    // testMax = MAX(testMax, dur);
+    // testMin = (testMin == -1) ? dur : MIN(testMin, dur);
 
     return dst;
   }
@@ -111,7 +116,7 @@ public:
       int32x4_t ones      = vld1q_dup_s32(&one.v);
 
       for (uint16_t i = 0; i < buff.size(); i += 2) {
-        int32x4_t data   = vld1q_s32(&buff[i].left);
+        int32x4_t data   = vld1q_s32(&(buff.data()[i].left.v));
         int32x4_t data2  = vmaxq_s32(data, minusOnes);
                   data   = vminq_s32(data2, ones);
         int16x4_t result = vqshrn_n_s32(data, 9);
