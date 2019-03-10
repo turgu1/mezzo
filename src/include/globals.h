@@ -90,7 +90,7 @@ class Poly;
 class Midi;
 class Metronome;
 
-#define MEZZO_VERSION  "MEZZO Version 1.0 - SF2 Sampling Synthesizer"
+#define MEZZO_VERSION  "MEZZO Version 1.1 - SF2 Sampling Synthesizer"
 
 /// The Voice class manipulates buffers of samples
 /// The Poly class retrieves buffers of samples from voices and build frames to
