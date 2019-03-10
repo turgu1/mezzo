@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -52,60 +52,62 @@
 /// note sound. Please look in method Voice::Voice() for initialization values.
 
 PRIVATE bool  scaleFactorsInitialized = false;
-PRIVATE float scaleFactors[SCALE_FACTOR_COUNT];
+PRIVATE double scaleFactors[SCALE_FACTOR_COUNT];
 
 bool     Voice::showPlayingState = false;
 uint32_t Voice::nextSeq = 0;
 
-float Voice::getScaleFactor(int16_t diff)
+double Voice::getScaleFactor(int16_t diff)
 {
   return scaleFactors[diff + 127];
 }
 
-void Voice::feedFifo()
-{
-  if (isActive() && isAlive()) {
-    if (!fifo.isFull()) {
-      if (__sync_lock_test_and_set(&stateLock, 1) == 0) {
-        uint16_t count = sample->getData(
-          fifo.getTail(),
-          fifoLoadPos,
-          synth
-        );
-        if (count) {
-          fifoLoadPos += count;
-          fifo.setSampleCount(count);
-          fifo.push();
+#if !loadInMemory
+  void Voice::feedFifo()
+  {
+    if (isActive() && isAlive()) {
+      if (!fifo.isFull()) {
+        if (__sync_lock_test_and_set(&stateLock, 1) == 0) {
+          uint16_t count = sample->getData(
+            fifo.getTail(),
+            fifoLoadPos,
+            synth
+          );
+          if (count) {
+            fifoLoadPos += count;
+            fifo.setSampleCount(count);
+            fifo.push();
+          }
+          else {
+            //inactivate();
+          }
+          END();
         }
-        else {
-          //inactivate();
-        }
-        END();
       }
     }
   }
-}
 
-void Voice::prepareFifo()
-{
-  fifo.clear();
-  for (int i = 0; i < 4; i++)
+  void Voice::prepareFifo()
   {
-    uint16_t count = sample->getData(
-      fifo.getTail(),
-      fifoLoadPos,
-      synth
-    );
-    if (count) {
-      fifoLoadPos += count;
-      fifo.setSampleCount(count);
-      fifo.push();
-    }
-    else {
-      return;
+    fifo.clear();
+    for (int i = 0; i < 4; i++)
+    {
+      uint16_t count = sample->getData(
+        fifo.getTail(),
+        fifoLoadPos,
+        synth
+      );
+      if (count) {
+        fifoLoadPos += count;
+        fifo.setSampleCount(count);
+        fifo.push();
+      }
+      else {
+        return;
+      }
     }
   }
-}
+#endif
 
 //---- Voice() ----
 
@@ -118,11 +120,6 @@ Voice::Voice()
   noteIsOn       = false;
   keyIsOn        = false;
   next           = NULL;
-
-  // The 4 additional float in the buffer will allow for the continuity of 
-  // interpolation between buffer retrieval action from the fifo. The last 4 samples
-  // of the last retrieved record will be put back as the 4 first samples in the buffer
-  // when a new record is read. See the feedBuffer() method for more information.
 
   if (!scaleFactorsInitialized) {
     scaleFactorsInitialized = true;
@@ -145,7 +142,7 @@ Voice::~Voice()
 //---- setup() ----
 //
 // This method will connect the voice object with the sample and the preset.
-// It will then initialize the voice, load the fifo, prepare the synthesizer 
+// It will then initialize the voice, load the fifo, prepare the synthesizer
 // and get ready to sound the sample. It is called when the user had struck
 // a key and then require a sound to be played.
 
@@ -164,9 +161,8 @@ void Voice::setup(samplep      _sample,
   note           =  (synth.getKeynum() == -1) ? _note : synth.getKeynum();
 
   outputPos      =     0;
-  scaleBuffPos   =     0;
-  scaleBuffSize  =     0;
-  fifoLoadPos    =     0;
+  sampleBuffPos  =     0;
+  sampleBuffSize =     0;
 
   noteIsOn       =  true;
   keyIsOn        =  true;
@@ -174,7 +170,10 @@ void Voice::setup(samplep      _sample,
   bufferReady    = false;
 
   // Feed something in the Fifo ring buffer before activation
-  prepareFifo();
+  #if !loadInMemory
+    fifoLoadPos    =     0;
+    prepareFifo();
+  #endif
 
   synth.addGens(_preset.getGlobalGens(), _preset.getGlobalGenCount());
   synth.addGens(_preset.getZoneGens(_presetZoneIdx), _preset.getZoneGenCount(_presetZoneIdx));
@@ -188,22 +187,24 @@ void Voice::setup(samplep      _sample,
     factor *= (((float)sample->getSampleRate()) / ((float)config.samplingRate));
   }
 
-  // This initialization is required as the first loop in feedBuffer will retrieve the last
-  // 4 positions in the buffer and put them at the beginning to simplify the algorithm
+  sampleBuffSize  =  0;
 
-  scaleBuffSize  =  0;
+  #if !loadInMemory
+    // This initialization is required as the first loop in feedBuffer will retrieve the last
+    // 4 positions in the buffer and put them at the beginning to simplify the algorithm
 
-  scaleBuff[0] =
-  scaleBuff[1] =
-  scaleBuff[2] =
-  scaleBuff[3] = 0.0f;
+    sampleBuff[0] =
+    sampleBuff[1] =
+    sampleBuff[2] =
+    sampleBuff[3] = 0.0f;
+  #endif
 
   seq = nextSeq++;
 
   // Retrieve the first packet. The others will be fed through a thread after activation.
 
   feedBuffer(true);
-  
+
   BEGIN();
     activate();     // Must be the last flag set. The threads are watching it...
   END();
@@ -211,24 +212,26 @@ void Voice::setup(samplep      _sample,
   if (showPlayingState) showStatus(2);
 }
 
-int Voice::retrieveFifoSamples(scaleRecord & buff, int pos)
-{
-  int readSampleCount;
+#if !loadInMemory
+  int Voice::retrieveFifoSamples(scaleRecord & buff, int pos)
+  {
+    int readSampleCount;
 
-  if (fifo.isEmpty()) {
-    // No more data available or the thread was not fast enough to get data on time
-    //if (isActive()) std::cout << "FIFO Empty!!" << std::endl;
-    readSampleCount = 0;
-  }
-  else {
-    sampleRecord & src = fifo.getHead();
-    readSampleCount = fifo.getSampleCount();
-    std::copy(std::begin(src), std::end(src), &buff[pos]);
-    fifo.pop();
-  }
+    if (fifo.isEmpty()) {
+      // No more data available or the thread was not fast enough to get data on time
+      //if (isActive()) std::cout << "FIFO Empty!!" << std::endl;
+      readSampleCount = 0;
+    }
+    else {
+      sampleRecord & src = fifo.getHead();
+      readSampleCount = fifo.getSampleCount();
+      std::copy(std::begin(src), std::end(src), &buff[pos]);
+      fifo.pop();
+    }
 
-  return readSampleCount;
-}
+    return readSampleCount;
+  }
+#endif
 
 sampleRecord & Voice::getBuffer(int16_t * count)
 {
@@ -236,104 +239,98 @@ sampleRecord & Voice::getBuffer(int16_t * count)
   return buffer;
 }
 
-void Voice::releaseBuffer(bool resetPos)
-{
-  if (resetPos && bufferReady) {
-    outputPos -= bufferSize;
-  } 
-
-  bufferReady = false;
-}
-
 void Voice::feedBuffer(bool bypass)
 {
-  #if USE_NEON_INTRINSICS
-    sampleRecord y1, y2, frac;
+  float    temp;
+  float    fractionalPart;
+  #ifndef NDEBUG
+    uint32_t oldIntegralPart = 0;
   #endif
+  uint32_t integralPart    = 0;
 
   if (bypass || (isActive() && !bufferReady)) {
 
     int count;
 
-    assert(scaleBuff != NULL);
-
-    // outputPos is the postion where we are in the output as a number
-    // of samples since the start of the note. scaledPos is where we need to
-    // get someting from the sample, taking into account pitch changes, resampling
+    // outputPos is the position where we are in the output as a number
+    // of samples since the start of the note. samplePos is where we need to
+    // get something from the sample, taking into account pitch changes, resampling
     // and modulation of all kind. buffIndex is the specific index in the
     // retrieved buffer.
 
-    float scaledPos1 = ((float) outputPos) * factor;
+    double lastSamplePos = ((float) outputPos) * factor;
 
+    // Loop to completely fill the buffer with scaled samples
     for (count = 0; count < BUFFER_SAMPLE_COUNT; count++) {
 
-      float scaledPos = scaledPos1 + synth.vibrato(outputPos);
+      // The vibrato gives a bias to the sample position to be acquired
+      double samplePos = lastSamplePos + synth.vibrato(outputPos);
 
-      scaledPos1 += factor;
+      lastSamplePos += factor; // prepare for next loop
 
-      // The following is working as scaledPos is a positive number...
+      // The following is working as samplePos is a positive number...
 
-      uint32_t integralPart = scaledPos;
-      float  fractionalPart = scaledPos - integralPart;
-
-      int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 2;
-
-      if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
-        scaleBuffPos += scaleBuffSize;
-
-        // Retrieve the last 4 samples from the end of the buffer and put them at
-        // the beginning to ensure proper interpolation at the beginning of next
-        // buffer.
-        //
-        // For the first samples retrieval at the beginning of a note to be played,
-        // the last 4 samples have been initialized to zero (0.0f) by the setup()
-        // method.
-
-        #if USE_NEON_INTRINSICS
-          float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
-          vst1q_f32(&scaleBuff[0], f);
-        #else
-          std::copy(&scaleBuff[scaleBuffSize], &scaleBuff[scaleBuffSize + 4], &scaleBuff[0]);
-        #endif
-
-        if ((scaleBuffSize = retrieveFifoSamples(scaleBuff, 4)) == 0) {
-          break;
-        }
-        assert((!synth.isLooping()) || (scaleBuffSize == BUFFER_SAMPLE_COUNT));
-      }
-
-      assert(buffIndex >= -2);
-
-      #if USE_NEON_INTRINSICS
-        y1[count]   = scaleBuff[buffIndex + 4];
-        y2[count]   = scaleBuff[buffIndex + 5];
-        frac[count] = fractionalPart;
-      #else
-        float * y = &scaleBuff[buffIndex - 1 + 4];
-
-        buffer[count++] = y[1] + (y[2] - y[1]) * fractionalPart;
+      fractionalPart = modf(samplePos, &temp);
+      #ifndef NDEBUG
+        oldIntegralPart = integralPart;
       #endif
+      integralPart   = temp;
+
+      assert(fractionalPart >= 0);
+      assert(oldIntegralPart <= integralPart);
+
+      #if loadInMemory
+        while (integralPart >= (sampleBuffPos + sampleBuffSize)) {
+          sampleBuffPos += sampleBuffSize;
+          sampleBuff = sample->getData2(sampleBuffSize, sampleBuffPos, synth);
+          //std::cout << count << " / " << integralPart << " / " << sampleBuffPos << " / " << sampleBuffSize << std::endl << std::flush;
+          if (sampleBuffSize == 0) break;
+        }
+
+        if (sampleBuffSize == 0) break;
+
+        assert(sampleBuff != NULL);
+        assert(integralPart >= sampleBuffPos);
+
+        uint32_t buffIndex = integralPart - sampleBuffPos;
+
+        assert(buffIndex < sampleBuffSize);
+
+        float * y = &sampleBuff[buffIndex];
+      #else
+
+        int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 2;
+
+        if (integralPart >= (sampleBuffPos + sampleBuffSize)) {
+          sampleBuffPos += sampleBuffSize;
+
+          // Retrieve the last 4 samples from the end of the buffer and put them at
+          // the beginning to ensure proper interpolation at the beginning of next
+          // buffer processing.
+          //
+          // For the first samples retrieval at the beginning of a note to be played,
+          // the last 4 samples have been initialized to zero (0.0f) by the setup()
+          // method.
+
+          std::copy(&sampleBuff[sampleBuffSize], &sampleBuff[sampleBuffSize + 4], &sampleBuff[0]);
+
+          if ((sampleBuffSize = retrieveFifoSamples(sampleBuff, 4)) == 0) {
+            break;
+          }
+          assert((!synth.isLooping()) || (sampleBuffSize == BUFFER_SAMPLE_COUNT));
+        }
+
+        assert(buffIndex >= -2);
+
+        float * y = &sampleBuff[buffIndex + 4];
+      #endif
+
+      buffer[count] = y[0] + ((y[1] - y[0]) * fractionalPart);
 
       outputPos++;
     }
 
     if (count > 0) {
-      #if USE_NEON_INTRINSICS
-        while (count & 0x03) {
-          y1[count] = y2[count] = frac[count] = 0;
-          count++;
-        }
-        for (int i = 0; i < count; i += 4) {
-          __builtin_prefetch(&y2[i]);
-          __builtin_prefetch(&y1[i]);
-          __builtin_prefetch(&frac[i]);
-          float32x4_t vy2   = vld1q_f32(&y2[i]);
-          float32x4_t vy1   = vld1q_f32(&y1[i]);
-          float32x4_t vfrac = vld1q_f32(&frac[i]);
-          vst1q_f32(&buffer[i], vmlaq_f32(vy1, vsubq_f32(vy2, vy1), vfrac));
-        }
-      #endif
-
       synth.applyEnvelopeAndGain(buffer, count, gain * config.masterVolume);
     }
 
@@ -348,16 +345,16 @@ void Voice::showStatus(int spaces)
 
   PRIVATE const char *  stateStr[4] = { "DORMANT", "ALIVE" };
 
-  cout 
+  cout
        << setw(spaces) << ' '
        << "Voice: "   << (active ? "Active" : "Inactive")
        << " [state:"  << (stateStr[state])
        << " pos:"     << (outputPos)
-       << " sample:"  << (sample == NULL ? "none" : "see below") 
+       << " sample:"  << (sample == NULL ? "none" : "see below")
        << " resampling factor:" << factor
        << " note:"    << (+note)
        << " gain:"    << (gain)
-       << " sbpos:"   << (scaleBuffPos)
+       << " sbpos:"   << (sampleBuffPos)
        << "]" << endl;
 
   if (sample != NULL) sample->showStatus(4 + spaces);
@@ -412,45 +409,45 @@ int Voice::getSamples(buffp buff, int length)
 {
   int count = 0;
 
-  assert(scaleBuff != NULL);
+  assert(sampleBuff != NULL);
   assert(buff != NULL);
   assert(length > 0);
 
   // outputPos is the postion where we are in the output as a number
-  // of samples since the start of the note. scaledPos is where we need to
+  // of samples since the start of the note. samplePos is where we need to
   // get someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind. buffIndex is the specific index in the
   // retrieved buffer.
 
   #if BIG_NUMBERS
-    double scaledPos1 = ((float) outputPos) * factor;
+    double lastSamplePos = ((float) outputPos) * factor;
   #else
-    float scaledPos1 = ((float) outputPos) * factor;
+    float lastSamplePos = ((float) outputPos) * factor;
   #endif
 
   while (length--) {
 
     #if BIG_NUMBERS
-      double scaledPos = scaledPos1 + synth.vibrato(outputPos);
+      double samplePos = lastSamplePos + synth.vibrato(outputPos);
     #else
-      float scaledPos = scaledPos1 + synth.vibrato(outputPos);
+      float samplePos = lastSamplePos + synth.vibrato(outputPos);
     #endif
 
-    scaledPos1 += factor;
+    lastSamplePos += factor;
 
-    // The following is working as scaledPos is a positive number...
+    // The following is working as samplePos is a positive number...
 
-    uint32_t integralPart   = scaledPos;
+    uint32_t integralPart   = samplePos;
     #if BIG_NUMBERS
-      double fractionalPart = scaledPos - integralPart;
+      double fractionalPart = samplePos - integralPart;
     #else
-      float  fractionalPart = scaledPos - integralPart;
+      float  fractionalPart = samplePos - integralPart;
     #endif
 
     int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 2;
 
-    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
-      scaleBuffPos += scaleBuffSize;
+    if (integralPart >= (sampleBuffPos + sampleBuffSize)) {
+      sampleBuffPos += sampleBuffSize;
 
       // Retrieve the last 4 samples from the end of the buffer and put them at
       // the beginning to ensure proper interpolation at the beginning of next
@@ -459,15 +456,15 @@ int Voice::getSamples(buffp buff, int length)
       // For the first samples retrieval at the beginning of a note to be played,
       // the last 4 samples have been initialized to zero (0.0f) by the setup()
       // method.
-      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
-      
-      if ((scaleBuffSize = retrieveFifoSamples(scaleBuff, 4)) == 0) break;
-      assert((!synth.isLooping()) || (scaleBuffSize == BUFFER_SAMPLE_COUNT));
+      memcpy(sampleBuff, &sampleBuff[sampleBuffSize], 4 << LOG_SAMPLE_SIZE);
+
+      if ((sampleBuffSize = retrieveFifoSamples(sampleBuff, 4)) == 0) break;
+      assert((!synth.isLooping()) || (sampleBuffSize == BUFFER_SAMPLE_COUNT));
     }
 
-    assert(buffIndex >= -2); 
+    assert(buffIndex >= -2);
 
-    float * y = &scaleBuff[buffIndex - 1 + 4];
+    float * y = &sampleBuff[buffIndex - 1 + 4];
 
     *buff++ = (P1(fractionalPart) * y[0]) +
               (P2(fractionalPart) * y[1]) +
@@ -520,29 +517,29 @@ int Voice::getSamples(buffp buff, int length)
 
   //assert((note - sample->getPitch()) >= 0);
 
-  assert(scaleBuff != NULL);
+  assert(sampleBuff != NULL);
   assert(buff != NULL);
   assert(length > 0);
 
   while (length--) {
 
-    float scaledPos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
+    float samplePos = ((float) outputPos) * (factor * synth.vibrato(outputPos));
 
-    uint32_t integralPart   = scaledPos;
-    float    fractionalPart = scaledPos - integralPart;
+    uint32_t integralPart   = samplePos;
+    float    fractionalPart = samplePos - integralPart;
 
     int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 3;
 
-    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
-      scaleBuffPos += scaleBuffSize;
-      memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 7 << LOG_SAMPLE_SIZE);
-      if ((scaleBuffSize = retrieveFifoSamples(scaleBuff, 7)) == 0) break;
-      assert((!synth.isLooping()) || (scaleBuffSize == BUFFER_SAMPLE_COUNT));
+    if (integralPart >= (sampleBuffPos + sampleBuffSize)) {
+      sampleBuffPos += sampleBuffSize;
+      memcpy(sampleBuff, &sampleBuff[sampleBuffSize], 7 << LOG_SAMPLE_SIZE);
+      if ((sampleBuffSize = retrieveFifoSamples(sampleBuff, 7)) == 0) break;
+      assert((!synth.isLooping()) || (sampleBuffSize == BUFFER_SAMPLE_COUNT));
     }
 
     assert(buffIndex >= -3);
 
-    float * y = &scaleBuff[buffIndex - 4 + 7];
+    float * y = &sampleBuff[buffIndex - 4 + 7];
 
     *buff++ = (y[0] * P1(fractionalPart)) +
               (y[1] * P2(fractionalPart)) +
@@ -585,13 +582,13 @@ int Voice::getSamples(buffp buff, int length)
 
   float factor = scaleFactors[(note - synth.getRootKey()) + 127] * synth.getCorrection();
 
-  assert(scaleBuff != NULL);
+  assert(sampleBuff != NULL);
   assert(buff != NULL);
   assert(length > 0);
 
-  if (scaleBuffPos == -1) {
-    if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) return 0;
-    scaleBuffPos = 0;
+  if (sampleBuffPos == -1) {
+    if ((sampleBuffSize = getNormalSamples(sampleBuff)) == 0) return 0;
+    sampleBuffPos = 0;
   }
 
   float pos = outputPos * factor;
@@ -609,16 +606,16 @@ int Voice::getSamples(buffp buff, int length)
       float fipos;
 
       float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
+      int   ipos = fipos - sampleBuffPos; // ipos = index in sampleBuff
 
       if (ipos >= 0) {
-        while (ipos >= scaleBuffSize) {
-          ipos -= scaleBuffSize;
-          scaleBuffPos += scaleBuffSize;
-          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
+        while (ipos >= sampleBuffSize) {
+          ipos -= sampleBuffSize;
+          sampleBuffPos += sampleBuffSize;
+          if ((sampleBuffSize = getNormalSamples(sampleBuff)) == 0) goto endLoop;
         }
 
-        old = *a++ = scaleBuff[ipos];
+        old = *a++ = sampleBuff[ipos];
       }
       else {
         // We already have loaded next samples. Expected ipos to be -1 and related to
@@ -628,14 +625,14 @@ int Voice::getSamples(buffp buff, int length)
         assert(ipos == -1);
       }
 
-      if (++ipos >= scaleBuffSize) {
-        ipos -= scaleBuffSize;
-        scaleBuffPos += scaleBuffSize;
-        if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
+      if (++ipos >= sampleBuffSize) {
+        ipos -= sampleBuffSize;
+        sampleBuffPos += sampleBuffSize;
+        if ((sampleBuffSize = getNormalSamples(sampleBuff)) == 0) break;
       }
 
       // We do a linear approximation... not the best, but good enough...
-      *b++ = scaleBuff[ipos];
+      *b++ = sampleBuff[ipos];
       *c++ = diff;
 
       if ((++count & 3) == 0) {
@@ -664,16 +661,16 @@ int Voice::getSamples(buffp buff, int length)
     while (length--) {
       float fiposlength;
       float diff = modff(pos, &fipos); //fipos = integral part, diff = fractional part
-      int   ipos = fipos - scaleBuffPos; // ipos = index in scaleBuff
+      int   ipos = fipos - sampleBuffPos; // ipos = index in sampleBuff
 
       if (ipos >= 0) {
-        while (ipos >= scaleBuffSize) {
-          ipos -= scaleBuffSize;
-          scaleBuffPos += scaleBuffSize;
-          if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) goto endLoop;
+        while (ipos >= sampleBuffSize) {
+          ipos -= sampleBuffSize;
+          sampleBuffPos += sampleBuffSize;
+          if ((sampleBuffSize = getNormalSamples(sampleBuff)) == 0) goto endLoop;
         }
 
-        old = a = scaleBuff[ipos];
+        old = a = sampleBuff[ipos];
       }
       else {
         // We already have loaded next samples. Expected ipos to be -1 and related to
@@ -682,14 +679,14 @@ int Voice::getSamples(buffp buff, int length)
         assert(ipos == -1);
       }
 
-      if (++ipos >= scaleBuffSize) {
-        ipos -= scaleBuffSize;
-        scaleBuffPos += scaleBuffSize;
-        if ((scaleBuffSize = getNormalSamples(scaleBuff)) == 0) break;
+      if (++ipos >= sampleBuffSize) {
+        ipos -= sampleBuffSize;
+        sampleBuffPos += sampleBuffSize;
+        if ((sampleBuffSize = getNormalSamples(sampleBuff)) == 0) break;
       }
 
       // We do a linear approximation... not the best, but good enough...
-      *buff++ = a + ((scaleBuff[ipos] - a) * diff);
+      *buff++ = a + ((sampleBuff[ipos] - a) * diff);
 
       pos += factor;
       count++;
@@ -705,36 +702,36 @@ int Voice::getSamples(buffp buff, int length)
 
 #if 0
 int Voice::getSamples(buffp buff, int length)
-{  
+{
   int count = 0;
 
-  assert(scaleBuff != NULL);
+  assert(sampleBuff != NULL);
   assert(buff != NULL);
   assert(length > 0);
 
   // outputPos is the postion where we are in the output as a number
-  // of samples since the start of the note. scaledPos is where we need to
+  // of samples since the start of the note. samplePos is where we need to
   // get someting from the sample, taking into account pitch changes, resampling
   // and modulation of all kind. buffIndex is the specific index in the
   // retrieved buffer.
 
-  float scaledPos1 = ((float) outputPos) * factor;
+  float lastSamplePos = ((float) outputPos) * factor;
 
   while (length--) {
 
-    float scaledPos = scaledPos1 + synth.vibrato(outputPos);
+    float samplePos = lastSamplePos + synth.vibrato(outputPos);
 
-    scaledPos1 += factor;
+    lastSamplePos += factor;
 
-    // The following is working as scaledPos is a positive number...
+    // The following is working as samplePos is a positive number...
 
-    uint32_t integralPart = scaledPos;
-    float  fractionalPart = scaledPos - integralPart;
+    uint32_t integralPart = samplePos;
+    float  fractionalPart = samplePos - integralPart;
 
     int16_t buffIndex = (integralPart % BUFFER_SAMPLE_COUNT) - 2;
 
-    if (integralPart >= (scaleBuffPos + scaleBuffSize)) {
-      scaleBuffPos += scaleBuffSize;
+    if (integralPart >= (sampleBuffPos + sampleBuffSize)) {
+      sampleBuffPos += sampleBuffSize;
 
       // Retrieve the last 4 samples from the end of the buffer and put them at
       // the beginning to ensure proper interpolation at the beginning of next
@@ -744,19 +741,19 @@ int Voice::getSamples(buffp buff, int length)
       // the last 4 samples have been initialized to zero (0.0f) by the setup()
       // method.
       #if USE_NEON_INTRINSICS
-        float32x4_t f = vld1q_f32(&scaleBuff[scaleBuffSize]);
-        vst1q_f32(&scaleBuff[0], f);
+        float32x4_t f = vld1q_f32(&sampleBuff[sampleBuffSize]);
+        vst1q_f32(&sampleBuff[0], f);
       #else
-        memcpy(scaleBuff, &scaleBuff[scaleBuffSize], 4 << LOG_SAMPLE_SIZE);
+        memcpy(sampleBuff, &sampleBuff[sampleBuffSize], 4 << LOG_SAMPLE_SIZE);
       #endif
-      
-      if ((scaleBuffSize = retrieveFifoSamples(scaleBuff, 4)) == 0) break;
-      assert((!synth.isLooping()) || (scaleBuffSize == BUFFER_SAMPLE_COUNT));
+
+      if ((sampleBuffSize = retrieveFifoSamples(sampleBuff, 4)) == 0) break;
+      assert((!synth.isLooping()) || (sampleBuffSize == BUFFER_SAMPLE_COUNT));
     }
 
-    assert(buffIndex >= -2); 
+    assert(buffIndex >= -2);
 
-    float * y = &scaleBuff[buffIndex - 1 + 4];
+    float * y = &sampleBuff[buffIndex - 1 + 4];
 
     *buff++ = y[1] + (y[2] - y[1]) * fractionalPart;
 
@@ -767,5 +764,3 @@ int Voice::getSamples(buffp buff, int length)
   return count;
 }
 #endif
-
-

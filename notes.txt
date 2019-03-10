@@ -1,0 +1,382 @@
+WikiWIKI
+ PROJETS
+ ATELIERS
+ LOGICIELS
+ MATÉRIEL
+ CULTURE
+Rechercher
+ S'IDENTIFIER
+ CRÉER UN COMPTE
+VOUS ÊTES ICI:  » LOGICIELS » GNU/LINUX » 3.AUDIO
+************************************
+* Commandes pour le matériel audio *
+************************************
+
+Sommaire : matériel, sox, alsa, pulseaudio
+
+******************
+*** Informations *
+******************
+lspci | pager
+lsusb
+modinfo
+lsmod : modules chargés dans le noyau
+lsof : tous les fichiers ouverts
+
+********************
+*** Tester l'audio *
+********************
+speaker-test
+speaker-test -D hw:0,0 -c2 -l5 -twav
+speaker-test -D hw:1,0 -c2 -l5 -twav
+speaker-test -Dplug:surround41 -c4 -l1 -twav
+
+arecord -d 10 -f cd -t wav -D hw:1,1 foobar.wav
+arecord -t raw -c 2 -f cd | oggenc -r -q 2 --downmix --resample 8000 - -o archive.ogg
+arecord --list-pcms | pager
+
+play archive.ogg
+aplay foobar.wav
+aplay -Dpulse /media/data/media/samples/bell.aiff
+
+mixer -s -otest -F 1.0 -S 0
+mixer&
+
+**********************************
+*** Connaitre son matériel audio *
+**********************************
+arecord -l
+aplay -l
+cat /proc/asound/cards : To see if your card is recognized by your alsa version, try the command
+it will return the recognized sound card. If your usb device is not in the list, you may have to build alsa from sources, else proceed to configuring jack.
+cat /proc/asound/version
+
+lspci | grep -i audio  : pour une carte interne (PCI ou intégrée sur la carte mère)
+
+lsusb | grep -i audio : pour une carte connecté via usb
+
+dmesg | grep audio
+dmesg | grep snd
+lsmod | grep audio
+lsmod | grep snd
+lspci -vv | grep -i audio -A 14
+lsof /dev/dsp (en général ou /dev/dsp1)	: indique quels processus utilisent actuellement la carte
+/sbin/lsmod 				: vous permet de vérifier si ce module est chargé
+modinfo soundcore
+sudo modprobe snd-usb-audio
+
+*****************************
+*** Fichiers et utilitaires *
+*****************************
+
+*************
+****** ALSA *
+*************
+Vérifie que la carte son principale est la bonne et que les volumes sont ok.
+sudo alsamixer
+sudo alsactl store
+
+sudo /sbin/alsa force-reload
+load-module module-alsa-sink device=hw:0
+cat /etc/modprobe.d/alsa-base.conf
+cat /etc/security/limits.conf
+nano ~/.asoundrc
+	pcm.usb-audio {
+          type hw
+          card 1
+       }
+	ctl.usb-audio {
+          type hw
+          card 1
+       }
+
+cat /etc/modules
+cat /etc/modprobe/sound (pas de fichier)
+cat /etc/modprobe/sound.conf (pas de fichier)
+cat /etc/security/limits.d/audio.conf
+linux-backports-modules-alsa-karmic-generic (si nécessaire)
+
+
+*******************
+****** PULSEAUDIO *
+*******************
+pulseaudio -k	: arrête le serveur de son pulseaudio
+pulseaudio -D	: le redémarre
+padsp skype&	: démarre skype avec pulseaudio
+padsp audacity&	: démarre audacity avec pulseaudio
+sudo nano /etc/pulse/daemon.conf : fichier de configuration de pulseaudio (s'il existe)
+
+
+********************************************
+******* Vérifier les droits (groupe audio) *
+********************************************
+Avec la commande whomai je récupère mon login, je regarde ensuite a qui appartiennent les périphériques /dev/dsp* (cartes son), et si je suis dans le groupe qui peut les utiliser (audio en général).
+
+(mando@aldur) (~) $ whoami
+mando
+(mando@aldur) (~) $ grep audio /etc/group
+audio:x:29:mando
+(mando@aldur) (~) $ ls -l /dev/dsp*
+crw-rw---- 1 root audio 14,  3 2007-08-13 02:08 /dev/dsp
+crw-rw---- 1 root audio 14, 19 2007-08-13 02:08 /dev/dsp1
+
+
+*****************************
+******* Carte son Intel HDA *
+*****************************
+Pour une carte son Intel (hda), chipset RealTek ACL888:
+Dans le fichier /etc/modprobe.d/alsa-base.conf
+Remplacer cette ligne
+options snd-hda-intel model=XXXX (XXXX est le modele de votre PC/carte)
+par
+options snd-hda-intel model=targa-dig
+ou
+options snd-hda-intel model=targa-2ch-dig
+et redemarrer
+
+*********
+*** SOX *
+*********
+Convertir tous les fichiers WAVE en fichier OGG.
+
+Tester la commande en affichant les fichiers dans la boucle :
+$ for i in *.wav;do echo "fichier : $i";done
+fichier : 11170__Vaelen__low_rumble.wav
+fichier : 19026__han1__claxon.wav
+fichier : 2937__conny__DATSUN_T.wav
+fichier : 4ch.wav
+fichier : 6ch.wav
+fichier : bass-attack.wav
+fichier : Cielito Lindo.wav
+fichier : drumloop.wav
+
+Exécuter la commande, sox convertit les fichier $i.wav en $i.ogg :
+$ for i in *.wav;do sox $i ${i%wav}ogg;done
+
+CHANGER LA HAUTEUR D'UN MEME FICHIER SONORE EN PLUSIEURS FICHIERS D'HAUTEURS DIFFERENTES
+$ for i in {0..127};do sox bell.aiff notes/bell_$i.wav pitch $(( ($i * 100) - ((127/2)*100) ));done
+$ mplayer notes/*
+
+EXPLICATION SUR LES COMMANDES DE SOX
+
+TEMPO
+$ sox infile.wav outfile.wav tempo 0.33 30
+will play three times slower with not too awful artifacts. The '30' here is adapted to speech.
+
+PITCH
+exemple : sox bell.aiff notes/bell2.aiff pitch -200
+sox pitch shift [ width interpole fade ]
+Change the pitch of file without affecting its duration by cross-fading shifted samples. shift is given in cents.
+Use a positive value to shift to treble, negative value to shift to bass.
+Default shift is 0. width of window is in ms.
+Default width is 20ms. Try 30ms to lower pitch, and 10ms to raise pitch.
+interpole option, can be "cubic" or "linear". Default is "cubic". The fade option, can be "cos", "hamming", "linear" or "trapezoid". Default is "cos".
+
+*******************************************************
+************************ VRACS ************************
+*******************************************************
+
+*****************
+* LOGICIEL ARSS *
+*****************
+Se renseigner sur Internet, permet de transformer une image en son...
+
+sudo aptitude install arss
+arss --help
+arss -q monimage.bmp out.wav --noise --min-freq 55 -max 16000 --pps 100 -r 44100 -f 16
+arss -q monimage.jpg out.wav --noise --min-freq 55 -max 16000 --pps 100 -r 44100 -f 16
+
+
+*************************************************************
+* COMMANDES NON INSTALLEES OU FICHIERS INEXISTANTS CHEZ MOI *
+*************************************************************
+alsaconf
+grep sound-slot /etc/modprobe.conf 	: si le fichier existe, vous affiche quel pilote (module) est actuellement utilisé.
+/sbin/chkconfig --list sound
+/sbin/chkconfig --list alsa 		: si ces fichiers existent, ils vous diront si les services « sound » et « alsa » sont configurés pour être démarrés dès le niveau d'exécution 3 (init runlevel 3)
+aumix -q 				: vous permettra de voir si le volume sonore est coupé ou non...
+/sbin/fuser -v /dev/dsp 		: dénoncera quel programme est en train d'utiliser ou de bloquer la carte son.
+lspcidrake -v | grep AUDIO 		: vous indique quel pilote votre carte utilise par défaut
+
+
+******************
+* FAST TRACK PRO *
+*****************
+
+My sound cards are :
+
+    * hda-intel with conexant chip
+    * m-audio fast track usb
+
+I have a built in sound card that use the driver hda-intel from alsa, the module is called snd-hda-intel. Please replace those names by the correct one for your sound card.
+The commands lspci lsmod | grep snd and the alsa web site may help you.
+
+If you are a feisty user, to use your sound card with the best results (for recording), please install the low latency kernel.
+
+********
+* ALSA *
+********
+In my case, I had to build alsa from source because the conexant chip is better supported with the last version. Download
+    * alsa-driver
+    * alsa-lib
+    * alsa-utils
+
+from the alsa website.
+untar them with the command
+$ tax -xf alsa-driver-version && tax -xf alsa-lib-version && tax -xf alsa-utils-version
+Build the driver :
+$ sudo apt-get install build-essential
+$ cd alsa-driver*
+$ ./configure --with-cards=hda-intel,usb-audio --with-sequencer=yes
+$ make
+$ sudo make install
+Build the lib
+$ cd ../alsa-lib*
+$ ./configure && make && sudo make install
+Build the utilis
+$ cd ../alsa-utils*
+$ ./configure && make && sudo make install
+reboot and check if your both sound cards are recognized by your system
+$ cat /proc/asound/cards
+
+********************
+* Configuring Jack *
+********************
+Right now you have your laptop sound card as the default sound card. We will see in the next section how to correct this. Lets check if everything is alright.
+Launch jack
+$ qjackctl
+or select JACK control in the sound & video menu.
+launch the setup in jack and configure jack :
+
+    * select Realtime
+    * Frames/Period 128
+    * Interface Fast Track
+    * intput device Fast track
+
+Launch the server and open the Messages window. If everything works fine (no xrun), you can test the output with hydrogen for instance, and the input by recording you favorite instrument with ardour.
+
+Everything okay? Let's make this sound card the default sound card.
+
+*************************
+* Fast Track as default *
+*************************
+open the texte file /etc/modprobe.d/alsa-base
+$ sudo gedit /etc/modprobe.d/alsa-base
+and replace the line
+options snd-usb-audio index=-2
+with
+#options snd-usb-audio index=-2
+
+create a file called /etc/modprobe.d/sound
+$ sudo gedit /etc/modprobe.d/sound
+and put the following lines in it
+options snd-usb-audio index=0
+options snd-hda-intel index=1
+
+
+Lets play !!
+
+***************************************************************
+* Re: M-Audio Fast Track Pro                                  *
+* II. Ubuntu Studio and Linux - install on 3rd partition last *
+***************************************************************
+A. Sources - LiveCD or alternate CD for modern distros
+
+1. Use download managers or torrents to get large files
+2. Always burn OS discs at slowest possible speed
+3. Glossary
+a. "/" is the root directory for Linux partition #3
+b. ext2 or ext3 are the filesystems for Linux
+c. swap is used on the tiny 4th partition
+d. 1st and 2nd partitions are NTFS
+e. "/home" is reserved for 5th partition as ext2
+4. Follow simple installation instructions for LiveCD or Alternate CD
+5. plugin Ethernet cable to configure DHCP
+6. Okay to skip automatic dhcp
+
+B. UbuntuStudio - First run
+
+1. Install NVIDIA graphics card driver for Linux
+2. Add gnome-network-manager for wireless internet
+3. Add ubuntu-restricted-modules
+4. Update packages
+
+C. Ubuntu Studio setup
+
+1. Streaming audio - See PulseAudio wiki
+a. In PulseAudio Volume Control click the last tab and enable virtual simultaneous outputs.
+b. Tweak PulseAudio to remove clicks
+c. Run 'padsp zynaddsubfx' to test clicks
+2. M-Audio Fast Track - class-compliant
+a. Choose device in qjackctl setup
+b. Select device #1 in System/Sound
+3. Compile ALSA from source
+a. Require build-essential
+b. Require RT kernel headers
+c. See links for details
+4. Streaming or stereo mix recording is enabled by calling a program with padsp command prefix.
+a. First launch your audio program with padsp
+b. Launch Audacity with 'padsp audacity'
+5. PulseAudio cannot co-exist with qjackctl, so you can't record streams and instruments at once.
+6. JACK displays PortAudio when Audacity is recording with JACK drivers so:
+a. Record then pause with Audacity
+b. Go to JACK dialog box - click connect
+c. Patch your audio app into PortAudio
+
+7. To get audio feedback from mic:
+a. Open qjackctl
+b. Click setup
+c. Select USB Audio #1 for all interfaces
+d. 128 buffers / 2-4 periods
+e. Start JACK server
+f. Connect 'sytstem in' to 'system out'
+g. Push Fast-Track A/B switch in B setting
+h. Connect monitors to 3/4 and headphones
+i. Launch karaoke program
+
+8. To get simultaneous playback on computer and USB speakers
+a. Install PulseAudio as instructed
+b. Select simultaneous outputs/inputs in PulseAudio Volume Control
+c. Launch VLC or your favorite audio p:layer in padsp mode.
+d. The sound output should come from both sources and record too.
+
+9. UPDATE: Get system wide stereo mix with instruments
+a. Go to System - Preferences - Sound
+b. Under audio devices select "Usb Audio" for all playback
+c. Select "USB Audio #1" for recording
+d. Reboot
+e. Turn A/B mixer knob to middle position
+f. Plug in a microphone
+g. Plug in computer speakers to 1/2 out
+i. See http://ubuntuforums.org/showthread.php?t=843012
+j. Use the PulseAudio Jack plugins
+k. Patch System and PulseAudio into PortAudio when using Audacity.
+
+10. Edit PulseAudio daemon.conf
+a. http://www.pulseaudio.org/attachment...26/daemon.conf
+b. Run "killall pulseaudio" from a terminal
+c. Run "pulseaudio -D" to restart
+
+Note: Using 48000 Hz causes tuning problems
+My daemon.conf settings:
+
+high-priority = yes
+nice-level = -11
+realtime-scheduling = yes
+realtime-priority = 1
+default-fragments = 10
+default-fragment-size-msec = 1
+resample-method = speex-float-3
+default-sample-format = s32le
+default-sample-rate = 44100
+default-sample-channels = 2
+no-cpu-limit = yes
+;disable-remixing = yes
+
+UPDATE: August 14, 2008 - Flash 10 with PulseAudio
+http://ubuntuforums.org/showpost.php...&postcount=472
+
+/home/resonancg/www/wiki/data/pages/logiciels/linux/3.audio.txt · Dernière modification: 2015/03/08 00:12 par  resonance
+
+Sauf mention contraire, le contenu de ce wiki est placé sous les termes de la licence suivante : GNU Free Documentation License 1.3
+GNU Free Documentation License 1.3  Built with Bootstrap 3  Powered by PHP  Valid HTML5  Valid CSS  Driven by DokuWiki 2017 | RESO-NANCE NUMERIQUE | LFO-FABLAB

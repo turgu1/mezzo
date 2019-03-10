@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -73,25 +73,25 @@ private:
 
 public:
 
-  Envelope() 
-  { 
-    ticks         = 
-    delay         = 
-    attack        = 
-    hold          = 
+  Envelope()
+  {
+    ticks         =
+    delay         =
+    attack        =
+    hold          =
     decay         = 0;
 
-    keynumToHold  = 
+    keynumToHold  =
     keynumToDecay = 0;
 
-    ratio         = 
+    ratio         =
     base          =
     amplitude     = 0.0f;
 
     coef          =
     sustain       = 1.0f;
-    
-    release       = centsToSampleCount(-3600); 
+
+    release       = centsToSampleCount(-3600);
 
     state         = START;
   }
@@ -120,23 +120,23 @@ public:
   inline void setKeynumToDecay  (int16_t k) { keynumToDecay  = k; }
   inline void addToKeynumToDecay(int16_t k) { keynumToDecay += k; }
 
-  // This is the decrease in level, expressed in centibels, to which the Volume 
-  // Envelope value ramps during the decay phase. For the Volume Envelope, the 
-  // sustain level is best expressed in centibels of attenuation from full scale. 
-  // A value of 0 indicates the sustain level is full level; this implies a zero 
-  // duration of decay phase regardless of decay time. A positive value indicates 
-  // a decay to the corresponding level. Values less than zero are to be 
-  // interpreted as zero; conventionally 1000 indicates full attenuation. 
-  // For example, a sustain level which corresponds to an absolute value 12dB 
+  // This is the decrease in level, expressed in centibels, to which the Volume
+  // Envelope value ramps during the decay phase. For the Volume Envelope, the
+  // sustain level is best expressed in centibels of attenuation from full scale.
+  // A value of 0 indicates the sustain level is full level; this implies a zero
+  // duration of decay phase regardless of decay time. A positive value indicates
+  // a decay to the corresponding level. Values less than zero are to be
+  // interpreted as zero; conventionally 1000 indicates full attenuation.
+  // For example, a sustain level which corresponds to an absolute value 12dB
   // below of peak would be 120.
 
-  inline void setSustain(int32_t s) 
+  inline void setSustain(int32_t s)
   {
     if (s >= 1000) {
-      sustain = 1.0f;
+      sustain = 0.0f;
     }
     else if (s <= 0) {
-      sustain = 0.0f;
+      sustain = 1.0f;
     }
     else {
       sustain = centibelToRatio(- s);
@@ -144,11 +144,12 @@ public:
   }
 
   inline void addToSustain(int32_t s)
-  { 
+  {
     if (s >= 1000) {
-      sustain = 0.1f;
+      sustain = 0.0f;
     }
     else if (s <= 0) {
+      // No change
     }
     else {
       sustain *= centibelToRatio(- s);
@@ -160,7 +161,7 @@ public:
     return exp(-log((1.0f + ratio) / ratio) / ticks);
   }
 
-  inline void setup(uint8_t note) 
+  inline void setup(uint8_t note)
   {
     (void) note;
 
@@ -173,7 +174,7 @@ public:
   /// release portion of the envelope. A quick release means a shortened
   /// period to go to a 0 amplitude. If the envelope is inactive (as requested
   /// by the user)
-  inline bool keyHasBeenReleased(bool quick = false) 
+  inline bool keyHasBeenReleased(bool quick = false)
   {
     if (!allActive) return true; // This will fake the end of the sound
 
@@ -251,7 +252,7 @@ public:
   // samples. Returns true if at the end of the envelope.
   //
   // If using NEON Intrinsics, length must be a multiple of 4.
-  inline bool getAmplitudes(sampleRecord & amps, uint16_t length) 
+  inline bool getAmplitudes(sampleRecord & amps, uint16_t length)
   {
     if (!allActive) return false; // Fake this it is not the end of the sound
 
@@ -263,7 +264,7 @@ public:
       ratio = 0.0001;
       coef  = computeCoef(ratio, ticks);
       base  = (- ratio) * (1.0f - coef);
-      
+
       if (state >= OFF) return true;
     }
 

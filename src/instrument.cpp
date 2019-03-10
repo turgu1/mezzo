@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -56,19 +56,19 @@ Instrument::Instrument(char * instrumentName, uint16_t bagIndex, uint16_t bagQty
 
 void Instrument::init()
 {
-  gens  = NULL;
-  mods  = NULL;
-  zones = NULL;
-
-  zoneCount = 0;
-  globalZonePresent = false;
-
-  globalZone.generators = NULL;
-  globalZone.modulators = NULL;
-  globalZone.genCount   =    0;
-  globalZone.modCount   =    0;
-
   for (int i = 0; i < 128; i++) keys[i] = KEY_NOT_USED;
+
+  gens                  =  NULL;
+  mods                  =  NULL;
+  zones                 =  NULL;
+
+  zoneCount             =     0;
+  globalZonePresent     = false;
+
+  globalZone.generators =  NULL;
+  globalZone.modulators =  NULL;
+  globalZone.genCount   =     0;
+  globalZone.modCount   =     0;
 
   loaded  = false;
 }
@@ -225,12 +225,11 @@ bool Instrument::load(sfBag      * bags,
               switch (gg->sfGenOper) {
                 case sfGenOper_keyRange:
                   zones[zoneIdx].keys = gg->genAmount.ranges;
-                  if (keys[zones[zoneIdx].keys.byLo] == KEY_NOT_USED) {
+                  //if (keys[zones[zoneIdx].keys.byLo] == KEY_NOT_USED) {
                     for (int k = zones[zoneIdx].keys.byLo; k <= zones[zoneIdx].keys.byHi; k++) {
-                      if (keys[k] != KEY_NOT_USED) logger.ERROR("MIDI Keys redondancies in zones for key %d.", k);
-                      keys[k] = zoneIdx;
+                      if (keys[k] == KEY_NOT_USED) keys[k] = zoneIdx;
                     }
-                  }
+                  //}
                   break;
                 case sfGenOper_velRange:
                   zones[zoneIdx].velocities = gg->genAmount.ranges;
@@ -280,6 +279,9 @@ bool Instrument::load(sfBag      * bags,
 
     if ((zones[zoneIdx].keys.byHi == 0) && (zones[zoneIdx].keys.byLo == 0)) {
       zones[zoneIdx].keys.byHi = 127;
+      for (int keyIdx = 0; keyIdx < 128; keyIdx++) {
+        if (keys[keyIdx] == KEY_NOT_USED) keys[keyIdx] = zoneIdx;
+      }
     };
 
     if ((zones[zoneIdx].velocities.byHi == 0) && (zones[zoneIdx].velocities.byLo == 0)) {
@@ -291,7 +293,7 @@ bool Instrument::load(sfBag      * bags,
         zones[zoneIdx].synth.setDefaults(soundFont->samples[zones[zoneIdx].sampleIndex]);
         zones[zoneIdx].synth.initGens(globalZone.generators, globalZone.genCount);
         zones[zoneIdx].synth.setGens(zones[zoneIdx].generators, zones[zoneIdx].genCount);
-        zones[zoneIdx].synth.completeParams(60);
+        //zones[zoneIdx].synth.completeParams(60);
       }
       else {
         logger.DEBUG("Unable to load sample for zones[%d] sampleIndex %d (zoneCount: %d)", zoneIdx, zones[zoneIdx].sampleIndex, zoneCount);
@@ -346,7 +348,7 @@ void Instrument::showZone(uint16_t zoneIdx)
 
   soundFont->samples[zones[zoneIdx].sampleIndex]->showStatus(2);
   zones[zoneIdx].synth.showStatus(2);
-  
+
   if (zones[zoneIdx].genCount > 0) {
     cerr << "  Generators:" << endl;
     for (int j = 0; j < zones[zoneIdx].genCount; j++) {

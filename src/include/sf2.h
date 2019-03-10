@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -66,7 +66,7 @@ struct mainChunkList {
 const int generatorDescriptorCount = 61;
 const struct generatorDescriptor {
   const char * name;
-  int          valueType;
+  int8_t       valueType;
   bool         hasDefaultValue;
   int16_t      defaultValue;
   int16_t      defaultHighKeyValue;
@@ -91,8 +91,8 @@ const struct generatorDescriptor {
   { "endAddrsCoarseOffset",       2, false,      0,   0,  true, false,      0,      0, "32k smpls"  }, // 12
   { "modLfoToVolume",             1, false,      0,   0, false,  true,   -960,    960, "cB fs"      }, // 13
   { "unused1",                   -1, false,      0,   0, false, false,      0,      0, ""           }, // 14
-  { "chorusEffectsSend",          1, false,      0,   0, false, false,      0,      0, "0.1%"       }, // 15
-  { "reverbEffectsSend",          1, false,      0,   0, false, false,      0,      0, "0.1%"       }, // 16
+  { "chorusEffectsSend",          1, false,      0,   0, false,  true,      0,   1000, "0.1%"       }, // 15
+  { "reverbEffectsSend",          1, false,      0,   0, false,  true,      0,   1000, "0.1%"       }, // 16
   { "pan",                        1,  true,      0,   0, false,  true,   -500,    500, "0.1%"       }, // 17
   { "unused2",                   -1, false,      0,   0, false, false,      0,      0, ""           }, // 18
   { "unused3",                   -1, false,      0,   0, false, false,      0,      0, ""           }, // 19
@@ -107,16 +107,16 @@ const struct generatorDescriptor {
   { "decayModEnv",                1,  true, -12000,   0, false,  true, -12000,   8000, "timecent"   }, // 28
   { "sustainModEnv",              1,  true,      0,   0, false,  true,      0,   1000, "-0.1%"      }, // 29
   { "releaseModEnv",              1,  true, -12000,   0, false,  true, -12000,   8000, "timecent"   }, // 30
-  { "keynumToModEnvHold",         1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 31
-  { "keynumToModEnvDecay",        1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 32
+  { "keynumToModEnvHold",         1, false,      0,   0, false,  true,  -1200,   1200, "tcent/key"  }, // 31
+  { "keynumToModEnvDecay",        1, false,      0,   0, false,  true,  -1200,   1200, "tcent/key"  }, // 32
   { "delayVolEnv",                1, false,      0,   0, false,  true, -12000,   5000, "timecent"   }, // 33
   { "attackVolEnv",               1, false,      0,   0, false,  true, -12000,   8000, "timecent"   }, // 34
   { "holdVolEnv",                 1, false,      0,   0, false,  true, -12000,   5000, "timecent"   }, // 35
   { "decayVolEnv",                1, false,      0,   0, false,  true, -12000,   8000, "timecent"   }, // 36
   { "sustainVolEnv",              1, false,      0,   0, false,  true,      0,   1440, "cB attn"    }, // 37
   { "releaseVolEnv",              1, false,      0,   0, false,  true, -12000,   8000, "timecent"   }, // 38
-  { "keynumToVolEnvHold",         1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 39
-  { "keynumToVolEnvDecay",        1, false,      0,   0, false, false,      0,      0, "tcent/key"  }, // 40
+  { "keynumToVolEnvHold",         1, false,      0,   0, false,  true,  -1200,   1200, "tcent/key"  }, // 39
+  { "keynumToVolEnvDecay",        1, false,      0,   0, false,  true,  -1200,   1200, "tcent/key"  }, // 40
   { "instrumentID",               2, false,      0,   0, false, false,      0,      0, "index"      }, // 41
   { "reserved1",                 -1, false,      0,   0, false, false,      0,      0, ""           }, // 42
   { "keyRange",                   0,  true,      0, 127, false,  true,      0,    127, "MIDI ky#"   }, // 43
@@ -124,7 +124,7 @@ const struct generatorDescriptor {
   { "startloopAddrsCoarseOffset", 2, false,      0,   0,  true, false,      0,      0, "smpls"      }, // 45
   { "keynum",                     1, false,      0,   0,  true, false,      0,      0, "MIDI ky#"   }, // 46
   { "velocity",                   1, false,      0,   0,  true, false,      0,      0, "MIDI vel"   }, // 47
-  { "initialAttenuation",         1, false,      0,   0, false, false,      0,      0, "cB"         }, // 48
+  { "initialAttenuation",         1, false,      0,   0, false,  true,      0,   1440, "cB"         }, // 48
   { "reserved2",                 -1, false,      0,   0, false, false,      0,      0, ""           }, // 49
   { "endloopAddrsCoarseOffset",   1, false,      0,   0,  true, false,      0,      0, "smpls"      }, // 50
   { "coarseTune",                 1, false,      0,   0, false,  true,   -120,    120, "semitone"   }, // 51
@@ -132,9 +132,9 @@ const struct generatorDescriptor {
   { "sampleID",                   2, false,      0,   0,  true, false,      0,      0, "index"      }, // 53
   { "sampleModes",                2,  true,      0,   0,  true, false,      0,      0, "Bit Flags"  }, // 54
   { "reserved3",                 -1, false,      0,   0, false, false,      0,      0, ""           }, // 55
-  { "scaleTuning",                1,  true,    100,   0, false, false,      0,      0, "cent/key"   }, // 56
+  { "scaleTuning",                1,  true,    100,   0, false,  true,      0,   1200, "cent/key"   }, // 56
   { "exclusiveClass",             2, false,      0,   0,  true, false,      0,      0, "arbitrary#" }, // 57
-  { "overridingRootKey",          1, false,      0,   0,  true,  true,     -1,    127, "MIDI ky#"   }, // 58
+  { "overridingRootKey",          1, false,      0,   0,  true,  true,      0,    127, "MIDI ky#"   }, // 58
   { "unused5",                   -1, false,      0,   0, false, false,      0,      0, ""           }, // 59
   { "endOper",                   -1, false,      0,   0, false, false,      0,      0, ""           }  // 60
 };

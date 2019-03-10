@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -88,22 +88,41 @@ int main(int argc, char **argv)
 
   assert(mezzo != NULL);
 
-  pthread_t smplFeeder;
   pthread_t vFeeder1;
   pthread_t vFeeder2;
   // pthread_t prtMonitor;
 
-  if (pthread_create(&smplFeeder, NULL, samplesFeeder, NULL)) {
-    logger.FATAL("Unable to start samplesFeeder thread.");
+  pthread_attr_t attr;
+  //struct sched_param schedParam;
+
+  //schedParam.sched_priority = 2;
+  //if (sched_setscheduler(0, SCHED_FIFO, &schedParam)) perror("sched_setscheduler() error");
+
+  if (pthread_attr_init(&attr)) {
+    logger.FATAL("Unable to initialize pthread attributes.");
+  }
+  if (pthread_attr_setschedpolicy(&attr, SCHED_RR)) {
+    logger.FATAL("Unable to set pthread scheduling policy.");
   }
 
-  if (pthread_create(&vFeeder1, NULL, voicesFeeder1, NULL)) {
+  #if !loadInMemory
+    pthread_t smplFeeder;
+    if (pthread_create(&smplFeeder, &attr, samplesFeeder, NULL)) {
+      logger.FATAL("Unable to start samplesFeeder thread.");
+    }
+  #endif
+
+  if (pthread_create(&vFeeder1, &attr, voicesFeeder1, NULL)) {
     logger.FATAL("Unable to start voicesFeeder1 thread.");
   }
 
-  if (pthread_create(&vFeeder2, NULL, voicesFeeder2, NULL)) {
+  if (pthread_setschedprio(vFeeder1, 2)) perror("pthread_setschedprio() error");
+
+  if (pthread_create(&vFeeder2, &attr, voicesFeeder2, NULL)) {
     logger.FATAL("Unable to start voicesFeeder2 thread.");
   }
+
+  if (pthread_setschedprio(vFeeder2, 2)) perror("pthread_setschedprio() error");
 
   if (config.interactive) {
     InteractiveMode im;
@@ -127,7 +146,10 @@ int main(int argc, char **argv)
 
   // Here we wait until the three threads have been stopped
 
-  pthread_join(smplFeeder, NULL);
+  #if !loadInMemory
+    pthread_join(smplFeeder, NULL);
+  #endif
+
   pthread_join(vFeeder1,   NULL);
   pthread_join(vFeeder2,   NULL);
 

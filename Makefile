@@ -15,8 +15,8 @@ TARGET      := mezzo
 
 SRCDIR       := src
 INCDIR       := src/include
-BUILDDIR     := obj
-TARGETDIR    := bin
+BUILDDIR     := /ramdisk/obj
+TARGETDIR    := /ramdisk
 SRCEXT       := cpp
 DEPEXT       := d
 OBJEXT       := o
@@ -44,12 +44,15 @@ else
 LIB         := -L$(BOOST_LIBDIR) $(BOOST_LIBS) -lportaudio -pthread -lrtmidi -lasound
 endif
 
+#-DNDEBUG=1
 ifeq (${HOST_TYPE},x86_64)
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic -march=native -msse3 \
-               -DNDEBUG=1 \
                -Wno-char-subscripts -Wno-unused-function -Wno-deprecated-declarations \
-               -Wno-unknown-attributes -Wno-unused-variable -Wno-unused-parameter \
-               -O3 -msse -msse2 -msse3 -pthread
+               -Wno-unused-variable -Wno-unused-parameter \
+							 -Wno-sequence-point -Wno-strict-aliasing -Wno-implicit-fallthrough -Wno-unused-result \
+               -msse -msse2 -msse3 -pthread \
+							 -DNDEBUG=1 \
+							 -O3 #0 -g -fno-inline
 else
 CFLAGS      := -std=gnu++14 -pthread -c -W -Wall -Wextra -pedantic \
                -DNDEBUG=1 \

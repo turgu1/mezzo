@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -59,21 +59,33 @@
 
 class Utils {
 public:
-  inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, rawSampleRecord & src, int length)
+  #if loadInMemory
+    inline static buffp shortToFloatNormalize(buffp dst, int16_t * src, int length)
+  #else
+    inline static sampleRecord & shortToFloatNormalize(sampleRecord & dst, rawSampleRecord & src, int length)
+  #endif
   {
     const float32_t norm = 1.0 / 32768.0;
 
     assert(src != NULL);
-    assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
+    #if loadInMemory
+      assert(length >= 1);
+    #else
+      assert((length >= 1) && (length <= BUFFER_SAMPLE_COUNT));
+    #endif
 
-    #if USE_NEON_INTRINSICS
+    #if 0//USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
       if (length & 0x03) {
         do {
           src[length++] = 0;
         } while (length & 0x03);
       }
-      assert((length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
+      #if loadInMemory
+        assert(length >= 4);
+      #else
+        assert((length >= 4) && (length <= BUFFER_SAMPLE_COUNT));
+      #endif
 
       for (int i = 0; i < length; i += 4) {
         __builtin_prefetch(&src[i]);

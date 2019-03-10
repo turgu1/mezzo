@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -64,7 +64,7 @@ private:
   uint32_t  sampleRate;
   uint32_t  sizeSample;
   uint32_t  sizeLoop;
-  float     correctionFactor;
+  double    correctionFactor;
   float32_t left, right;
   int16_t   pan;
   int16_t   fineTune;
@@ -74,14 +74,18 @@ private:
   int8_t    velocity;
   bool      loop;
   bool      endOfSound;
-  int16_t   lastValue;
+  #if loadInMemory
+    sample_t   lastValue;
+  #else
+    int16_t   lastValue;
+  #endif
 
   float attenuation;
 
   enum setGensType { set, adjust, init };
   void setGens(sfGenList * gens, uint8_t genCount, setGensType type);
 
-  inline void toStereoAndMix(frameRecord & dst, sampleRecord & src, uint16_t length) 
+  inline void toStereoAndMix(frameRecord & dst, sampleRecord & src, uint16_t length)
   {
     #if USE_NEON_INTRINSICS
       // If required, pad the buffer to be a multiple of 4
@@ -148,15 +152,15 @@ private:
         }
       #else
         for (int i = 0; i < length; i++) {
-          dst[i].left  += src[i] * left; 
+          dst[i].left  += src[i] * left;
           dst[i].right += src[i] * right;
         }
       #endif
     }
   }
 
-  inline void setAttenuation  (int16_t a) { attenuation  = centibelToRatio(- (a >> 1)); }
-  inline void addToAttenuation(int16_t a) { attenuation *= centibelToRatio(- (a >> 1)); }
+  inline void setAttenuation  (int16_t a) { attenuation  = centibelToRatio(- a); }
+  inline void addToAttenuation(int16_t a) { attenuation *= centibelToRatio(- a); }
 
 public:
 
@@ -183,7 +187,7 @@ public:
   inline uint16_t   getPan()         { return pan;               }
   inline uint32_t   getSizeSample()  { return sizeSample;        }
   inline uint32_t   getSizeLoop()    { return sizeLoop;          }
-  inline float      getCorrection()  { return correctionFactor;  }
+  inline double     getCorrection()  { return correctionFactor;  }
   inline uint8_t    getRootKey()     { return rootKey;           }
   inline int8_t     getVelocity()    { return velocity;          }
   inline int8_t     getKeynum()      { return keynum;            }
@@ -192,10 +196,15 @@ public:
   inline Envelope * getVolEnvelope() { return &volEnvelope;      }
   inline Envelope * getModEnvelope() { return &modEnvelope;      }
 
-  inline void     setEndOfSound(bool val) { endOfSound = val;  }
+  inline void     setEndOfSound(bool val) { endOfSound = val;    }
 
-  inline void     setLastValue(int16_t v) { lastValue = v;     }
-  inline int16_t  getLastValue()          { return lastValue;  }
+  #if loadInMemory
+    inline void      setLastValue(sample_t v) { lastValue = v;    }
+    inline sample_t  getLastValue()           { return lastValue; }
+  #else
+    inline void     setLastValue(int16_t v) { lastValue = v;     }
+    inline int16_t  getLastValue()          { return lastValue;  }
+  #endif
 
   /// Returns true if this call must be considered the end of the note (in the
   /// case where the envelope as been desactivated)
@@ -211,7 +220,7 @@ public:
   static bool toggleVibrato()    { return  Vibrato::toggleAllActive(); }
   static bool toggleEnvelope()   { return Envelope::toggleAllActive(); }
 
-  inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float gain) 
+  inline void applyEnvelopeAndGain(sampleRecord & src, uint16_t length, float gain)
   {
     sampleRecord amps;
 
@@ -228,6 +237,7 @@ public:
     #endif
 
     float32_t attGain = gain * attenuation;
+    //std::cout << attGain << " / " << attenuation << std::endl;
 
     endOfSound = volEnvelope.getAmplitudes(amps, length);
 
@@ -245,8 +255,8 @@ public:
         vst1q_f32(&src[i], srcData);
       }
     #else
-      for (uint16_t i = 0; i < length; i++) { 
-        src[i] *= gain * amps[i]; 
+      for (uint16_t i = 0; i < length; i++) {
+        src[i] *= attGain * amps[i];
       }
     #endif
   }

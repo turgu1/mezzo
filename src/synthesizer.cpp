@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -41,16 +41,33 @@
 #include <math.h>
 #include <iomanip>
 
-#define SetOrAdd(op,x,y)                                        \
-  if (type == init) x.set##y(gens->genAmount.shAmount);         \
-  else if (type == set) x.set##y(gens->genAmount.shAmount);     \
-  else if (type == adjust) x.addTo##y(gens->genAmount.shAmount); break
+#define SetOrAdd(op,x,y)                                         \
+  if (type == init) x.set##y(gens->genAmount.shAmount);          \
+  else if (type == set) x.set##y(gens->genAmount.shAmount);      \
+  else if (type == adjust) x.addTo##y(gens->genAmount.shAmount); \
+  break
+
+static inline bool check(const generatorDescriptor & gen, const genAmountType & value)
+{
+  bool result = true;
+  if (gen.checkRange) {
+    if (gen.valueType == 1) {
+      result = !((gen.minRange > value.shAmount) || (value.shAmount > gen.highRange));
+    }
+    else if (gen.valueType == 2) {
+      result = !((gen.minRange > value.wAmount) || (value.wAmount > gen.highRange));
+    }
+  }
+  //if (!result) std::cout << gen.name << " is out of range: " << value.shAmount << std::endl;
+  return result;
+}
 
 void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 {
   Synthesizer & me = *this;
 
   while (genCount--) {
+    if (!check(generatorsDesc[gens->sfGenOper], gens->genAmount)) { gens++; continue; }
     SFGenerator op = gens->sfGenOper;
     switch (op) {
       case sfGenOper_startAddrsOffset:
@@ -60,12 +77,11 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         end += gens->genAmount.shAmount;
         break;
       case sfGenOper_startloopAddrsOffset:
+        //std::cout << "startLoop:" << startLoop << "/ " << gens->genAmount.shAmount << std::endl;
         startLoop += gens->genAmount.shAmount;
-        loop = startLoop != endLoop;
         break;
       case sfGenOper_endloopAddrsOffset:
         endLoop += gens->genAmount.shAmount;
-        loop = startLoop != endLoop;
         break;
       case sfGenOper_startAddrsCoarseOffset:
         start += (32768 * gens->genAmount.shAmount);
@@ -78,6 +94,10 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
         break;
       case  sfGenOper_endloopAddrsCoarseOffset:
         endLoop += (32768 * gens->genAmount.shAmount);
+        break;
+      case  sfGenOper_sampleModes:
+        //std::cout << "SampleModes:" << gens->genAmount.wAmount << std::endl;
+        loop = (gens->genAmount.wAmount & 1) != 0;
         break;
       case sfGenOper_pan:
         pan = (type == set) ?
@@ -148,7 +168,6 @@ void Synthesizer::setGens(sfGenList * gens, uint8_t genCount, setGensType type)
 
       case  sfGenOper_scaleTuning:
 
-      case  sfGenOper_sampleModes:
       case  sfGenOper_exclusiveClass:
 
       case  sfGenOper_keyRange:
@@ -180,7 +199,7 @@ void Synthesizer::setDefaults(Sample * sample)
   sampleRate       = sample->getSampleRate();
   rootKey          = sample->getPitch();
   correctionFactor = centsToRatio(sample->getCorrection());
-  loop             = startLoop != endLoop;
+  loop             = false;
 
   pan              =     0;
   velocity         =    -1;
@@ -194,7 +213,6 @@ void Synthesizer::completeParams(uint8_t note)
 {
   using namespace std;
 
-  loop = startLoop != endLoop;
   if (loop) {
     sizeSample = endLoop;
   }
@@ -208,6 +226,7 @@ void Synthesizer::completeParams(uint8_t note)
   vib.setup(note);
   //biQuad.setup();
 
+  //std::cout << correctionFactor << " / " << fineTune << " / " << centsToRatio(fineTune) << std::endl << std::flush;
   correctionFactor *= centsToRatio(fineTune);
 
   pos = 0;
@@ -228,11 +247,12 @@ void Synthesizer::showStatus(int spaces)
   using namespace std;
 
   cout << setw(spaces) << ' '
-       << "Synth:" 
+       << "Synth:"
        << "[root:"        << +rootKey
-       << " velocity:"    << +velocity 
+       << " velocity:"    << +velocity
        << " start:"       << start
        << " end:"         << end
+       << " looping:"     << (const char *) (loop ? "yes" : "no")
        << " startLoop:"   << startLoop
        << " endLoop:"     << endLoop
        << " pan:"         << pan
@@ -245,5 +265,3 @@ void Synthesizer::showStatus(int spaces)
           vib.showStatus(spaces + 4);
        biQuad.showStatus(spaces + 4);
 }
-
-

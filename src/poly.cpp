@@ -10,16 +10,16 @@
 //
 // Copyright (c) 2018, Guy Turcotte
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // The views and conclusions contained in the software and documentation are those
 // of the authors and should not be interpreted as representing official policies,
 // either expressed or implied, of the FreeBSD Project.
@@ -56,35 +56,38 @@ void stopThreads()
   pthread_cond_broadcast(&voiceCond);
 }
 
-//---- samplesFeeder() ----
-//
-// This function represent a thread responsible of reading
-// samples from the SoundFont to push into the voices structure close to real-time.
+#if !loadInMemory
+  //---- samplesFeeder() ----
+  //
+  // This function represent a thread responsible of reading
+  // samples from the SoundFont to push into the voices structure close to real-time.
 
-void * samplesFeeder(void * args)
-{
-  (void) args;
+  void * samplesFeeder(void * args)
+  {
+    (void) args;
 
-  while (keepRunning) {
+    while (keepRunning) {
 
-    if (poly->getVoiceCount() == 0) {
-      pthread_cond_wait(&voiceCond, &voiceMutex);
-      pthread_mutex_unlock(&voiceMutex);
-    } 
-    
-    voicep voice = poly->getVoices();
+      // If there is no active voice, put the thread on hold
+      if (poly->getVoiceCount() == 0) {
+        pthread_cond_wait(&voiceCond, &voiceMutex);
+        pthread_mutex_unlock(&voiceMutex);
+      }
 
-    while ((voice != NULL) && keepRunning) {
+      voicep voice = poly->getVoices();
 
-      voice->feedFifo();
+      while ((voice != NULL) && keepRunning) {
 
-      sched_yield();
-      voice = voice->getNext();
+        voice->feedFifo();
+
+        sched_yield();
+        voice = voice->getNext();
+      }
     }
-  }
 
-  pthread_exit(NULL);
-}
+    pthread_exit(NULL);
+  }
+#endif
 
 //---- voicesFeeder() ----
 //
@@ -100,8 +103,8 @@ void * voicesFeeder1(void * args)
     if (poly->getVoiceCount() == 0) {
       pthread_cond_wait(&voiceCond, &voiceMutex);
       pthread_mutex_unlock(&voiceMutex);
-    } 
-    
+    }
+
     voicep voice = poly->getVoices();
 
     while ((voice != NULL) && (voice->getSeq() & 0x01)) voice = voice->getNext();
@@ -129,7 +132,7 @@ void * voicesFeeder2(void * args)
     if (poly->getVoiceCount() == 0) {
       pthread_cond_wait(&voiceCond, &voiceMutex);
       pthread_mutex_unlock(&voiceMutex);
-    } 
+    }
 
     voicep voice = poly->getVoices();
 
