@@ -79,6 +79,8 @@
 // Todo: Complete 24 bits support
 #define samples24bits 0
 
+// Load samples in memory instead of caching part of them. Requires enough
+// available memory for all samples of a preset.
 #define loadInMemory 1
 
 class Mezzo;
